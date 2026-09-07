@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- General Package Properties -->
+	<PropertyGroup>
+		<PackageId>BlueprintsIncluded</PackageId>
+		<Version>7.0.0</Version>
+		<Authors>Lars Dytterud</Authors>
+		<Copyright>$(AssemblyCopyright)</Copyright>
+		<RepositoryUrl>https://github.com/dytterud/BlueprintsIncluded</RepositoryUrl>
+	</PropertyGroup>
+
+	<!-- Build Properties -->
+	<PropertyGroup>
+
+		<Configurations>Debug;Release</Configurations>
+		<AssemblyName>BlueprintsIncluded</AssemblyName>
+		<RootNamespace>BlueprintsV2</RootNamespace>
+		<IsMod>true</IsMod>
+		<SteamId></SteamId>
+		<GenerateMetadata>true</GenerateMetadata>
+		<IsPacked>true</IsPacked>
+	</PropertyGroup>
+
+
+	<!-- Mod Info -->
+	<PropertyGroup>
+		<ModName>Blueprints Included</ModName>
+		<ModDescription>Design and store your favourite designs, including building settings</ModDescription>
+		<MinimumSupportedBuild>$(TargetGameVersion)</MinimumSupportedBuild>
+		<APIVersion>2</APIVersion>
+	</PropertyGroup>
+
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<OutDir>bin</OutDir>
+	</PropertyGroup>
+
+	<!--The mod project sits at the repo root; keep the SDK default globs from sweeping in
+	    the sibling project / dependency folders that live alongside it.-->
+	<PropertyGroup>
+		<DefaultItemExcludes>$(DefaultItemExcludes);Lib\**;UtilLibs\**;TwitchLib\**;Builds\**;PublicisedAssembly\**;bin\**;obj\**</DefaultItemExcludes>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="UtilLibs\UtilLibs.csproj" />
+	</ItemGroup>
+
+
+  <ItemGroup>
+    <Folder Include="BlueprintData\DataTransfer\" />
+    <Folder Include="Visualizers\ReplacementVisualizers\Entities\" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="ONI_Together_API">
+			<HintPath>TwitchLib\ONI_Together_API.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+</Project>
