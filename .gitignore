@@ -365,6 +365,5 @@ MigrationBackup/
 FodyWeavers.xsd
 /PublicisedAssembly
 /Builds
-/UtilLibs/ErrorRemoval.cs
+/src/UtilLibs/ErrorRemoval.cs
 Directory.Build.props.user
-BlueprintsIncluded.slnx

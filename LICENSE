@@ -24,8 +24,8 @@ SOFTWARE.
 
 ---
 
-The reference assemblies bundled under Lib/ are auto-generated from Oxygen Not
-Included and third-party libraries; see Lib/LICENSE.txt. Game code is used under
+The reference assemblies bundled under lib/ are auto-generated from Oxygen Not
+Included and third-party libraries; see lib/LICENSE.txt. Game code is used under
 Klei Entertainment's Mod and UGC guidelines
 (https://support.klei.com/hc/en-us/articles/27787028069012), which do not permit
 commercial use of the mod.

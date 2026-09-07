@@ -3,12 +3,12 @@
 	<Import Condition=" !Exists('Directory.Build.props.user') " Project="Directory.Build.props.default" />
 	<Import Condition=" Exists('Directory.Build.props.user') " Project="Directory.Build.props.user" />
 
-	<!--Offline build: use the committed reference assemblies in ./Lib instead of a real
+	<!--Offline build: use the committed reference assemblies in ./lib instead of a real
 	    ONI install. Enable by passing -p:OfflineBuild=true (do NOT also pass GameLibsFolder).-->
 	<PropertyGroup>
-		<OfflineBuild Condition="'$(OfflineBuild)' == '' And $([System.String]::Copy('$(GameLibsFolder)').Replace('\','/').TrimEnd('/').EndsWith('/Lib'))">true</OfflineBuild>
+		<OfflineBuild Condition="'$(OfflineBuild)' == '' And $([System.String]::Copy('$(GameLibsFolder)').Replace('\','/').TrimEnd('/').ToLower().EndsWith('/lib'))">true</OfflineBuild>
 		<!--Anchor the offline lib folder to the repo root so per-project relative paths resolve correctly.-->
-		<GameLibsFolder Condition="'$(OfflineBuild)' == 'true'">$(MSBuildThisFileDirectory)Lib</GameLibsFolder>
+		<GameLibsFolder Condition="'$(OfflineBuild)' == 'true'">$(MSBuildThisFileDirectory)lib</GameLibsFolder>
 	</PropertyGroup>
 
 	<PropertyGroup>

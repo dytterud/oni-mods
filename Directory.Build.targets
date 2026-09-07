@@ -98,7 +98,7 @@
 
 	</Target>
 
-	<!--Creates publicized dlls from the game dlls (real-game builds only; offline builds use ./Lib/*_public.dll)-->
+	<!--Creates publicized dlls from the game dlls (real-game builds only; offline builds use ./lib/*_public.dll)-->
 	<ItemGroup>
 		<PubliciseAssemblies       Include="Assembly-CSharp.dll;Assembly-CSharp-firstpass.dll;"/>
 		<PubliciseAssembliesInputs Include="@(PubliciseAssemblies->'$(GameLibsFolder)/%(Filename)%(Extension)')"/>

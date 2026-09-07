@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BlueprintsIncluded/BlueprintsIncluded.csproj" />
+    <Project Path="src/UtilLibs/UtilLibs.csproj" />
+  </Folder>
+</Solution>

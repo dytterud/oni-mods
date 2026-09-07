@@ -35,14 +35,8 @@
 		<OutDir>bin</OutDir>
 	</PropertyGroup>
 
-	<!--The mod project sits at the repo root; keep the SDK default globs from sweeping in
-	    the sibling project / dependency folders that live alongside it.-->
-	<PropertyGroup>
-		<DefaultItemExcludes>$(DefaultItemExcludes);Lib\**;UtilLibs\**;TwitchLib\**;Builds\**;PublicisedAssembly\**;bin\**;obj\**</DefaultItemExcludes>
-	</PropertyGroup>
-
 	<ItemGroup>
-		<ProjectReference Include="UtilLibs\UtilLibs.csproj" />
+		<ProjectReference Include="..\UtilLibs\UtilLibs.csproj" />
 	</ItemGroup>
 
 
@@ -53,7 +47,7 @@
 
 	<ItemGroup>
 		<Reference Include="ONI_Together_API">
-			<HintPath>TwitchLib\ONI_Together_API.dll</HintPath>
+			<HintPath>..\..\lib\ONI_Together_API.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 </Project>

@@ -12,23 +12,22 @@ ONI treats it as a separate mod from the upstream Steam item.
 
 | Path | What |
 |------|------|
-| `BlueprintsIncluded.csproj` | the mod project (repo root) |
-| `UtilLibs/` | vendored shared helper library (built into the mod dll) |
-| `Lib/` | committed ONI reference assemblies for offline builds |
-| `TwitchLib/ONI_Together_API.dll` | optional multiplayer integration reference |
+| `src/BlueprintsIncluded/` | the mod project (`.csproj`, source, `ModAssets/`) |
+| `src/UtilLibs/` | vendored shared helper library (ILRepacked into the mod dll) |
+| `lib/` | committed ONI / Unity reference assemblies + `ONI_Together_API.dll` for offline builds |
 | `Directory.Build.props` / `.targets` | shared build logic (mod.yaml generation, ILRepack, asset copy) |
+| `BlueprintsIncluded.slnx` | solution |
 
 ## Building
 
 ### Offline (no game install required)
 
 ```
-msbuild -t:restore -property:Configuration=Release
-msbuild -t:rebuild  -property:Configuration=Release -property:GameLibsFolder="Lib"
+dotnet build BlueprintsIncluded.slnx -c Release -p:OfflineBuild=true
 ```
 
-Output: `bin/BlueprintsIncluded.dll` (ILRepack-merged with `UtilLibs` + `PLib`), and
-a ready-to-load mod folder at `Builds/BlueprintsIncluded/`.
+Output: `src/BlueprintsIncluded/bin/BlueprintsIncluded.dll` (ILRepack-merged with
+`UtilLibs` + `PLib`), and a ready-to-load mod folder at `Builds/BlueprintsIncluded/`.
 
 ### Against a local ONI install (for in-game testing)
 
@@ -36,7 +35,7 @@ a ready-to-load mod folder at `Builds/BlueprintsIncluded/`.
    `GameLibsFolder` (the game's `OxygenNotIncluded_Data/Managed` folder) and
    `ModFolder` (your `Klei/OxygenNotIncluded/mods/dev` folder).
 2. `dotnet tool restore` (installs the assembly publicizer / refasmer tools).
-3. `msbuild -t:rebuild -property:Configuration=Debug` — the built mod is copied to
+3. `dotnet build BlueprintsIncluded.slnx -c Debug` — the built mod is copied to
    your dev mods folder.
 
 ## License
