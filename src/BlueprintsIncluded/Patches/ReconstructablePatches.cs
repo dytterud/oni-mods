@@ -1,11 +1,7 @@
 ﻿using BlueprintsV2.BlueprintData;
 using BlueprintsV2.ModAPI;
 using HarmonyLib;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 
 namespace BlueprintsV2.Patches

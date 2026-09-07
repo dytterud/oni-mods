@@ -1,6 +1,4 @@
 ﻿using BlueprintsV2.BlueprintData.PlanningToolMod_Integration;
-using System.Collections.Generic;
-using System.Linq;
 using UtilLibs;
 
 namespace BlueprintsV2.Tools

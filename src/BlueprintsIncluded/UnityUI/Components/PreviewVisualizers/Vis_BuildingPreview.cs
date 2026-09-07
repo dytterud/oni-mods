@@ -1,9 +1,6 @@
 ﻿using BlueprintsV2.BlueprintData;
 using BlueprintsV2.Visualizers.ReplacementVisualizers;
 using BlueprintsV2.UnityUI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;

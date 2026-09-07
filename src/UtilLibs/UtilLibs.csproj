@@ -8,6 +8,8 @@
 	</PropertyGroup>
 	<PropertyGroup>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<!-- Vendored as-is: relies on UnityEngine.Object/Random being unambiguous. -->
+		<ImplicitUsings>disable</ImplicitUsings>
 	</PropertyGroup>
 	<ItemGroup>
 	  <Compile Remove="Properties\**" />

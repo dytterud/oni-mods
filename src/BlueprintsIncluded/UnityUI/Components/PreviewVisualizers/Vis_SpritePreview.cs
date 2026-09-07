@@ -1,7 +1,5 @@
 ﻿using BlueprintsV2.BlueprintData;
 using Rendering;
-using System;
-using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;

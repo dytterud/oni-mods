@@ -3,7 +3,6 @@ using BlueprintsV2.BlueprintData;
 using BlueprintsV2.Tools;
 using Database;
 using HarmonyLib;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using TUNING;
 using UnityEngine;

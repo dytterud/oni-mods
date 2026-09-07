@@ -5,9 +5,6 @@ using BlueprintsV2.UnityUI;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ONI_Together.Networking.Packets.Architecture;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text;
 using UtilLibs;
 
