@@ -1,0 +1,58 @@
+<Project>
+
+	<!--
+	  Shared config for all test projects.
+
+	  MSBuild only auto-imports the *nearest* Directory.Build.props, so chain the
+	  repo-root one explicitly: it provides the game <Reference> items, the offline
+	  ./lib detection and the language settings the production projects use.
+	-->
+	<Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+	<PropertyGroup>
+		<!-- The mod targets netstandard2.1 (an API contract, not a runtime).
+		     Tests need a real runtime: net8.0 is installed and LTS. -->
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<IsPackable>false</IsPackable>
+		<IsPublishable>false</IsPublishable>
+
+		<!-- Escape the mod build pipeline (mod.yaml / mod_info.yaml / LauncherMetadata,
+		     ILRepack, assembly publicizer, copy-to-dev-folder). -->
+		<DoNotBuildAsMod>true</DoNotBuildAsMod>
+		<IsMod>false</IsMod>
+		<IsPacked>false</IsPacked>
+		<GenerateMetadata>false</GenerateMetadata>
+
+		<!-- Don't fail the test build on the production projects' style / deprecation rules. -->
+		<EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+		<WarningsAsErrors></WarningsAsErrors>
+		<NoWarn>$(NoWarn);CS0618;CS0612;CS0649;NU1701;NU1702</NoWarn>
+	</PropertyGroup>
+
+	<!--
+	  The inherited game references are Private=false (correct for a mod that loads
+	  inside ONI). Tests run standalone, so the referenced assemblies must sit next
+	  to the test host. In offline mode they come from ./lib; the two publicised
+	  assemblies are copied under their real simple name so the runtime loader
+	  finds them by app-base probing.
+	-->
+	<ItemGroup Condition="'$(OfflineBuild)' == 'true'">
+		<None Include="$(GameLibsFolder)\Assembly-CSharp_public.dll" Link="Assembly-CSharp.dll"
+		      Visible="false" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="$(GameLibsFolder)\Assembly-CSharp-firstpass_public.dll" Link="Assembly-CSharp-firstpass.dll"
+		      Visible="false" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="$(GameLibsFolder)\*.dll" Visible="false" CopyToOutputDirectory="PreserveNewest"
+		      Exclude="$(GameLibsFolder)\Assembly-CSharp.dll;$(GameLibsFolder)\Assembly-CSharp_public.dll;$(GameLibsFolder)\Assembly-CSharp-firstpass.dll;$(GameLibsFolder)\Assembly-CSharp-firstpass_public.dll;$(GameLibsFolder)\netstandard.dll;$(GameLibsFolder)\Newtonsoft.Json.dll" />
+	</ItemGroup>
+
+	<!-- Use the NuGet Newtonsoft.Json (13.x): the test platform's own host needs it, and
+	     the game's build rolls forward to it fine. Copying the game's copy shadows it and
+	     crashes the test host. -->
+	<ItemGroup>
+		<PackageReference Include="Newtonsoft.Json" />
+	</ItemGroup>
+
+</Project>
