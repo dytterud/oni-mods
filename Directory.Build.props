@@ -178,6 +178,14 @@
 		<PackageReference Include="Lib.Harmony.Ref"/>
 	</ItemGroup>
 
+	<!--Compile-time polyfills for newer C# features on netstandard2.1 (source generator, no runtime dependency).-->
+	<ItemGroup>
+		<PackageReference Include="PolySharp">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
 	<ItemGroup Condition="'$(IsPacked)' == 'true'">
 		<PackageReference Include="ILRepack.Lib.MSBuild.Task">
 			<PrivateAssets>all</PrivateAssets>
