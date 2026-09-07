@@ -2,6 +2,7 @@
 using BlueprintsV2.UnityUI;
 using BlueprintsV2.UnityUI.Components;
 using BlueprintsV2.Tools;
+using BlueprintsV2.UnityUI.Components;
 using rail;
 using STRINGS;
 using System.Collections;
