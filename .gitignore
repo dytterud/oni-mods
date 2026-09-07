@@ -367,3 +367,4 @@ FodyWeavers.xsd
 /Builds
 /src/UtilLibs/ErrorRemoval.cs
 Directory.Build.props.user
+*.bak
