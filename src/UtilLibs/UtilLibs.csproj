@@ -7,7 +7,6 @@
 		<!--<DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>-->
 	</PropertyGroup>
 	<PropertyGroup>
-		<LangVersion>preview</LangVersion>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	</PropertyGroup>
 	<ItemGroup>
