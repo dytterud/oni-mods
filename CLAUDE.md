@@ -34,6 +34,8 @@ Sub-namespaces mirror folders: `Patches/`, `Tools/`, `BlueprintData/`, `UnityUI/
 - `.editorconfig` is authoritative. C# files are **UTF-8 with BOM**, CRLF, 4-space indent.
 - **Block-scoped** namespaces (`namespace X { ... }`), never file-scoped. `using` directives
   outside the namespace, System first. No `this.` qualification.
+- **No `partial` types** — every class / struct / record / interface is declared in one
+  place. Not build-enforced (no analyzer id covers it); keep it out in review.
 - `ImplicitUsings` is **enabled** for `BlueprintsIncluded` and its test project, **disabled**
   for `UtilLibs` / `UtilLibs.Tests` (vendored code relies on unqualified `UnityEngine`
   names) — add explicit `using`s when editing UtilLibs.

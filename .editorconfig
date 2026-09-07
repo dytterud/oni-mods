@@ -27,6 +27,9 @@ csharp_using_directive_placement = outside_namespace:suggestion
 csharp_style_namespace_declarations = block_scoped:silent
 dotnet_sort_system_directives_first = true
 
+# Convention (no diagnostic id exists to enforce it): do not use `partial` types.
+# Every class/struct/record/interface is declared in a single place.
+
 # 'this.' not required
 dotnet_style_qualification_for_field = false:suggestion
 dotnet_style_qualification_for_property = false:suggestion

@@ -1,8 +1,5 @@
 ﻿using HarmonyLib;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UtilLibs;
 using static AccessControl;
@@ -30,10 +27,8 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<UserNameable>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("savedName");
-					if (t1 == null)
+					if (!jObject.TryGet<string>("savedName", out var savedName))
 						return;
-					var savedName = t1.Value<string>();
 					targetComponent.SetName(savedName);
 				}
 			}
@@ -61,11 +56,8 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<BuildingEnabledButton>(out var targetComponent))
 				{
-
-					var t1 = jObject.GetValue("IsEnabled");
-					if (t1 == null)
+					if (!jObject.TryGet<bool>("IsEnabled", out var IsEnabled))
 						return;
-					var IsEnabled = t1.Value<bool>();
 					targetComponent.IsEnabled = IsEnabled;
 				}
 			}
@@ -104,11 +96,8 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<Repairable>(out var targetComponent))
 				{
-
-					var t1 = jObject.GetValue("ForbiddenRepair");
-					if (t1 == null)
+					if (!jObject.TryGet<bool>("ForbiddenRepair", out var RepairForbidden))
 						return;
-					var RepairForbidden = t1.Value<bool>();
 					if (targetComponent.smi == null)
 					{
 						//SgtLogger.l("Repairable component has no state machine, skipping repair state transfer.");
@@ -145,20 +134,14 @@ namespace BlueprintsV2.BlueprintData
 
 				if (smi != null)
 				{
-
-					var t1 = jObject.GetValue("TargetTag");
-					if (t1 == null)
+					if (!jObject.TryGet<string>("TargetTag", out var TargetTag))
 						return;
-					var TargetTag = t1.Value<string>();
 					var tagParsed = TagManager.Create(TargetTag);
-					if(tagParsed.IsValid)
+					if (tagParsed.IsValid)
 						smi.SetTargetItem(tagParsed);
 
-					var t2 = jObject.GetValue("UserMaxCapacity");
-					if (t2 == null)
+					if (!jObject.TryGet<float>("UserMaxCapacity", out var UserMaxCapacity))
 						return;
-					var UserMaxCapacity = t2.Value<float>();
-
 					smi.UserMaxCapacity = UserMaxCapacity;
 				}
 			}
@@ -211,21 +194,12 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<SingleEntityReceptacle>(out var targetComponent))
 				{
-
-					var t1 = jObject.GetValue("requestedEntityTag");
-					if (t1 == null)
+					if (!jObject.TryGet<string>("requestedEntityTag", out var requestedEntityTag))
 						return;
-					var requestedEntityTag = t1.Value<string>();
-
-					var t2 = jObject.GetValue("requestedEntityAdditionalFilterTag");
-					if (t2 == null)
+					if (!jObject.TryGet<string>("requestedEntityAdditionalFilterTag", out var requestedEntityAdditionalFilterTag))
 						return;
-					var requestedEntityAdditionalFilterTag = t2.Value<string>();
-
-					var t3 = jObject.GetValue("autoReplaceEntity");
-					if (t3 == null)
+					if (!jObject.TryGet<bool>("autoReplaceEntity", out var autoReplaceEntity))
 						return;
-					var autoReplaceEntity = t3.Value<bool>();
 
 					//SgtLogger.l("Requested Entity Tag: " + requestedEntityTag + ", extra filter: " + requestedEntityAdditionalFilterTag);
 
@@ -259,17 +233,10 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<LogicClusterLocationSensor>(out var targetComponent))
 				{
-
-					var t1 = jObject.GetValue("activeInSpace");
-					if (t1 == null)
+					if (!jObject.TryGet<bool>("activeInSpace", out var activeInSpace))
 						return;
-					var activeInSpace = t1.Value<bool>();
-
-
-					var t2 = jObject.GetValue("activeLocations");
-					if (t2 == null)
+					if (!jObject.TryGetEmbedded<List<Tuple<int, int>>>("activeLocations", out var activeLocations))
 						return;
-					var activeLocations = EmbeddedJson.To<List<Tuple<int, int>>>(t2);
 
 					//applying values
 					targetComponent.activeInSpace = activeInSpace;
@@ -277,9 +244,9 @@ namespace BlueprintsV2.BlueprintData
 					foreach (var entry in activeLocations)
 					{
 						var location = new AxialI(entry.first, entry.second);
-						
-						if(ClusterManager.Instance?.m_grid?.GetAsteroidAtCell(location) != null) //only add valid asteroids
-							targetComponent.SetLocationEnabled(location,true);
+
+						if (ClusterManager.Instance?.m_grid?.GetAsteroidAtCell(location) != null) //only add valid asteroids
+							targetComponent.SetLocationEnabled(location, true);
 					}
 
 				}
@@ -306,21 +273,17 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<LogicCounter>(out var targetComponent))
 				{
-
-					var t1 = jObject.GetValue("maxCount");
-					if (t1 == null)
+					if (!jObject.TryGet<int>("maxCount", out var maxCount))
 						return;
-					targetComponent.maxCount = t1.Value<int>();
+					targetComponent.maxCount = maxCount;
 
-					var t2 = jObject.GetValue("resetCountAtMax");
-					if (t2 == null)
+					if (!jObject.TryGet<bool>("resetCountAtMax", out var resetCountAtMax))
 						return;
-					targetComponent.resetCountAtMax = t2.Value<bool>();
+					targetComponent.resetCountAtMax = resetCountAtMax;
 
-					var t3 = jObject.GetValue("advancedMode");
-					if (t3 == null)
+					if (!jObject.TryGet<bool>("advancedMode", out var advancedMode))
 						return;
-					targetComponent.advancedMode = t3.Value<bool>();
+					targetComponent.advancedMode = advancedMode;
 				}
 			}
 		}
@@ -383,11 +346,8 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<PixelPack>(out var targetComponent))
 				{
-
-					var t1 = jObject.GetValue("colorSettings");
-					if (t1 == null)
+					if (!jObject.TryGetEmbedded<PixelPackColorData[]>("colorSettings", out var colorSettings))
 						return;
-					var colorSettings = EmbeddedJson.To<PixelPackColorData[]>(t1);
 
 					//applying values
 					if (targetComponent.colorSettings == null)
@@ -436,10 +396,9 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<IUserControlledCapacity>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("UserMaxCapacity");
-					if (t1 == null)
+					if (!jObject.TryGet<float>("UserMaxCapacity", out var UserMaxCapacity))
 						return;
-					targetComponent.UserMaxCapacity = t1.Value<float>();
+					targetComponent.UserMaxCapacity = UserMaxCapacity;
 				}
 			}
 		}
@@ -465,10 +424,9 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<Automatable>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("automationOnly");
-					if (t1 == null)
+					if (!jObject.TryGet<bool>("automationOnly", out var automationOnly))
 						return;
-					targetComponent.SetAutomationOnly(t1.Value<bool>());
+					targetComponent.SetAutomationOnly(automationOnly);
 				}
 			}
 		}
@@ -492,17 +450,10 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<LogicTimeOfDaySensor>(out var targetComponent))
 				{
-
-					var t1 = jObject.GetValue("startTime");
-					if (t1 == null)
+					if (!jObject.TryGet<float>("startTime", out var startTime))
 						return;
-					var startTime = t1.Value<float>();
-
-
-					var t2 = jObject.GetValue("duration");
-					if (t2 == null)
+					if (!jObject.TryGet<float>("duration", out var duration))
 						return;
-					var duration = t2.Value<float>();
 
 					//applying values
 					targetComponent.startTime = startTime;
@@ -530,15 +481,13 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<IActivationRangeTarget>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("DeactivateValue");
-					if (t1 == null)
+					if (!jObject.TryGet<int>("DeactivateValue", out var DeactivateValue))
 						return;
-					targetComponent.DeactivateValue = t1.Value<int>();
+					targetComponent.DeactivateValue = DeactivateValue;
 
-					var t2 = jObject.GetValue("ActivateValue");
-					if (t2 == null)
+					if (!jObject.TryGet<int>("ActivateValue", out var ActivateValue))
 						return;
-					targetComponent.ActivateValue = t2.Value<int>();
+					targetComponent.ActivateValue = ActivateValue;
 				}
 			}
 		}
@@ -548,7 +497,6 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (arg.TryGetComponent<SpaceHeater>(out var component))
 				{
-					SgtLogger.l("heater produce heat: " + component.produceHeat);
 					if (!component.produceHeat)
 						return null;
 
@@ -565,14 +513,11 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<SpaceHeater>(out var targetComponent))
 				{
-					SgtLogger.l("heater produce heat, applying: " + targetComponent.produceHeat);
 					if (!targetComponent.produceHeat)
 						return;
 
-					var t1 = jObject.GetValue("CurrentPowerConsumption");
-					if (t1 == null)
+					if (!jObject.TryGet<float>("CurrentPowerConsumption", out var CurrentPowerConsumption))
 						return;
-					var CurrentPowerConsumption = t1.Value<float>();
 					targetComponent.SetUserSpecifiedPowerConsumptionValue(CurrentPowerConsumption);
 				}
 			}
@@ -596,12 +541,11 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<Clinic>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("sicknessSliderValue");
-					if (t1 == null)
+					if (!jObject.TryGet<float>("sicknessSliderValue", out var sicknessSliderValue))
 						return;
 
-					var sicknessSliderValue = t1.Value<float>();
-					(targetComponent as ISliderControl).SetSliderValue(sicknessSliderValue, 0);
+					if (targetComponent is ISliderControl sliderControl)
+						sliderControl.SetSliderValue(sicknessSliderValue, 0);
 				}
 			}
 		}
@@ -629,11 +573,8 @@ namespace BlueprintsV2.BlueprintData
 					if (targetComponent.ignoreBatteryRefillPercent)
 						return;
 
-					var t1 = jObject.GetValue("batteryRefillPercent");
-					if (t1 == null)
+					if (!jObject.TryGet<float>("batteryRefillPercent", out var batteryRefillPercent))
 						return;
-
-					var batteryRefillPercent = t1.Value<float>();
 					targetComponent.batteryRefillPercent = batteryRefillPercent;
 				}
 			}
@@ -657,11 +598,8 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<FoodStorage>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("SpicedFoodOnly");
-					if (t1 != null)
-					{
-						targetComponent.SpicedFoodOnly = t1.Value<bool>();
-					}
+					if (jObject.TryGet<bool>("SpicedFoodOnly", out var spicedFoodOnly))
+						targetComponent.SpicedFoodOnly = spicedFoodOnly;
 				}
 			}
 		}
@@ -684,10 +622,8 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<AutoDisinfectable>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("enableAutoDisinfect");
-					if (t1 != null)
+					if (jObject.TryGet<bool>("enableAutoDisinfect", out var enableAutoDisinfect))
 					{
-						bool enableAutoDisinfect = t1.Value<bool>();
 						if (enableAutoDisinfect)
 							targetComponent.EnableAutoDisinfect();
 						else
@@ -718,12 +654,9 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<Door>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("requestedState");
-					if (t1 != null)
+					if (jObject.TryGet<int>("requestedState", out var requestedStateRaw))
 					{
-						var requestedState = (Door.ControlState)t1.Value<int>();
-						//SgtLogger.l("Setting " + building.name + " to state: " + requestedState);
-						//targetComponent.requestedState = requestedState;
+						var requestedState = (Door.ControlState)requestedStateRaw;
 						if (BlueprintState.InstantBuild)
 						{
 							targetComponent.requestedState = requestedState;
@@ -754,12 +687,8 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<DirectionControl>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("allowedDirection");
-					if (t1 != null)
-					{
-						WorkableReactable.AllowedDirection allowedDirection = (WorkableReactable.AllowedDirection)t1.Value<int>();
-						targetComponent.SetAllowedDirection(allowedDirection);
-					}
+					if (jObject.TryGet<int>("allowedDirection", out var allowedDirectionRaw))
+						targetComponent.SetAllowedDirection((WorkableReactable.AllowedDirection)allowedDirectionRaw);
 				}
 			}
 		}
@@ -788,10 +717,8 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<Prioritizable>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("masterPrioritySetting");
-					if (t1 != null)
+					if (jObject.TryGetEmbedded<PrioritySetting>("masterPrioritySetting", out var masterPrioritySetting))
 					{
-						var masterPrioritySetting = EmbeddedJson.To<PrioritySetting>(t1);
 						//SgtLogger.l("applying prio: " + masterPrioritySetting.priority_value);
 						targetComponent.SetMasterPriority(masterPrioritySetting);
 					}
@@ -828,21 +755,14 @@ namespace BlueprintsV2.BlueprintData
 					if (!targetComponent.copySettingsEnabled)
 						return;
 
-					var t1 = jObject.GetValue("acceptedTagSet");
-					if (t1 != null)
-					{
-						var acceptedTagSet = EmbeddedJson.To<HashSet<Tag>>(t1);
+					if (jObject.TryGetEmbedded<HashSet<Tag>>("acceptedTagSet", out var acceptedTagSet))
 						targetComponent.UpdateFilters(acceptedTagSet);
-					}
-					var t2 = jObject.GetValue("onlyFetchMarkedItems");
-					if (t2 != null)
+
+					if (jObject.TryGet<bool>("onlyFetchMarkedItems", out var onlyFetchMarkedItems))
 					{
 						var storage = targetComponent.GetFilterStorage();
 						if (storage.allowSettingOnlyFetchMarkedItems)
-						{
-							var onlyFetchMarkedItems = t2.Value<bool>();
 							storage.SetOnlyFetchMarkedItems(onlyFetchMarkedItems);
-						}
 					}
 				}
 			}
@@ -873,11 +793,8 @@ namespace BlueprintsV2.BlueprintData
 				{
 					if (!targetComponent.currentlyUserAssignable)
 						return;
-					var t1 = jObject.GetValue("selectedTags");
-					if (t1 != null)
+					if (jObject.TryGetEmbedded<HashSet<Tag>>("selectedTags", out var selectedTags))
 					{
-						var selectedTags = EmbeddedJson.To<HashSet<Tag>>(t1);
-
 						targetComponent.selectedTags.Clear();
 						foreach (Tag selectedTag in selectedTags)
 						{
@@ -887,7 +804,6 @@ namespace BlueprintsV2.BlueprintData
 						}
 						targetComponent.GetComponent<TreeFilterable>().UpdateFilters([.. selectedTags]);
 					}
-
 				}
 			}
 		}
@@ -911,14 +827,12 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<Filterable>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("SelectedTag");
-					if (t1 == null)
+					if (!jObject.TryGet<string>("SelectedTag", out var selectedTagString))
 						return;
-					var selectedTag = (Tag)t1.Value<string>();
 
-
-					//applying values
-					targetComponent.SelectedTag = selectedTag;
+					var selectedTag = selectedTagString.IsNullOrWhiteSpace() ? Tag.Invalid : TagManager.Create(selectedTagString);
+					if (selectedTag.IsValid)
+						targetComponent.SelectedTag = selectedTag;
 				}
 			}
 		}
@@ -945,41 +859,21 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<AccessControl>(out var targetComponent) && targetComponent.controlEnabled)
 				{
-					var t1 = jObject.GetValue("defaultPermissionByTag");
-					if (t1 == null)
+					if (!jObject.TryGetEmbedded<List<KeyValuePair<Tag, Permission>>>("defaultPermissionByTag", out var defaultPermissionByTag))
 						return;
-					var defaultPermissionByTag = EmbeddedJson.To<List<KeyValuePair<Tag, Permission>>>(t1);
-
-					//applying values
 					targetComponent.defaultPermissionByTag = defaultPermissionByTag;
 
-					var t2 = jObject.GetValue("savedPermissionsById");
-					if (t2 == null)
+					if (!jObject.TryGetEmbedded<List<KeyValuePair<int, Permission>>>("savedPermissionsById", out var savedPermissionsById))
 						return;
 					try
 					{
-						var savedPermissionsById = EmbeddedJson.To<List<KeyValuePair<int, Permission>>>(t2);
-
-						//foreach (var item in customPermissions)
-						//{
-						//	SgtLogger.l("" + item.Key + " " + item.Value);
-						//}
-						bool customPermissionSet = false;
-
 						foreach (var item in savedPermissionsById)
-						{
 							targetComponent.SetPermission(item.Key, item.Value);
-						}
-						if (customPermissionSet)
-						{
-							SgtLogger.l("custom door permissions applied");
-						}
 					}
 					catch (Exception e)
 					{
 						SgtLogger.error("Error while applying saved door permissions:\n" + e);
 					}
-
 				}
 			}
 		}
@@ -1002,10 +896,8 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<LimitValve>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("Limit");
-					if (t1 == null)
+					if (!jObject.TryGet<float>("Limit", out var Limit))
 						return;
-					var Limit = t1.Value<float>();
 
 					//applying values
 					targetComponent.Limit = Limit;
@@ -1031,10 +923,8 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<Valve>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("DesiredFlow");
-					if (t1 == null)
+					if (!jObject.TryGet<float>("DesiredFlow", out var DesiredFlow))
 						return;
-					var DesiredFlow = t1.Value<float>();
 
 					//applying values
 					targetComponent.ChangeFlow(DesiredFlow);
@@ -1064,26 +954,14 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<LogicTimerSensor>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("onDuration");
-					if (t1 == null)
+					if (!jObject.TryGet<float>("onDuration", out var onDuration))
 						return;
-					var onDuration = t1.Value<float>();
-
-
-					var t2 = jObject.GetValue("offDuration");
-					if (t2 == null)
+					if (!jObject.TryGet<float>("offDuration", out var offDuration))
 						return;
-					var offDuration = t2.Value<float>();
-
-					var t3 = jObject.GetValue("timeElapsedInCurrentState");
-					if (t3 == null)
+					if (!jObject.TryGet<float>("timeElapsedInCurrentState", out var timeElapsedInCurrentState))
 						return;
-					var timeElapsedInCurrentState = t3.Value<float>();
-
-					var t4 = jObject.GetValue("displayCyclesMode");
-					if (t4 == null)
+					if (!jObject.TryGet<bool>("displayCyclesMode", out var displayCyclesMode))
 						return;
-					var displayCyclesMode = t4.Value<bool>();
 
 					//applying values
 					targetComponent.onDuration = onDuration;
@@ -1117,42 +995,18 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<LogicAlarm>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("notificationName");
-					if (t1 != null)
-					{
-						string notificationName = t1.Value<string>();
+					if (jObject.TryGet<string>("notificationName", out var notificationName))
 						targetComponent.notificationName = notificationName;
-					}
-					var t2 = jObject.GetValue("notificationTooltip");
-					if (t2 != null)
-					{
-						string notificationTooltip = t2.Value<string>();
+					if (jObject.TryGet<string>("notificationTooltip", out var notificationTooltip))
 						targetComponent.notificationTooltip = notificationTooltip;
-					}
-					var t3 = jObject.GetValue("notificationType");
-					if (t3 != null)
-					{
-						NotificationType notificationType = (NotificationType)t3.Value<int>();
-						targetComponent.notificationType = notificationType;
-					}
-					var t4 = jObject.GetValue("pauseOnNotify");
-					if (t4 != null)
-					{
-						bool pauseOnNotify = t4.Value<bool>();
+					if (jObject.TryGet<int>("notificationType", out var notificationType))
+						targetComponent.notificationType = (NotificationType)notificationType;
+					if (jObject.TryGet<bool>("pauseOnNotify", out var pauseOnNotify))
 						targetComponent.pauseOnNotify = pauseOnNotify;
-					}
-					var t5 = jObject.GetValue("zoomOnNotify");
-					if (t5 != null)
-					{
-						bool zoomOnNotify = t5.Value<bool>();
+					if (jObject.TryGet<bool>("zoomOnNotify", out var zoomOnNotify))
 						targetComponent.zoomOnNotify = zoomOnNotify;
-					}
-					var t6 = jObject.GetValue("cooldown");
-					if (t6 != null)
-					{
-						float cooldown = t6.Value<float>();
+					if (jObject.TryGet<float>("cooldown", out var cooldown))
 						targetComponent.cooldown = cooldown;
-					}
 					targetComponent.UpdateNotification(true);
 				}
 			}
@@ -1180,10 +1034,8 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<Switch>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("switchedOn");
-					if (t1 == null)
+					if (!jObject.TryGet<bool>("switchedOn", out var switchedOn))
 						return;
-					var switchedOn = t1.Value<bool>();
 
 					//applying values
 					if (switchedOn != targetComponent.switchedOn)
@@ -1213,26 +1065,14 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<LogicCritterCountSensor>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("countThreshold");
-					if (t1 == null)
+					if (!jObject.TryGet<int>("countThreshold", out var countThreshold))
 						return;
-					var countThreshold = t1.Value<int>();
-
-
-					var t2 = jObject.GetValue("activateOnGreaterThan");
-					if (t2 == null)
+					if (!jObject.TryGet<bool>("activateOnGreaterThan", out var activateAboveThreshold))
 						return;
-					var activateAboveThreshold = t2.Value<bool>();
-
-					var t3 = jObject.GetValue("countCritters");
-					if (t3 == null)
+					if (!jObject.TryGet<bool>("countCritters", out var countCritters))
 						return;
-					var countCritters = t3.Value<bool>();
-
-					var t4 = jObject.GetValue("countEggs");
-					if (t4 == null)
+					if (!jObject.TryGet<bool>("countEggs", out var countEggs))
 						return;
-					var countEggs = t4.Value<bool>();
 
 					//applying values
 					targetComponent.countThreshold = countThreshold;
@@ -1263,16 +1103,10 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<IThresholdSwitch>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("Threshold");
-					if (t1 == null)
+					if (!jObject.TryGet<float>("Threshold", out var Threshold))
 						return;
-					var Threshold = t1.Value<float>();
-
-
-					var t2 = jObject.GetValue("ActivateAboveThreshold");
-					if (t2 == null)
+					if (!jObject.TryGet<bool>("ActivateAboveThreshold", out var activateAboveThreshold))
 						return;
-					var activateAboveThreshold = t2.Value<bool>();
 					targetComponent.ActivateAboveThreshold = activateAboveThreshold;
 					targetComponent.Threshold = Threshold;
 				}
@@ -1297,10 +1131,8 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<T>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("DelayAmount");
-					if (t1 == null)
+					if (!jObject.TryGet<float>("DelayAmount", out var DelayAmount))
 						return;
-					var DelayAmount = t1.Value<float>();
 
 					//applying values
 					Traverse.Create(targetComponent).Property("DelayAmount").SetValue(DelayAmount);
@@ -1327,12 +1159,9 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<LogicRibbonWriter>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("selectedBit");
-					if (t1 == null)
+					if (!jObject.TryGet<int>("selectedBit", out var selectedBit))
 						return;
-					var selectedBit = t1.Value<int>();
 
-					SgtLogger.l("bit: " + selectedBit);
 					//applying values
 					targetComponent.SetBitSelection(selectedBit);
 				}
@@ -1357,12 +1186,9 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<LogicRibbonReader>(out var targetComponent))
 				{
-					var t1 = jObject.GetValue("selectedBit");
-					if (t1 == null)
+					if (!jObject.TryGet<int>("selectedBit", out var selectedBit))
 						return;
-					var selectedBit = t1.Value<int>();
 
-					SgtLogger.l("bit: " + selectedBit);
 					//applying values
 					targetComponent.SetBitSelection(selectedBit);
 				}
@@ -1390,17 +1216,10 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<HighEnergyParticleSpawner>(out var targetComponent))
 				{
-
-					var t1 = jObject.GetValue("Direction");
-					if (t1 == null)
+					if (!jObject.TryGet<int>("Direction", out var Direction))
 						return;
-					var Direction = t1.Value<int>();
-
-
-					var t2 = jObject.GetValue("particleThreshold");
-					if (t2 == null)
+					if (!jObject.TryGet<float>("particleThreshold", out var particleThreshold))
 						return;
-					var particleThreshold = t2.Value<float>();
 
 					//applying values
 					targetComponent.Direction = (EightDirection)Direction;
@@ -1410,7 +1229,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_HighEnergyParticleRedirector
 		{
-			public static JObject TryGetData(GameObject arg)
+			internal static JObject TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<HighEnergyParticleRedirector>(out var component))
 				{
@@ -1427,11 +1246,8 @@ namespace BlueprintsV2.BlueprintData
 					return;
 				if (building.TryGetComponent<HighEnergyParticleRedirector>(out var targetComponent))
 				{
-
-					var t1 = jObject.GetValue("Direction");
-					if (t1 == null)
+					if (!jObject.TryGet<int>("Direction", out var Direction))
 						return;
-					var Direction = t1.Value<int>();
 
 					//applying values
 					targetComponent.Direction = (EightDirection)Direction;
@@ -1460,11 +1276,8 @@ namespace BlueprintsV2.BlueprintData
 				var targetComponent = building.GetSMI<HEPBattery.Instance>();
 				if (targetComponent != null)
 				{
-
-					var t1 = jObject.GetValue("particleThreshold");
-					if (t1 == null)
+					if (!jObject.TryGet<float>("particleThreshold", out var particleThreshold))
 						return;
-					var particleThreshold = t1.Value<float>();
 
 					//applying values
 					targetComponent.particleThreshold = particleThreshold;
