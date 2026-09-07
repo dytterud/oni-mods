@@ -1,5 +1,5 @@
 ﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.BlueprintsV2.BlueprintData.PlannedElements;
+using BlueprintsV2.BlueprintData.PlannedElements;
 using BlueprintsV2.Visualizers;
 using Klei.AI;
 using System;
@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using static BlueprintsV2.BlueprintData.BlueprintState;
 
-namespace BlueprintsV2.BlueprintsV2.Visualizers
+namespace BlueprintsV2.Visualizers
 {
 	internal class ElementNoteVisual : IVisual
 	{

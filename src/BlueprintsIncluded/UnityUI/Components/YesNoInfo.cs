@@ -8,7 +8,7 @@ using UnityEngine.UI;
 using UtilLibs;
 using static STRINGS.BUILDINGS.PREFABS;
 
-namespace BlueprintsV2.BlueprintsV2.UnityUI.Components
+namespace BlueprintsV2.UnityUI.Components
 {
 	internal class YesNoInfo : KMonoBehaviour
 	{

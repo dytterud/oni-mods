@@ -1,4 +1,4 @@
-﻿using BlueprintsV2.BlueprintsV2.Tools;
+﻿using BlueprintsV2.Tools;
 using BlueprintsV2.Tools;
 using HarmonyLib;
 using System.Collections.Generic;

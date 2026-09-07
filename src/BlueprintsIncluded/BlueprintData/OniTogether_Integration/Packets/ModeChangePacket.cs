@@ -9,7 +9,7 @@ using System.Text;
 using UtilLibs;
 using static BlueprintsV2.BlueprintData.BlueprintState;
 
-namespace BlueprintsV2.BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
+namespace BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
 {
 	public class ModeChangePacket : IPacket
 	{

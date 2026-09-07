@@ -4,7 +4,7 @@ using System.Text;
 using UnityEngine;
 using UtilLibs.UIcmp;
 
-namespace BlueprintsV2.BlueprintsV2.UnityUI.Components
+namespace BlueprintsV2.UnityUI.Components
 {
 	internal class BuildingFilterDropdown : FMultiSelectDropdown
 	{

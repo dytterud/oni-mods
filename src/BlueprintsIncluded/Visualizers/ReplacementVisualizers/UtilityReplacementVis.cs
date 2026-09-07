@@ -5,7 +5,7 @@ using System.Text;
 using UnityEngine;
 using static STRINGS.UI.SPACEARTIFACTS;
 
-namespace BlueprintsV2.BlueprintsV2.Visualizers.ReplacementVisualizers
+namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 {
 	internal class UtilityReplacementVis : ReplacementVis
 	{

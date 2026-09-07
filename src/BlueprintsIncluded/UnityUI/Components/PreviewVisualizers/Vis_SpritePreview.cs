@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UtilLibs;
 
-namespace BlueprintsV2.BlueprintsV2.UnityUI.Components.PreviewVisualizers
+namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 {
 	internal class Vis_SpritePreview : KMonoBehaviour
 	{

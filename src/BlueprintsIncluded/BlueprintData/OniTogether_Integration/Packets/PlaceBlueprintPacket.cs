@@ -7,7 +7,7 @@ using System.IO;
 using System.Text;
 using UtilLibs;
 
-namespace BlueprintsV2.BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
+namespace BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
 {
 	internal class PlaceBlueprintPacket : IPacket
 	{

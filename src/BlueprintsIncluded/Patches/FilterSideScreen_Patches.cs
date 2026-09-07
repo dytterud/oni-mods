@@ -1,4 +1,4 @@
-﻿using BlueprintsV2.BlueprintsV2.BlueprintData.PlannedElements;
+﻿using BlueprintsV2.BlueprintData.PlannedElements;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
@@ -11,7 +11,7 @@ using static STRINGS.WORLD_TRAITS;
 using static UIMinionOrMannequin;
 using static UnityEngine.GraphicsBuffer;
 
-namespace BlueprintsV2.BlueprintsV2.Patches
+namespace BlueprintsV2.Patches
 {
 	internal class FilterSideScreen_Patches
 	{

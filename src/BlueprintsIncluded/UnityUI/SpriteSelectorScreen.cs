@@ -1,6 +1,6 @@
-﻿using BlueprintsV2.BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
-using BlueprintsV2.BlueprintsV2.Tools;
-using BlueprintsV2.BlueprintsV2.UnityUI.Components;
+﻿using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
+using BlueprintsV2.Tools;
+using BlueprintsV2.UnityUI.Components;
 using HarmonyLib;
 using System;
 using System.Collections;
@@ -13,7 +13,7 @@ using UtilLibs;
 using UtilLibs.UI.FUI;
 using UtilLibs.UIcmp;
 
-namespace BlueprintsV2.BlueprintsV2.UnityUI
+namespace BlueprintsV2.UnityUI
 {
 	internal class SpriteSelectorScreen : FScreen
 	{

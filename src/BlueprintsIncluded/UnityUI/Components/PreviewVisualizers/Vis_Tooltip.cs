@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using static STRINGS.BUILDING.STATUSITEMS.ACCESS_CONTROL;
 
-namespace BlueprintsV2.BlueprintsV2.UnityUI.Components.PreviewVisualizers
+namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 {
 	internal class Vis_Tooltip : KMonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 	{

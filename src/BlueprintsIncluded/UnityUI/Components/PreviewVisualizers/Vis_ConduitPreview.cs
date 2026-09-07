@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using UtilLibs;
 
-namespace BlueprintsV2.BlueprintsV2.UnityUI.Components.PreviewVisualizers
+namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 {
 	internal class Vis_ConduitPreview : Vis_BuildingPreview
 	{

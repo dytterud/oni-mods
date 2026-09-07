@@ -1,8 +1,8 @@
 ﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
-using BlueprintsV2.BlueprintsV2.BlueprintData.OniTogether_Integration;
-using BlueprintsV2.BlueprintsV2.BlueprintData.PlannedElements;
-using BlueprintsV2.BlueprintsV2.UnityUI;
+using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
+using BlueprintsV2.BlueprintData.OniTogether_Integration;
+using BlueprintsV2.BlueprintData.PlannedElements;
+using BlueprintsV2.UnityUI;
 using BlueprintsV2.Tools;
 using FMOD.Studio;
 using FMODUnity;
@@ -18,7 +18,7 @@ using UtilLibs;
 using static STRINGS.ELEMENTS;
 using static STRINGS.RESEARCH.TYPES;
 
-namespace BlueprintsV2.BlueprintsV2.Tools
+namespace BlueprintsV2.Tools
 {
 	internal class CreateNoteTool : DragTool
 	{

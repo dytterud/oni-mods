@@ -1,7 +1,7 @@
 ﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
-using BlueprintsV2.BlueprintsV2.Tools;
-using BlueprintsV2.BlueprintsV2.UnityUI.Components;
+using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
+using BlueprintsV2.Tools;
+using BlueprintsV2.UnityUI.Components;
 using BlueprintsV2.Tools;
 using BlueprintsV2.UnityUI;
 using STRINGS;
@@ -22,7 +22,7 @@ using static BlueprintsV2.STRINGS.UI.TOOLS;
 using static BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER;
 using static KTabMenuHeader;
 
-namespace BlueprintsV2.BlueprintsV2.UnityUI
+namespace BlueprintsV2.UnityUI
 {
 	internal class NoteToolScreen : KScreen
 	{

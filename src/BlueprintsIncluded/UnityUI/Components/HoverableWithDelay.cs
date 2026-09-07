@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UtilLibs;
 
-namespace BlueprintsV2.BlueprintsV2.UnityUI.Components
+namespace BlueprintsV2.UnityUI.Components
 {
 	internal class HoverableWithDelay : KMonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 	{

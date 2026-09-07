@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using UtilLibs;
 using static BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE;
 
-namespace BlueprintsV2.BlueprintsV2.BlueprintData.PlannedElements
+namespace BlueprintsV2.BlueprintData.PlannedElements
 {
 	public class TemperatureController : ISingleSliderControl
 	{

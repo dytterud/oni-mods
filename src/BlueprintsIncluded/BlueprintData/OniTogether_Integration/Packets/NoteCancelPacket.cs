@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace BlueprintsV2.BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
+namespace BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
 {
 	internal class NoteCancelPacket : IPacket
 	{

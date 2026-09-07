@@ -1,7 +1,7 @@
 ﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
-using BlueprintsV2.BlueprintsV2.BlueprintData.PlannedElements;
-using BlueprintsV2.BlueprintsV2.UnityUI;
+using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
+using BlueprintsV2.BlueprintData.PlannedElements;
+using BlueprintsV2.UnityUI;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ONI_Together.Networking.Packets.Architecture;
@@ -11,7 +11,7 @@ using System.IO;
 using System.Text;
 using UtilLibs;
 
-namespace BlueprintsV2.BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
+namespace BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
 {
 	internal class NoteCreateOrUpdatePacket : IPacket
 	{

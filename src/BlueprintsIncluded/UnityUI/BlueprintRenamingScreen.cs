@@ -1,6 +1,6 @@
 ﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.BlueprintsV2.UnityUI;
-using BlueprintsV2.BlueprintsV2.UnityUI.Components;
+using BlueprintsV2.UnityUI;
+using BlueprintsV2.UnityUI.Components;
 
 using System.Collections.Generic;
 using System.Linq;

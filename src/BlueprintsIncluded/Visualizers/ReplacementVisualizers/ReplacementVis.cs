@@ -19,7 +19,7 @@ using static Rendering.BlockTileRenderer;
 using static STRINGS.UI.SANDBOXTOOLS.SETTINGS;
 using static STRINGS.UI.TOOLS;
 
-namespace BlueprintsV2.BlueprintsV2.Visualizers.ReplacementVisualizers
+namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 {
 
 	public class ReplacementVis : KMonoBehaviour

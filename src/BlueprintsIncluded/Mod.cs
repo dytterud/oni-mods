@@ -1,5 +1,5 @@
 ﻿
-using BlueprintsV2.BlueprintsV2.BlueprintData.PlanningToolMod_Integration;
+using BlueprintsV2.BlueprintData.PlanningToolMod_Integration;
 using BlueprintsV2.ModAPI;
 using HarmonyLib;
 using KMod;

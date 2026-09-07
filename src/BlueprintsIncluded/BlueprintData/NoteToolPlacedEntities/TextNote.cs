@@ -1,5 +1,5 @@
-﻿using BlueprintsV2.BlueprintsV2.BlueprintData.OniTogether_Integration;
-using BlueprintsV2.BlueprintsV2.BlueprintData.PlannedElements;
+﻿using BlueprintsV2.BlueprintData.OniTogether_Integration;
+using BlueprintsV2.BlueprintData.PlannedElements;
 using KSerialization;
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UtilLibs;
 
-namespace BlueprintsV2.BlueprintsV2.BlueprintData.NoteToolPlacedEntities
+namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities
 {
 	internal class TextNote : BlueprintNote
 	{

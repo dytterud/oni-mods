@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlueprintsV2.BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors
+namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors
 {
 	public enum PlanColor
 	{

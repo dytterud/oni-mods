@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BlueprintsV2.BlueprintsV2.BlueprintData.OniTogether_Integration
+namespace BlueprintsV2.BlueprintData.OniTogether_Integration
 {
 	public static class MP_Mod_Hashes
 	{

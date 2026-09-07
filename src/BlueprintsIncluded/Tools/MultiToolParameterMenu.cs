@@ -1,6 +1,6 @@
 ﻿
 using BlueprintsV2.BlueprintData;
-using BlueprintsV2.BlueprintsV2.Tools;
+using BlueprintsV2.Tools;
 using PeterHan.PLib.UI;
 using System.Collections.Generic;
 using System.Linq;

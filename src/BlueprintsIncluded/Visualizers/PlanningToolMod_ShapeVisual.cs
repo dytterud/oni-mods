@@ -1,7 +1,7 @@
 ﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.BlueprintsV2.BlueprintData.PlannedElements;
-using BlueprintsV2.BlueprintsV2.BlueprintData.PlanningToolMod_Integration;
-using BlueprintsV2.BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
+using BlueprintsV2.BlueprintData.PlannedElements;
+using BlueprintsV2.BlueprintData.PlanningToolMod_Integration;
+using BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
 using BlueprintsV2.Visualizers;
 using Klei.AI;
 using System;
@@ -14,7 +14,7 @@ using static BlueprintsV2.BlueprintData.BlueprintState;
 using static ResearchTypes;
 using static STRINGS.UI;
 
-namespace BlueprintsV2.BlueprintsV2.Visualizers
+namespace BlueprintsV2.Visualizers
 {
 	internal class PlanningToolMod_ShapeVisual : IVisual
 	{

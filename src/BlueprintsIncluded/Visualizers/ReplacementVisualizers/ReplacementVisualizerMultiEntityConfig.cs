@@ -5,7 +5,7 @@ using TemplateClasses;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace BlueprintsV2.BlueprintsV2.Visualizers.ReplacementVisualizers
+namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 {
 	internal class ReplacementVisualizerMultiEntityConfig : IMultiEntityConfig
 	{

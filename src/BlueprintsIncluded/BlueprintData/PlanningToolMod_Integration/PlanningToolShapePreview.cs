@@ -1,4 +1,4 @@
-﻿using BlueprintsV2.BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
+﻿using BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
 using KSerialization;
 using PeterHan.PLib.Core;
 using System;
@@ -10,7 +10,7 @@ using UnityEngine;
 using UtilLibs;
 using static STRINGS.UI.TOOLS;
 
-namespace BlueprintsV2.BlueprintsV2.BlueprintData.PlanningToolMod_Integration
+namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration
 {
 	internal class PlanningToolShapePreview : KMonoBehaviour
 	{

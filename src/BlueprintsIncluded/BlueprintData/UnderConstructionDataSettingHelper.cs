@@ -15,7 +15,7 @@ using UtilLibs;
 using static BlueprintsV2.BlueprintData.DataTransferHelpers;
 using static Grid;
 
-namespace BlueprintsV2.BlueprintsV2.BlueprintData
+namespace BlueprintsV2.BlueprintData
 {
 	public static class UnderConstructionDataSettingHelper
 	{

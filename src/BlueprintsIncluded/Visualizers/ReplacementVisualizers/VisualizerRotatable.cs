@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace BlueprintsV2.BlueprintsV2.Visualizers.ReplacementVisualizers
+namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 {
 	/// <summary>
 	/// Cloned from regular rotatable to work without Building Component

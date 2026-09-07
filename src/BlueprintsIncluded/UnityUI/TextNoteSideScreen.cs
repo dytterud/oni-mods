@@ -1,6 +1,6 @@
-﻿using BlueprintsV2.BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
-using BlueprintsV2.BlueprintsV2.BlueprintData.OniTogether_Integration;
-using BlueprintsV2.BlueprintsV2.BlueprintData.PlannedElements;
+﻿using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
+using BlueprintsV2.BlueprintData.OniTogether_Integration;
+using BlueprintsV2.BlueprintData.PlannedElements;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ using UtilLibs.UI.FUI;
 using UtilLibs.UIcmp;
 using static BlueprintsV2.STRINGS.UI;
 
-namespace BlueprintsV2.BlueprintsV2.UnityUI
+namespace BlueprintsV2.UnityUI
 {
 	internal class TextNoteSideScreen : SideScreenContent
 	{

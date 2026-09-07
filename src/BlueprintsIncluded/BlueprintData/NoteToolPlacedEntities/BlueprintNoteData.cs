@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UtilLibs;
 
-namespace BlueprintsV2.BlueprintsV2.BlueprintData.NoteToolPlacedEntities
+namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities
 {
 	public class BlueprintNoteData
 	{

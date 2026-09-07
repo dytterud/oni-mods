@@ -1,5 +1,5 @@
 ﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.BlueprintsV2.BlueprintData.OniTogether_Integration;
+using BlueprintsV2.BlueprintData.OniTogether_Integration;
 using BlueprintsV2.Visualizers;
 using HarmonyLib;
 using PeterHan.PLib;
@@ -12,7 +12,7 @@ using UnityEngine;
 using UtilLibs;
 using static HarmonyLib.Code;
 
-namespace BlueprintsV2.BlueprintsV2.Visualizers.CustomTileRenderer
+namespace BlueprintsV2.Visualizers
 {
 	internal class CustomTileRenderer : BlockTileRenderer
 	{

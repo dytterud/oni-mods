@@ -1,4 +1,4 @@
-﻿using BlueprintsV2.BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
+﻿using BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
 using HarmonyLib;
 using System;
 using System.Collections;
@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UtilLibs;
 
-namespace BlueprintsV2.BlueprintsV2.BlueprintData.PlanningToolMod_Integration
+namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration
 {
 	internal class PlanningTool_Integration
 	{

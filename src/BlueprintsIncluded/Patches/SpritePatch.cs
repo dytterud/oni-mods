@@ -1,5 +1,5 @@
 ﻿
-using BlueprintsV2.BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
+using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 using HarmonyLib;
 using UtilLibs;
 

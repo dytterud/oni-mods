@@ -1,8 +1,7 @@
 ﻿
 using BlueprintsV2.BlueprintData;
-using BlueprintsV2.BlueprintsV2.BlueprintData.OniTogether_Integration;
-using BlueprintsV2.BlueprintsV2.Visualizers.CustomTileRenderer;
-using BlueprintsV2.BlueprintsV2.Visualizers.ReplacementVisualizers;
+using BlueprintsV2.BlueprintData.OniTogether_Integration;
+using BlueprintsV2.Visualizers.ReplacementVisualizers;
 using BlueprintsV2.ModAPI;
 using BlueprintsV2.Tools;
 using ONI_Together_API;

@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UtilLibs;
 
-namespace BlueprintsV2.BlueprintsV2.Visualizers.ReplacementVisualizers
+namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 {
 	internal class TileReplacementVis : ReplacementVis
 	{

@@ -5,7 +5,7 @@ using System.Text;
 using UnityEngine;
 using static Rendering.BlockTileRenderer;
 
-namespace BlueprintsV2.BlueprintsV2.Visualizers.ReplacementVisualizers
+namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 {
 	/// <summary>
 	/// mirror from grid.layerindexer, but instead mapping the ReplacementVis

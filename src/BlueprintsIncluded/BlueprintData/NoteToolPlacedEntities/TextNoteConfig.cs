@@ -1,4 +1,4 @@
-﻿using BlueprintsV2.BlueprintsV2.BlueprintData.PlannedElements;
+﻿using BlueprintsV2.BlueprintData.PlannedElements;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace BlueprintsV2.BlueprintsV2.BlueprintData.NoteToolPlacedEntities
+namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities
 {
 	internal class TextNoteConfig : CommonPlacerConfig, IEntityConfig
 	{

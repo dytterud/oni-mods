@@ -12,7 +12,7 @@ using UtilLibs.UIcmp;
 using static Rendering.BlockTileRenderer.RenderInfo;
 using static STRINGS.DUPLICANTS.ATTRIBUTES;
 
-namespace BlueprintsV2.BlueprintsV2.UnityUI.Components.PreviewVisualizers
+namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 {
 	internal class Vis_TilePreview : Vis_SpritePreview
 	{
