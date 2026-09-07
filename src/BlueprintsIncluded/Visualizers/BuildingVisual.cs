@@ -420,6 +420,8 @@ namespace BlueprintsV2.Visualizers
 			bool replacementLayerOccupied = false;
 			return false;
 
+			// Disabled: has issues with tiles and conduits. Left in place for reference.
+#pragma warning disable CS0162 // Unreachable code detected
 			if (ValidCell(cell, out bool isReplacement) && isReplacement)
 			{
 				replacementCandidate = def.GetReplacementCandidate(cell);
@@ -447,6 +449,7 @@ namespace BlueprintsV2.Visualizers
 			}
 
 			return allowedToReplace;
+#pragma warning restore CS0162
 
 		}
 

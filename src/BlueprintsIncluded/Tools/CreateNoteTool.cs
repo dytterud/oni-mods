@@ -102,6 +102,8 @@ namespace BlueprintsV2.Tools
 		private void OnElementChanged(object _)
 		{
 			return;
+			// Disabled: per-element visualizer icon swap. Left in place for reference.
+#pragma warning disable CS0162 // Unreachable code detected
 			Element element = ElementLoader.elements[SandboxToolParameterMenu.instance.settings.GetIntSetting("SandboxTools.SelectedElement")];
 			switch (element.state & Element.State.Solid)
 			{
@@ -119,6 +121,7 @@ namespace BlueprintsV2.Tools
 					visualizerIcon?.sprite = ModAssets.Special_Placer_Sprite;
 					break;
 			}
+#pragma warning restore CS0162
 
 		}
 		void CreateElementNote(int cell)

@@ -63,7 +63,6 @@ namespace BlueprintsV2
 		public static GameObject BlueprintInfoStateGO;
 		public static GameObject NoteToolStateScreenGO;
 		public static GameObject IconSelectorGO;
-		public static GameObject TileReplaceVisGO;
 		public static GameObject RenamingScreenGO;
 		public static void LoadAssets()
 		{

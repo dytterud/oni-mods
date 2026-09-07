@@ -358,7 +358,6 @@ namespace BlueprintsV2.UnityUI
 				RegisterImageToLayer(BlueprintCreationFilterKeys.PlanningToolMod_ShapesID, preview);
 			}
 		}
-		public Vector3 DragStartPosition;
 
 		public override void OnBeginDrag(PointerEventData eventData)
 		{

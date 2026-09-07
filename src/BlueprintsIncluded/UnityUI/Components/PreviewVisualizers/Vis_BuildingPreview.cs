@@ -64,16 +64,6 @@ namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 			UpdatePosition(building);
 			return this;
 		}
-		//void Update()
-		//{
-		//	return;
-		//	if (rotate)
-		//	{
-		//		transform.Rotate(0, 0, -90 * Time.unscaledDeltaTime);
-		//	}
-		//}
-		bool rotate = false;
-
 		/// <summary>
 		/// this mirrors Rotatable since kbac offset/pivot does not seem to work for ui kbacs
 		/// do not try understanding the numbers, they work properly this way.
@@ -118,17 +108,14 @@ namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 				case Orientation.FlipH:
 					break;
 				case Orientation.R90:
-					rotate = true;
 					transform.Rotate(0, 0, -90);
 					transform.localPosition += new Vector3(-50, 50, 0);
 					break;
 				case Orientation.R180:
-					rotate = true;
 					transform.Rotate(0, 0, -180);
 					transform.localPosition += new Vector3(0, 100f, 0);
 					break;
 				case Orientation.R270:
-					rotate = true;
 					transform.Rotate(0, 0, -270);
 					transform.localPosition += new Vector3(50, 50, 0);
 					break;
