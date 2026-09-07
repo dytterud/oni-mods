@@ -175,11 +175,11 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>-->
-		<PackageReference Include="Lib.Harmony.Ref" Version="2.4.2"/>
+		<PackageReference Include="Lib.Harmony.Ref"/>
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(IsPacked)' == 'true'">
-		<PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="*">
+		<PackageReference Include="ILRepack.Lib.MSBuild.Task">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
