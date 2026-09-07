@@ -267,7 +267,6 @@ namespace BlueprintsV2.BlueprintData
 		/// <summary>
 		/// tile of interest dimensions of the blueprint
 		/// </summary>
-		[JsonIgnore]
 		public Vector2I Dimensions
 		{
 			get
@@ -278,7 +277,6 @@ namespace BlueprintsV2.BlueprintData
 		/// <summary>
 		/// actual dimensions of the blueprint, including extends of buildings
 		/// </summary>
-		[JsonIgnore]
 		public Vector2I VisibleDimensions = new();
 		private int _dimensionX, _dimensionY;
 

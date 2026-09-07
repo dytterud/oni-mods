@@ -19,8 +19,6 @@ namespace BlueprintsV2.BlueprintData
 		/// <summary>
 		/// The offset from the bottom left of a blueprint.
 		/// </summary>
-
-		[JsonConverter(typeof(Vector2IConverter))]
 		public Vector2I Offset { get; set; } = new Vector2I(0, 0);
 
 		/// <summary>
