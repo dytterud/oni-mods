@@ -1,5 +1,4 @@
 ﻿using HarmonyLib;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -249,7 +248,7 @@ namespace BlueprintsV2.BlueprintData
 					return new JObject()
 					{
                         { "activeInSpace", component.activeInSpace},
-                        { "activeLocations", JsonConvert.SerializeObject(component.activeLocations.Select(axial => new Tuple<int,int>(axial.Q,axial.R)))},
+                        { "activeLocations", EmbeddedJson.From(component.activeLocations.Select(axial => new Tuple<int,int>(axial.Q,axial.R)))},
 					};
 				}
 				return null;
@@ -270,8 +269,7 @@ namespace BlueprintsV2.BlueprintData
 					var t2 = jObject.GetValue("activeLocations");
 					if (t2 == null)
 						return;
-					var activeLocationsJson = t2.Value<string>();
-					var activeLocations = JsonConvert.DeserializeObject<List<Tuple<int, int>>>(activeLocationsJson);
+					var activeLocations = EmbeddedJson.To<List<Tuple<int, int>>>(t2);
 
 					//applying values
 					targetComponent.activeInSpace = activeInSpace;
@@ -372,10 +370,9 @@ namespace BlueprintsV2.BlueprintData
 						var col = component.colorSettings[i];
 						transferedData[i] = new PixelPackColorData(col.activeColor, col.standbyColor);
 					}
-					SgtLogger.l(JsonConvert.SerializeObject(transferedData));
 					return new JObject()
 					{
-						{ "colorSettings", JsonConvert.SerializeObject(transferedData)},
+						{ "colorSettings", EmbeddedJson.From(transferedData)},
 					};
 				}
 				return null;
@@ -390,10 +387,8 @@ namespace BlueprintsV2.BlueprintData
 					var t1 = jObject.GetValue("colorSettings");
 					if (t1 == null)
 						return;
-					var colorSettingsJson = t1.Value<string>();
-					var colorSettings = JsonConvert.DeserializeObject<PixelPackColorData[]>(colorSettingsJson);
+					var colorSettings = EmbeddedJson.To<PixelPackColorData[]>(t1);
 
-					SgtLogger.l(colorSettingsJson);
 					//applying values
 					if (targetComponent.colorSettings == null)
 					{
@@ -782,7 +777,7 @@ namespace BlueprintsV2.BlueprintData
 					//SgtLogger.l("Getting prio " + prio.priority_value + " from " + arg.name);
 					return new JObject()
 					{
-						{ "masterPrioritySetting", JsonConvert.SerializeObject(prio)},
+						{ "masterPrioritySetting", EmbeddedJson.From(prio)},
 					};
 				}
 				return null;
@@ -796,8 +791,7 @@ namespace BlueprintsV2.BlueprintData
 					var t1 = jObject.GetValue("masterPrioritySetting");
 					if (t1 != null)
 					{
-						var masterPrioritySettingJson = t1.Value<string>();
-						var masterPrioritySetting = JsonConvert.DeserializeObject<PrioritySetting>(masterPrioritySettingJson);
+						var masterPrioritySetting = EmbeddedJson.To<PrioritySetting>(t1);
 						//SgtLogger.l("applying prio: " + masterPrioritySetting.priority_value);
 						targetComponent.SetMasterPriority(masterPrioritySetting);
 					}
@@ -819,7 +813,7 @@ namespace BlueprintsV2.BlueprintData
 
 					return new JObject()
 					{
-						{ "acceptedTagSet", JsonConvert.SerializeObject(tags)},
+						{ "acceptedTagSet", EmbeddedJson.From(tags)},
 						{ "onlyFetchMarkedItems", onlyFetchMarkedItems},
 					};
 				}
@@ -837,8 +831,7 @@ namespace BlueprintsV2.BlueprintData
 					var t1 = jObject.GetValue("acceptedTagSet");
 					if (t1 != null)
 					{
-						var acceptedTagSetJson = t1.Value<string>();
-						var acceptedTagSet = JsonConvert.DeserializeObject<HashSet<Tag>>(acceptedTagSetJson);
+						var acceptedTagSet = EmbeddedJson.To<HashSet<Tag>>(t1);
 						targetComponent.UpdateFilters(acceptedTagSet);
 					}
 					var t2 = jObject.GetValue("onlyFetchMarkedItems");
@@ -867,7 +860,7 @@ namespace BlueprintsV2.BlueprintData
 
 					return new JObject()
 					{
-						{ "selectedTags", JsonConvert.SerializeObject(selectedTags)},
+						{ "selectedTags", EmbeddedJson.From(selectedTags)},
 					};
 				}
 				return null;
@@ -883,8 +876,7 @@ namespace BlueprintsV2.BlueprintData
 					var t1 = jObject.GetValue("selectedTags");
 					if (t1 != null)
 					{
-						var selectedTagstJson = t1.Value<string>();
-						var selectedTags = JsonConvert.DeserializeObject<HashSet<Tag>>(selectedTagstJson);
+						var selectedTags = EmbeddedJson.To<HashSet<Tag>>(t1);
 
 						targetComponent.selectedTags.Clear();
 						foreach (Tag selectedTag in selectedTags)
@@ -941,8 +933,8 @@ namespace BlueprintsV2.BlueprintData
 				{
 					return new JObject()
 					{
-						{ "defaultPermissionByTag", JsonConvert.SerializeObject(component.defaultPermissionByTag)},
-						{ "savedPermissionsById", JsonConvert.SerializeObject(component.savedPermissionsById)}
+						{ "defaultPermissionByTag", EmbeddedJson.From(component.defaultPermissionByTag)},
+						{ "savedPermissionsById", EmbeddedJson.From(component.savedPermissionsById)}
 					};
 				}
 				return null;
@@ -956,7 +948,7 @@ namespace BlueprintsV2.BlueprintData
 					var t1 = jObject.GetValue("defaultPermissionByTag");
 					if (t1 == null)
 						return;
-					var defaultPermissionByTag = JsonConvert.DeserializeObject<List<KeyValuePair<Tag, Permission>>>(t1.Value<string>());
+					var defaultPermissionByTag = EmbeddedJson.To<List<KeyValuePair<Tag, Permission>>>(t1);
 
 					//applying values
 					targetComponent.defaultPermissionByTag = defaultPermissionByTag;
@@ -966,7 +958,7 @@ namespace BlueprintsV2.BlueprintData
 						return;
 					try
 					{
-						var savedPermissionsById = JsonConvert.DeserializeObject<List<KeyValuePair<int, Permission>>>(t2.Value<string>());
+						var savedPermissionsById = EmbeddedJson.To<List<KeyValuePair<int, Permission>>>(t2);
 
 						//foreach (var item in customPermissions)
 						//{
