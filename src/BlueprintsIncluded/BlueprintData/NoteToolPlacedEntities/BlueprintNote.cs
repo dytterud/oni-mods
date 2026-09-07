@@ -17,9 +17,9 @@ namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities
 		public static string FILTERLAYER = ("BLUEPRINTV2_FILTER_NOTES");
 		[Serialize]
 		public bool SeatIndicator = false;
-		[MyCmpReq] protected InfoDescription description;
-		[MyCmpReq] protected KSelectable selectable;
-		protected MeshRenderer renderer;
+		[MyCmpReq] protected InfoDescription description = null!;
+		[MyCmpReq] protected KSelectable selectable = null!;
+		protected MeshRenderer renderer = null!;
 		public override void OnPrefabInit()
 		{
 			base.OnPrefabInit();
@@ -39,7 +39,7 @@ namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities
 		{
 			Game.Instance.userMenu.AddButton(this.gameObject, new KIconButtonMenu.ButtonInfo("action_cancel", DELETE_NOTE.NAME, new System.Action(this.OnCancel), tooltipText: DELETE_NOTE.TOOLTIP));
 		}
-		protected void Cancel(object _ = null) => OnCancel();
+		protected void Cancel(object? _ = null) => OnCancel();
 		protected void OnCancel()
 		{
 			DetailsScreen.Instance.Show(false);

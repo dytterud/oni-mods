@@ -19,9 +19,9 @@ namespace BlueprintsV2.BlueprintData
 		public Dictionary<string, string> ToApplyData = new();
 
 		[MyCmpGet]
-		public BuildingUnderConstruction building;
+		public BuildingUnderConstruction building = null!;
 
-		Tuple<int, ObjectLayer> currentPos;
+		Tuple<int, ObjectLayer> currentPos = null!;
 
 		public override void OnPrefabInit()
 		{

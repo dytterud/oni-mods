@@ -41,6 +41,11 @@ Sub-namespaces mirror folders: `Patches/`, `Tools/`, `BlueprintData/`, `UnityUI/
 - `ImplicitUsings` is **enabled** for `BlueprintsIncluded` and its test project, **disabled**
   for `UtilLibs` / `UtilLibs.Tests` (vendored code relies on unqualified `UnityEngine`
   names) — add explicit `using`s when editing UtilLibs.
+- `Nullable` is **enabled** for `BlueprintsIncluded`, **disabled** for vendored `UtilLibs`
+  (same split as `ImplicitUsings`). The migration is subsystem-by-subsystem: `BlueprintData/`
+  is annotated (zero warnings); `Tools/`, `Visualizers/`, `UnityUI/` still emit CS86xx
+  warnings. Nullable IDs are **not** in `WarningsAsErrors` until that finishes, so the build
+  stays green. Klei-injected fields (`[MyCmpGet]` etc.) use `= null!;`.
 - `EnforceCodeStyleInBuild=true`: IDExxxx style violations **fail the build** for production
   projects. `WarningsAsErrors=CS0618;CS0612`: calling an `[Obsolete]` game API breaks the
   build. `CS0649` is suppressed (Klei injects fields by reflection).

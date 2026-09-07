@@ -4,6 +4,7 @@ using BlueprintsV2.ModAPI;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Bson;
 using Newtonsoft.Json.Linq;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using UtilLibs;
 
@@ -24,8 +25,8 @@ namespace BlueprintsV2.BlueprintData
 		/// <summary>
 		/// The <see cref="BuildingDef"/> of the blueprint this represents.
 		/// </summary>
-		public BuildingDef BuildingDef { get; set; }
-		public string BuildingDefId { get; set; }
+		public BuildingDef? BuildingDef { get; set; }
+		public string? BuildingDefId { get; set; }
 
 		/// <summary>
 		/// The elements the building is to be constructed from.
@@ -41,7 +42,7 @@ namespace BlueprintsV2.BlueprintData
 		/// <summary>
 		/// any custom data stored for that building, inluding conduit directions
 		/// </summary>
-		public Dictionary<string, JObject> AdditionalBuildingData = null;
+		public Dictionary<string, JObject>? AdditionalBuildingData = null;
 
 		/// <summary>
 		/// ConduitFlag stores the bitflagged UtilityConnections value of conduit buildings (wires,rails,pipes,logicwires)
@@ -55,7 +56,7 @@ namespace BlueprintsV2.BlueprintData
 
 		public bool HasAnyBuildingData => AdditionalBuildingData != null && AdditionalBuildingData.Any();
 
-		public bool TryGetDataValue(string id, out JObject data)
+		public bool TryGetDataValue(string id, [NotNullWhen(true)] out JObject? data)
 		{
 			data = null;
 			return AdditionalBuildingData != null && AdditionalBuildingData.TryGetValue(id, out data);
@@ -94,6 +95,8 @@ namespace BlueprintsV2.BlueprintData
 
 		public void ApplyGlobalMaterialOverrides()
 		{
+			if (BuildingDef == null)
+				return;
 			var ingredients = BuildingDef.CraftRecipe.Ingredients;
 			var elements = new List<Tag>(SelectedElements.Count);
 			for (int i = 0; i < ingredients.Count; ++i)
@@ -136,6 +139,7 @@ namespace BlueprintsV2.BlueprintData
 			return copy;
 		}
 
+		[MemberNotNullWhen(true, nameof(BuildingDef))]
 		public bool IsValid()
 		{
 			return BuildingDef != null;
@@ -234,8 +238,9 @@ namespace BlueprintsV2.BlueprintData
 			try
 			{
 				Offset = new Vector2I(binaryReader.ReadInt32(), binaryReader.ReadInt32());
-				BuildingDefId = binaryReader.ReadString();
-				BuildingDef = Assets.GetBuildingDef(BuildingDefId);
+				string defId = binaryReader.ReadString();
+				BuildingDefId = defId;
+				BuildingDef = Assets.GetBuildingDef(defId);
 
 				int selectedElementCount = binaryReader.ReadInt32();
 				for (int i = 0; i < selectedElementCount; ++i)
@@ -289,8 +294,12 @@ namespace BlueprintsV2.BlueprintData
 
 			if (buildingDefToken != null && buildingDefToken.Type == JTokenType.String)
 			{
-				BuildingDefId = buildingDefToken.Value<string>();
-				BuildingDef = Assets.GetBuildingDef(BuildingDefId);
+				string? defId = buildingDefToken.Value<string>();
+				if (defId != null)
+				{
+					BuildingDefId = defId;
+					BuildingDef = Assets.GetBuildingDef(defId);
+				}
 			}
 
 			if (selectedElementsToken != null && selectedElementsToken.Type == JTokenType.Array)

@@ -332,7 +332,7 @@ namespace BlueprintsV2.ModAPI
 		public delegate void SetBlueprintDataDelegate(GameObject go, JObject data);
 
 
-		static void RegisterInternally(string ID, System.Func<GameObject, JObject> GetDataToStore, System.Action<GameObject, JObject> ApplyStoredData, int OverridePriority = 0)
+		static void RegisterInternally(string ID, System.Func<GameObject, JObject?> GetDataToStore, System.Action<GameObject, JObject> ApplyStoredData, int OverridePriority = 0)
 		{
 			RegisterAdditionalStorableBuildingData(ID, (GetBlueprintDataDelegate)Delegate.CreateDelegate(typeof(GetBlueprintDataDelegate), GetDataToStore.Method), (SetBlueprintDataDelegate)Delegate.CreateDelegate(typeof(SetBlueprintDataDelegate), ApplyStoredData.Method), OverridePriority);
 		}

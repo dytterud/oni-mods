@@ -74,7 +74,7 @@ namespace BlueprintsV2.BlueprintData
 
 					BlueprintFileHandling.BlueprintFolders.Remove(this);
 					if (SelectedFolder == this)
-						SelectedFolder = null;
+						SelectedFolder = null!; // "no folder selected"; ModAssets.SelectedFolder is annotated non-null until that file is migrated
 					string path = Path.Combine(BlueprintFileHandling.GetBlueprintDirectory(), Name);
 
 					try

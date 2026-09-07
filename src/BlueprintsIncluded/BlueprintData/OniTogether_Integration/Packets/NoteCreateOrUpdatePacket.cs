@@ -13,7 +13,7 @@ namespace BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
 	internal class NoteCreateOrUpdatePacket : IPacket
 	{
 		int cell;
-		string serializedNoteData;
+		string serializedNoteData = "";
 
 		public NoteCreateOrUpdatePacket() { }
 
@@ -57,7 +57,7 @@ namespace BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
 				switch (data.Type)
 				{
 					case BlueprintNoteData.NoteType.Text:
-						TextNote.Create(cell, data.Title, data.Text,data.Symbol, data.SymbolTint,true); 
+						TextNote.Create(cell, data.Title, data.Text, data.Symbol, data.SymbolTint, true);
 						break;
 					case BlueprintNoteData.NoteType.Element:
 						ElementNote.Create(cell, data.ElementId,data.ElementMass, data.ElementTemperature, true);

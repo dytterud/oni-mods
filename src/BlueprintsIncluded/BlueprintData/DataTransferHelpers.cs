@@ -10,7 +10,7 @@ namespace BlueprintsV2.BlueprintData
 	{
 		internal class DataTransfer_UserNameable
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<UserNameable>(out var component))
 				{
@@ -35,7 +35,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_BuildingEnabledButton
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<BuildingEnabledButton>(out var component))
 				{
@@ -64,7 +64,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_Repairable
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Repairable>(out var component))
 				{
@@ -111,7 +111,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_StorageTile
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				var smi = arg.GetSMI<StorageTile.Instance>();
 
@@ -148,7 +148,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_SingleEntityReceptacle
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<SingleEntityReceptacle>(out var component))
 				{
@@ -215,7 +215,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_LogicClusterLocationSensor
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicClusterLocationSensor>(out var component))
 				{
@@ -254,7 +254,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_LogicCounter
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicCounter>(out var component))
 				{
@@ -323,7 +323,7 @@ namespace BlueprintsV2.BlueprintData
 				}
 			}
 
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<PixelPack>(out var component))
 				{
@@ -379,7 +379,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_IUserControlledCapacity
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<IUserControlledCapacity>(out var component))
 				{
@@ -407,7 +407,7 @@ namespace BlueprintsV2.BlueprintData
 		/// </summary>
 		internal class DataTransfer_Automatable
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Automatable>(out var component))
 				{
@@ -432,7 +432,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_LogicTimeOfDaySensor
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicTimeOfDaySensor>(out var component))
 				{
@@ -463,7 +463,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_IActivationRangeTarget
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<IActivationRangeTarget>(out var component))
 				{
@@ -493,7 +493,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_SpaceHeater
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<SpaceHeater>(out var component))
 				{
@@ -524,7 +524,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_Clinic
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Clinic>(out var component))
 				{
@@ -551,7 +551,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_EnergyGenerator
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<EnergyGenerator>(out var component))
 				{
@@ -581,7 +581,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_FoodStorage
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<FoodStorage>(out var component) && component.SpicedFoodOnly == true)
 				{
@@ -605,7 +605,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_AutoDisinfectable
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<AutoDisinfectable>(out var component) && component.enableAutoDisinfect == false) //only store nondefault value
 				{
@@ -634,7 +634,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_Door
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Door>(out var component))
 				{
@@ -670,7 +670,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_DirectionControl
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<DirectionControl>(out var component))
 				{
@@ -695,7 +695,7 @@ namespace BlueprintsV2.BlueprintData
 
 		internal class DataTransfer_Prioritizable
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Prioritizable>(out var component))
 				{
@@ -727,7 +727,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_TreeFilterable
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<TreeFilterable>(out var component))
 				{
@@ -769,7 +769,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_FlatTagFilterable
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<FlatTagFilterable>(out var component))
 				{
@@ -810,7 +810,7 @@ namespace BlueprintsV2.BlueprintData
 
 		internal class DataTransfer_Filterable
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Filterable>(out var component))
 				{
@@ -841,7 +841,7 @@ namespace BlueprintsV2.BlueprintData
 		/// </summary>
 		internal class DataTransfer_AccessControl
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<AccessControl>(out var component) && component.controlEnabled)
 				{
@@ -879,7 +879,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_LimitValve
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LimitValve>(out var component))
 				{
@@ -906,7 +906,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_Valve
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Valve>(out var component))
 				{
@@ -934,7 +934,7 @@ namespace BlueprintsV2.BlueprintData
 
 		internal class DataTransfer_LogicTimerSensor
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicTimerSensor>(out var sourceComponent))
 				{
@@ -973,7 +973,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_LogicAlarm
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicAlarm>(out var component))
 				{
@@ -1013,7 +1013,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_Switch
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Switch>(out var component))
 				{
@@ -1045,7 +1045,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_LogicCritterCountSensor
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicCritterCountSensor>(out var sourceComponent))
 				{
@@ -1085,7 +1085,7 @@ namespace BlueprintsV2.BlueprintData
 
 		internal class DataTransfer_IThresholdSwitch
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<IThresholdSwitch>(out var sourceComponent))
 				{
@@ -1114,7 +1114,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_GenericLogicGateDelay<T>
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<T>(out var sourceComponent))
 				{
@@ -1142,7 +1142,7 @@ namespace BlueprintsV2.BlueprintData
 
 		internal class DataTransfer_LogicRibbonWriter
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicRibbonWriter>(out var sourceComponent))
 				{
@@ -1169,7 +1169,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_LogicRibbonReader
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicRibbonReader>(out var sourceComponent))
 				{
@@ -1198,7 +1198,7 @@ namespace BlueprintsV2.BlueprintData
 
 		internal class DataTransfer_HighEnergyParticleSpawner
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<HighEnergyParticleSpawner>(out var component))
 				{
@@ -1229,7 +1229,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_HighEnergyParticleRedirector
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<HighEnergyParticleRedirector>(out var component))
 				{
@@ -1256,7 +1256,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_HEPBattery
 		{
-			internal static JObject TryGetData(GameObject arg)
+			internal static JObject? TryGetData(GameObject arg)
 			{
 				var component = arg.GetSMI<HEPBattery.Instance>();
 				if (component != null)

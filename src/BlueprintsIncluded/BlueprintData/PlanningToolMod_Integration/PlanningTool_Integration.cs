@@ -5,6 +5,11 @@ using System.Reflection;
 using System.Text;
 using UtilLibs;
 
+// Pure reflection shim for the optional PlanningTool mod: every Type/MethodInfo handle is
+// resolved at runtime (Type.GetType(..., throwOnError: false)) and every consumer gates on
+// ModActive. Nullable annotation here would be all null-forgiving noise, so opt the file out.
+#nullable disable
+
 namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration
 {
 	internal class PlanningTool_Integration

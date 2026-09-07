@@ -289,7 +289,7 @@ namespace BlueprintsV2.BlueprintData
 		#endregion
 
 		#region UseCreate
-		public static Blueprint CreateBlueprint(Vector2I topLeft, Vector2I bottomRight, MultiToolParameterMenu filter = null, bool createsSnapshot = false)
+		public static Blueprint CreateBlueprint(Vector2I topLeft, Vector2I bottomRight, MultiToolParameterMenu? filter = null, bool createsSnapshot = false)
 		{
 			Blueprint blueprint = new Blueprint("unnamed", "");
 
@@ -335,7 +335,7 @@ namespace BlueprintsV2.BlueprintData
 
 							if (hasConstructable || hasDeconstructable)
 							{
-								Building building = null;
+								Building? building = null;
 
 								if (gameObject.TryGetComponent<BuildingComplete>(out var complete))
 								{
@@ -386,7 +386,7 @@ namespace BlueprintsV2.BlueprintData
 									IHaveUtilityNetworkMgr networkMngCmp = building.Def.BuildingComplete.GetComponent<IHaveUtilityNetworkMgr>();
 									if (networkMngCmp != null)
 									{
-										buildingConfig.SetConduitFlags((int)networkMngCmp.GetNetworkManager()?.GetConnections(cell, false));
+										buildingConfig.SetConduitFlags((int)(networkMngCmp.GetNetworkManager()?.GetConnections(cell, false) ?? default));
 									}
 									API_Methods.StoreAdditionalBuildingData(gameObject, buildingConfig);
 
@@ -401,7 +401,7 @@ namespace BlueprintsV2.BlueprintData
 						}
 
 						var cellOffsetInBlueprint = new Vector2I(x - topLeft.x, blueprintHeight - (topLeft.y - y));
-						if ((emptyCell && storeDigCommandForNonSolidCells && !Grid.IsSolidCell(cell)) || (filter.AllowedLayer(ObjectLayer.DigPlacer) && Grid.Objects[cell, 7] != null && Grid.Objects[cell, 7].name == "DigPlacer"))
+						if ((emptyCell && storeDigCommandForNonSolidCells && !Grid.IsSolidCell(cell)) || (filter != null && filter.AllowedLayer(ObjectLayer.DigPlacer) && Grid.Objects[cell, 7] != null && Grid.Objects[cell, 7].name == "DigPlacer"))
 						{
 							if (!blueprint.DigLocations.Contains(cellOffsetInBlueprint))
 							{
@@ -426,7 +426,7 @@ namespace BlueprintsV2.BlueprintData
 								SgtLogger.l("data was invalid for note at cell " + cell + " with title: " + note.name);
 
 						}
-						else if (!solidTileDefInCell && filter.AllowedElementState(Grid.Element[cell].state))
+						else if (!solidTileDefInCell && filter != null && filter.AllowedElementState(Grid.Element[cell].state))
 						{
 							var data = BlueprintNoteData.CreateElementNote(cellOffsetInBlueprint, Grid.Element[cell].id, Grid.Mass[cell], Grid.Temperature[cell]);
 							if (data.IsValid())
@@ -447,7 +447,7 @@ namespace BlueprintsV2.BlueprintData
 			blueprint.CacheCost();
 			return blueprint;
 		}
-		public static void UseBlueprint(ulong playerId, Vector2I origin, Blueprint snapshotBp = null)
+		public static void UseBlueprint(ulong playerId, Vector2I origin, Blueprint? snapshotBp = null)
 		{
 			var transformData = CurrentStateInfo(playerId);
 
@@ -469,7 +469,7 @@ namespace BlueprintsV2.BlueprintData
 		#endregion
 		#region Visualizers
 
-		public static void RefreshBlueprintVisualizers(ulong playerId = PlayerId_DefaultTilePreviews, Blueprint snapshot = null)
+		public static void RefreshBlueprintVisualizers(ulong playerId = PlayerId_DefaultTilePreviews, Blueprint? snapshot = null)
 		{
 
 			BlueprintState.UpdateVisual(playerId, CurrentStateInfo(playerId).lastBlueprintPos, true, snapshot);
@@ -582,7 +582,7 @@ namespace BlueprintsV2.BlueprintData
 
 		//static Dictionary<int, Dictionary<int, GameObject>> VisualizerTargets = [];
 
-		public static void UpdateVisual(ulong playerId, Vector2I origin, bool forcingRedraw = false, Blueprint snapshotBp = null)
+		public static void UpdateVisual(ulong playerId, Vector2I origin, bool forcingRedraw = false, Blueprint? snapshotBp = null)
 		{
 			OnStateChanged(playerId);
 			var transformData = CurrentStateInfo(playerId);
@@ -736,7 +736,7 @@ namespace BlueprintsV2.BlueprintData
 			public bool ApplyBlueprintSettings = true;
 			public HashSet<string> BlockedPlacementFilterLayers = [];
 
-			public void StoreDimensions(Blueprint bp)
+			public void StoreDimensions(Blueprint? bp)
 			{
 				//SgtLogger.l(playerId + "-State refreshing BP dimensions, is Local: "+ LocalPlayerId(playerId)+", id has bp: "+CurrentVisualizers.ContainsKey(playerId));
 
@@ -765,7 +765,7 @@ namespace BlueprintsV2.BlueprintData
 			Orientation BlueprintOrientation = Orientation.Neutral;
 			bool FlippedX, FlippedY;
 			PermittedRotations Permitted = All;
-			public string TransformationBlockedByBuildingName;
+			public string TransformationBlockedByBuildingName = string.Empty;
 
 			public bool CanRotate => Permitted == All || Permitted == PermittedRotations.R360 || ForceOverrideTransformations;
 			public bool CanFlipH => Permitted == All || Permitted == PermittedRotations.FlipH || ForceOverrideTransformations;
@@ -975,7 +975,7 @@ namespace BlueprintsV2.BlueprintData
 				originShiftY = ShiftStates[_state].diffY;
 			}
 
-			public void SetAnchorState(float newDiffX = -1, float newDiffY = -1, Blueprint snapshotBlueprint = null)
+			public void SetAnchorState(float newDiffX = -1, float newDiffY = -1, Blueprint? snapshotBlueprint = null)
 			{
 				if (newDiffX != -1)
 					originShiftX = newDiffX;
@@ -983,7 +983,7 @@ namespace BlueprintsV2.BlueprintData
 					originShiftY = newDiffY;
 				UpdateVisual(playerId, lastBlueprintPos, true, snapshotBlueprint);
 			}
-			public void RefreshAnchorState(Blueprint snapshotBlueprint = null)
+			public void RefreshAnchorState(Blueprint? snapshotBlueprint = null)
 			{
 				originShiftX = ShiftStates[_state].diffX;
 				originShiftY = ShiftStates[_state].diffY;
@@ -991,7 +991,7 @@ namespace BlueprintsV2.BlueprintData
 				UpdateVisual(playerId, lastBlueprintPos, true, snapshotBlueprint);
 			}
 
-			public void NextAnchorState(Blueprint snapshotBlueprint = null)
+			public void NextAnchorState(Blueprint? snapshotBlueprint = null)
 			{
 				int state = (int)_state;
 				state = (state + 1) % ShiftStates.Count;

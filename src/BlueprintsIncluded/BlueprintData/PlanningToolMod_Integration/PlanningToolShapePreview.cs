@@ -10,9 +10,9 @@ namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration
 {
 	internal class PlanningToolShapePreview : KMonoBehaviour
 	{
-		static Material SquareMat, CircleMat, DiamondMat;
+		static Material SquareMat = null!, CircleMat = null!, DiamondMat = null!;
 
-		MeshRenderer renderer;
+		MeshRenderer renderer = null!;
 
 		public PlanShape Shape;
 		public PlanColor Color;

@@ -17,9 +17,9 @@ namespace BlueprintsV2.BlueprintData
 	/// </summary>
 	public static class EmbeddedJson
 	{
-		public static JToken From(object value) => value == null ? JValue.CreateNull() : JToken.FromObject(value);
+		public static JToken From(object? value) => value is null ? JValue.CreateNull() : JToken.FromObject(value);
 
-		public static T To<T>(JToken token)
+		public static T? To<T>(JToken token)
 		{
 			if (token == null || token.Type == JTokenType.Null)
 				return default;

@@ -9,7 +9,7 @@ namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration
 {
 	public static class PlanningTool_EnumMapping
 	{
-		static Dictionary<int,Color> ColorMap;
+		static Dictionary<int,Color>? ColorMap;
 
 		public static Color FallbackColor(PlanColor color)
 		{

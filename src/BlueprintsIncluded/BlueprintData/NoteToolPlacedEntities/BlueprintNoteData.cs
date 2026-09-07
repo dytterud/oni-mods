@@ -20,7 +20,7 @@ namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities
 
 		public NoteType Type = NoteType.Invalid;
 		///Text Note Data
-		public string Text, Title, Symbol;
+		public string Text = "", Title = "", Symbol = "";
 		public Color SymbolTint;
 		///Element Note Data
 		public SimHashes ElementId;

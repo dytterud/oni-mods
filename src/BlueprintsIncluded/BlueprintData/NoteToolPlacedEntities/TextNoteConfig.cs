@@ -7,7 +7,7 @@ namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities
 	internal class TextNoteConfig : CommonPlacerConfig, IEntityConfig
 	{
 		public static string ID = "BlueprintsV2_Text_Note";
-		static Material slurpPlacerMaterial;
+		static Material slurpPlacerMaterial = null!;
 		public GameObject CreatePrefab()
 		{
 			slurpPlacerMaterial = new Material(Assets.instance.mopPlacerAssets.material);
@@ -20,7 +20,7 @@ namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities
 			prefab.AddOrGet<TextNote>();
 			return prefab;
 		}
-		public string[] GetDlcIds() => null;
+		public string[] GetDlcIds() => null!;
 		public void OnPrefabInit(GameObject go)
 		{
 		}
