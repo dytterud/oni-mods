@@ -14,7 +14,9 @@ dotnet test                                                            # from re
 Offline build auto-activates when no ONI install is configured; it compiles against the
 committed reference assemblies in `lib/`. For in-game testing against a real install, see
 [README.md](README.md) (`Directory.Build.props.user` + `dotnet tool restore` + `-c Debug`).
-Test details: [test/README.md](test/README.md).
+Test details: [test/README.md](test/README.md). The blueprint pipeline needs a running
+colony, so it has a manual [smoke-test checklist](docs/smoke-test-checklist.md) — run it
+in-game after changes to blueprint data, tools, visualizers, or UI.
 
 ## Layout
 
