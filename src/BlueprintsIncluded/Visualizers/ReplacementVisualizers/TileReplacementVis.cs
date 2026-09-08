@@ -9,7 +9,7 @@ namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 {
 	internal class TileReplacementVis : ReplacementVis
 	{
-		[MyCmpGet] KBoxCollider2D collider;
+		[MyCmpGet] KBoxCollider2D collider = null!;
 		//[MyCmpGet] RectMask2D _mask;
 		static Dictionary<BuildingDef, BlockTileRenderer.RenderInfo> _tileInfos = [];
 		static Dictionary<BuildingDef, Dictionary<int, Sprite>> _Tilesprites = [];
@@ -60,6 +60,8 @@ namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 				}
 				//SgtLogger.l("Trying to get tile variant for " + def.Name + " with variant " + connection_bits);
 				var tex = renderInfo.material.mainTexture as Texture2D;
+				if (tex == null)
+					return;
 				Vector4 uv = renderInfo.atlasInfo.First().uvBox; //do AddVertexInfo trimming for other tile variants
 				for (int index = 0; index < renderInfo.atlasInfo.Length; index++)
 				{

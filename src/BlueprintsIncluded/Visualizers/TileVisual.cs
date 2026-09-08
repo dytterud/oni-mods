@@ -3,6 +3,7 @@ using BlueprintsV2.BlueprintData;
 using BlueprintsV2.Tools;
 using Database;
 using HarmonyLib;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using TUNING;
 using UnityEngine;
@@ -16,7 +17,7 @@ namespace BlueprintsV2.Visualizers
 	public class TileVisual : BuildingVisual, ICleanableVisual
 	{
 		readonly static Dictionary<ulong, Dictionary<int, BuildingDef>> ActiveTileVisuals = [];
-		public static bool HasTileAt(ulong playerId, int cell, out BuildingDef visual)
+		public static bool HasTileAt(ulong playerId, int cell, [NotNullWhen(true)] out BuildingDef? visual)
 		{
 			visual = null;
 			return ActiveTileVisuals.TryGetValue(playerId, out var dict) && dict.TryGetValue(cell, out visual);
@@ -66,11 +67,11 @@ namespace BlueprintsV2.Visualizers
 			if (!ActiveTileVisuals.ContainsKey(playerId))
 				ActiveTileVisuals[playerId] = [];
 
-			hasReplacementLayer = buildingConfig.BuildingDef.ReplacementLayer != ObjectLayer.NumLayers;
+			hasReplacementLayer = BuildingDef.ReplacementLayer != ObjectLayer.NumLayers;
 			VisualsUtilities.SetTileColor(_playerId, cell, GetVisualizerColor(cell), buildingConfig);
 			this.cell = -1;
 			DirtyCell = cell;
-			isTile = buildingConfig.BuildingDef.isKAnimTile && buildingConfig.BuildingDef.BlockTileAtlas;
+			isTile = BuildingDef.isKAnimTile && BuildingDef.BlockTileAtlas;
 			UpdateGrid(cell);
 		}
 
@@ -92,7 +93,7 @@ namespace BlueprintsV2.Visualizers
 		{
 			if (cellParam != cell || forceRedraw)
 			{
-				Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, buildingConfig.BuildingDef.SceneLayer));
+				Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, BuildingDef.SceneLayer));
 				UpdateGrid(cellParam);
 				ApplyColorIfChanged(cellParam);
 				cell = cellParam;
@@ -111,9 +112,9 @@ namespace BlueprintsV2.Visualizers
 
 				if (ActiveTileVisuals[_playerId].TryGetValue(DirtyCell, out var vis) && vis == this.BuildingDef)
 				{
-					CustomTileRenderer.RemoveTileBlock(_playerId, buildingConfig.BuildingDef, false, SimHashes.Void, DirtyCell);
+					CustomTileRenderer.RemoveTileBlock(_playerId, BuildingDef, false, SimHashes.Void, DirtyCell);
 					ActiveTileVisuals[_playerId].Remove(DirtyCell);
-					CustomTileRenderer.RefreshCell(_playerId, DirtyCell, buildingConfig.BuildingDef.TileLayer, buildingConfig.BuildingDef.ReplacementLayer);
+					CustomTileRenderer.RefreshCell(_playerId, DirtyCell, BuildingDef.TileLayer, BuildingDef.ReplacementLayer);
 				}
 			}
 			DirtyCell = -1;
@@ -132,9 +133,9 @@ namespace BlueprintsV2.Visualizers
 					return;
 				}
 				//bool replacing = hasReplacementLayer && CanReplace(cell);
-				CustomTileRenderer.AddTileBlock(_playerId, LayerMask.NameToLayer("Overlay"), buildingConfig.BuildingDef, false, SimHashes.Void, cellParam);
+				CustomTileRenderer.AddTileBlock(_playerId, LayerMask.NameToLayer("Overlay"), BuildingDef, false, SimHashes.Void, cellParam);
 				ActiveTileVisuals[_playerId][cellParam] = this.BuildingDef;
-				CustomTileRenderer.RefreshCell(_playerId, cellParam, buildingConfig.BuildingDef.TileLayer, buildingConfig.BuildingDef.ReplacementLayer);
+				CustomTileRenderer.RefreshCell(_playerId, cellParam, BuildingDef.TileLayer, BuildingDef.ReplacementLayer);
 				DirtyCell = cellParam;
 				seated = true;	
 			}

@@ -18,7 +18,7 @@ namespace BlueprintsV2.Visualizers
 
 		bool TryUse(int cellParam);
 
-		string BuildingID { get; }
+		string? BuildingID { get; }
 
 		PermittedRotations GetAllowedRotations();
 		void ApplyRotation(Orientation rotation, bool flippedX, bool flippedY);

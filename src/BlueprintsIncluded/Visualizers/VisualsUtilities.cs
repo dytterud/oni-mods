@@ -14,7 +14,7 @@ namespace BlueprintsV2.Visualizers
 			BlueprintState.ColoredCells[playerId][cell] = newColor;
 
 			if (existingColor != newColor)
-				CustomTileRenderer.RefreshCell(playerId, cell, buildingConfig.BuildingDef.TileLayer, buildingConfig.BuildingDef.ReplacementLayer);
+				CustomTileRenderer.RefreshCell(playerId, cell, buildingConfig.BuildingDef!.TileLayer, buildingConfig.BuildingDef.ReplacementLayer);
 		}
 	}
 }

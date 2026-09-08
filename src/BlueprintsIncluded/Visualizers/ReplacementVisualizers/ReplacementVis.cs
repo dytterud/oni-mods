@@ -24,7 +24,7 @@ namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 		[Serialize]
 		public bool TryReplacing = true;
 		[Serialize]
-		protected string buildingDefId;
+		protected string buildingDefId = "";
 		[Serialize]
 		protected Orientation orientation;
 		[Serialize]
@@ -34,7 +34,7 @@ namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 		[Serialize]
 		protected Tag[] selectedElements = [];
 
-		protected BuildingDef def;
+		protected BuildingDef def = null!;
 		[Serialize]
 		protected int cell;
 
@@ -46,23 +46,23 @@ namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 		public static VisLayerIndexer Visualizers = new();
 
 
-		[MyCmpGet] protected KBatchedAnimController kbac;
+		[MyCmpGet] protected KBatchedAnimController? kbac;
 		private HandleVector<int>.Handle partitionerEntry;
-		[MyCmpReq] KSelectable selectable;
-		[MyCmpReq] InfoDescription description;
-		[MyCmpGet] protected VisualizerRotatable visRot;
-		[MyCmpGet] protected SpriteRenderer tileSpriteRenderer;
+		[MyCmpReq] KSelectable selectable = null!;
+		[MyCmpReq] InfoDescription description = null!;
+		[MyCmpGet] protected VisualizerRotatable? visRot;
+		[MyCmpGet] protected SpriteRenderer tileSpriteRenderer = null!;
 
 		List<int> subs = [];
-		Coroutine check = null;
+		Coroutine? check = null;
 		bool replacementInProgress = false;
 		bool markedForDeletion = false;
-		HashSet<ObjectLayer> layersToReplace = null;
+		HashSet<ObjectLayer> layersToReplace = null!;
 
 		public void Configure(int cell, BuildingConfig building, Orientation orientation, IEnumerable<Tag> elements, int flags, ulong playerId = BlueprintState.PlayerId_DefaultTilePreviews)
 		{
 			this.cell = cell;
-			this.buildingDefId = building.BuildingDef.PrefabID;
+			this.buildingDefId = building.BuildingDef!.PrefabID;
 			this.orientation = orientation;
 			this.conduitFlags = flags;
 			this.selectedElements = elements.ToArray();
@@ -79,7 +79,9 @@ namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 		void InitDefAndAnim()
 		{
 			def = Assets.GetBuildingDef(buildingDefId);
-			if (def != null && kbac != null)
+			if (def == null)
+				return;
+			if (kbac != null)
 			{
 				kbac.SwapAnims(def.AnimFiles);
 				if (visRot != null)
@@ -461,7 +463,7 @@ namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 
 			return bits;
 		}
-		public static bool MatchesDef(ReplacementVis other, Tag target)
+		public static bool MatchesDef(ReplacementVis? other, Tag target)
 		{
 			return other != null && other.buildingDefId == target;
 		}
