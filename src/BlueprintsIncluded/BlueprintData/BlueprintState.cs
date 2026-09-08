@@ -257,7 +257,7 @@ namespace BlueprintsV2.BlueprintData
 				return;
 			PacketSenderAPI.SendToAllOtherPeers(CurrentStateInfo().GetFilledModePacket());
 		}
-		public static void OnBlueprintUsed(ulong playerId, Blueprint bp, Vector2I pos)
+		public static void OnBlueprintUsed(ulong playerId, Blueprint? bp, Vector2I pos)
 		{
 			if (!LocalPlayerId(playerId) || bp == null || !MP_Helpers.MPInstalledAndActive())
 				return;
@@ -474,8 +474,8 @@ namespace BlueprintsV2.BlueprintData
 
 			BlueprintState.UpdateVisual(playerId, CurrentStateInfo(playerId).lastBlueprintPos, true, snapshot);
 		}
-		public static void VisualizeBlueprint(Vector2I topLeft, Blueprint blueprint) => VisualizeBlueprint(PlayerId_DefaultTilePreviews, topLeft, blueprint);
-		public static void VisualizeBlueprint(ulong playerId, Vector2I topLeft, Blueprint blueprint)
+		public static void VisualizeBlueprint(Vector2I topLeft, Blueprint? blueprint) => VisualizeBlueprint(PlayerId_DefaultTilePreviews, topLeft, blueprint);
+		public static void VisualizeBlueprint(ulong playerId, Vector2I topLeft, Blueprint? blueprint)
 		{
 			if (blueprint == null)
 			{

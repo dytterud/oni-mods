@@ -409,7 +409,7 @@ namespace BlueprintsV2.UnityUI
 			SetMaterialState();
 		}
 
-		public static void ShowWindow(System.Action<Blueprint> OnClose, Blueprint targetBlueprint, bool showBlueprintList)
+		public static void ShowWindow(System.Action<Blueprint> OnClose, Blueprint? targetBlueprint, bool showBlueprintList)
 		{
 			if (Instance == null)
 			{

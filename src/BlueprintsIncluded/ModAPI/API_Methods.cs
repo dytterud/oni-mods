@@ -53,7 +53,7 @@ namespace BlueprintsV2.ModAPI
 		/// </summary>
 		/// <param name="source">the gameobject the blueprint is made from</param>
 		/// <returns>JObject of all the data to be stored in the blueprint</returns>
-		public static JObject Blueprints_GetData(GameObject source)
+		public static JObject? Blueprints_GetData(GameObject source)
 		{
 			if (source.TryGetComponent<IntegrationExample>(out var behavior))
 			{
@@ -194,7 +194,7 @@ namespace BlueprintsV2.ModAPI
 				RegisteredDataHandlerIDs = new HashSet<string>(AdditionalBuildingDataEntries.Keys);
 			return RegisteredDataHandlerIDs;
 		}
-		private static HashSet<string> RegisteredDataHandlerIDs = null;
+		private static HashSet<string>? RegisteredDataHandlerIDs = null;
 
 		public static bool HasDataHandler(string typeName) => AdditionalBuildingDataEntries.ContainsKey(typeName);
 

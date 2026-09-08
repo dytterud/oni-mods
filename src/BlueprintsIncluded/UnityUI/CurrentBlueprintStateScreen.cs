@@ -59,7 +59,7 @@ namespace BlueprintsV2.UnityUI
 			gameObject.SetActive(true);
 		}
 
-		public void SetSelectedBlueprint(Blueprint bp)
+		public void SetSelectedBlueprint(Blueprint? bp)
 		{
 			if (bp == null)
 			{

@@ -272,7 +272,7 @@ namespace BlueprintsV2.Tools
 		{
 			var currentParams = GetParameters();
 			ToolParameterMenu.ToggleState toggleState = default;
-			if(ModAssets.TryGetFilterLayerId(objectLayer, out string filterId))
+			if(ModAssets.TryGetFilterLayerId(objectLayer, out string? filterId))
 				return currentParams.TryGetValue(filterId, out toggleState) && toggleState == ToolParameterMenu.ToggleState.On;
 			return false;
 		}

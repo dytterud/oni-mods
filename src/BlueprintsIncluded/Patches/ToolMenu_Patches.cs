@@ -10,7 +10,7 @@ namespace BlueprintsV2.Patches
 {
 	class ToolMenu_Patches
 	{
-		static ToolMenu.ToolCollection SnapshotToolCollection, CreateBlueprintToolCollection, UseBlueprintToolCollection, NoteToolCollection;
+		static ToolMenu.ToolCollection SnapshotToolCollection = null!, CreateBlueprintToolCollection = null!, UseBlueprintToolCollection = null!, NoteToolCollection = null!;
 
 		[HarmonyPatch(typeof(ToolMenu), nameof(ToolMenu.OnKeyUp))]
 		public class ToolMenu_OnKeyUp_Patch
