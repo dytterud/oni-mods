@@ -4,12 +4,12 @@ using System.Text;
 
 namespace BlueprintsV2
 {
-	public enum VisualizerType
-	{
-		BUILDING,
-		UTILITY,
-		TILE,
+    public enum VisualizerType
+    {
+        BUILDING,
+        UTILITY,
+        TILE,
 
-		INVALID = -1
-	}
+        INVALID = -1
+    }
 }

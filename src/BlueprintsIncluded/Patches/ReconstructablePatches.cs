@@ -19,19 +19,19 @@ namespace BlueprintsV2.Patches
                 BuildingConfig dataCarrier = new BuildingConfig();
                 dataCarrier.BuildingDef = building.Def;
                 int cell = Grid.PosToCell(__instance);
-				API_Methods.StoreAdditionalBuildingData(__instance.gameObject, dataCarrier);
+                API_Methods.StoreAdditionalBuildingData(__instance.gameObject, dataCarrier);
 
                 //next frame it places the building under construction, so we make sure the data is applied after that so the placed building exists
-                GameScheduler.Instance.Schedule("Reconstructable Reapply Data", 0.1f, _ => 
-				{
-					var newBuildingUnderConstruction = Grid.Objects[cell, (int)building.Def.ObjectLayer];
+                GameScheduler.Instance.Schedule("Reconstructable Reapply Data", 0.1f, _ =>
+                {
+                    var newBuildingUnderConstruction = Grid.Objects[cell, (int)building.Def.ObjectLayer];
                     if (newBuildingUnderConstruction == null)
                         return;
 
                     API_Methods.ApplyAdditionalBuildingData(newBuildingUnderConstruction, dataCarrier);
-				});
+                });
 
-			}
+            }
         }
     }
 }

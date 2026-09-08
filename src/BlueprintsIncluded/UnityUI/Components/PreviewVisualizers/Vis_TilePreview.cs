@@ -11,170 +11,170 @@ using static STRINGS.DUPLICANTS.ATTRIBUTES;
 
 namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 {
-	internal class Vis_TilePreview : Vis_SpritePreview
-	{
-		static Dictionary<BuildingDef, BlockTileRenderer.RenderInfo> _tileInfos = [];
-		static Dictionary<BuildingDef, Dictionary<int, Sprite>> _tileSprites = [];
-		static Dictionary<BuildingDef, Dictionary<int, Vector4>> _tileMasks = [];
+    internal class Vis_TilePreview : Vis_SpritePreview
+    {
+        static Dictionary<BuildingDef, BlockTileRenderer.RenderInfo> _tileInfos = [];
+        static Dictionary<BuildingDef, Dictionary<int, Sprite>> _tileSprites = [];
+        static Dictionary<BuildingDef, Dictionary<int, Vector4>> _tileMasks = [];
 
-		static string?[,] Tiles = null!;
-		static List<Vis_TilePreview> previews = new List<Vis_TilePreview>();
-		BuildingConfig _config = null!;
-		RectMask2D _mask = null!;
+        static string?[,] Tiles = null!;
+        static List<Vis_TilePreview> previews = new List<Vis_TilePreview>();
+        BuildingConfig _config = null!;
+        RectMask2D _mask = null!;
 
-		protected FButton _disableToggle = null!;
-		protected Image _disableToggleHover = null!;
-		protected RectTransform _disableToggleSize = null!;
+        protected FButton _disableToggle = null!;
+        protected Image _disableToggleHover = null!;
+        protected RectTransform _disableToggleSize = null!;
 
-		protected Color _tempDisabled = UIUtils.rgba(2, 198, 246, 0.75);
+        protected Color _tempDisabled = UIUtils.rgba(2, 198, 246, 0.75);
 
-		protected BuildingConfig _building = null!;
+        protected BuildingConfig _building = null!;
 
-		protected void InitClickable()
-		{
-			var toggle = transform.Find("ClickableOverlay");
-			_disableToggleSize = toggle.rectTransform();
-			_disableToggleHover = toggle.GetComponent<Image>();
-			_disableToggle = transform.gameObject.AddOrGet<FButton>();
+        protected void InitClickable()
+        {
+            var toggle = transform.Find("ClickableOverlay");
+            _disableToggleSize = toggle.rectTransform();
+            _disableToggleHover = toggle.GetComponent<Image>();
+            _disableToggle = transform.gameObject.AddOrGet<FButton>();
 
-			_disableToggle.OnClick += () => ToggleBuildingDisabled(true);
-			_disableToggle.OnRightClick += () => ToggleBuildingDisabled(false);
-		}
-		void ToggleBuildingDisabled(bool on)
-		{
-			_building?.BuildingDisabled = !on;
-			BlueprintSelectionScreen.Instance?.RefreshPreview();
-		}
+            _disableToggle.OnClick += () => ToggleBuildingDisabled(true);
+            _disableToggle.OnRightClick += () => ToggleBuildingDisabled(false);
+        }
+        void ToggleBuildingDisabled(bool on)
+        {
+            _building?.BuildingDisabled = !on;
+            BlueprintSelectionScreen.Instance?.RefreshPreview();
+        }
 
-		protected override Color GetDefaultColor()
-		{
-			return _config .BuildingDisabled ? _tempDisabled : base.GetDefaultColor();
-		}
+        protected override Color GetDefaultColor()
+        {
+            return _config.BuildingDisabled ? _tempDisabled : base.GetDefaultColor();
+        }
 
-		internal Vis_TilePreview Init(BuildingConfig building)
-		{
-			_building = building;
-			InitClickable();
-			SpriteRenderer = transform.Find("TileMask/TileVis").gameObject.GetComponent<Image>();
-			_mask = transform.Find("TileMask").GetComponent<RectMask2D>();
-			SpriteRenderer.gameObject.SetActive(true);
+        internal Vis_TilePreview Init(BuildingConfig building)
+        {
+            _building = building;
+            InitClickable();
+            SpriteRenderer = transform.Find("TileMask/TileVis").gameObject.GetComponent<Image>();
+            _mask = transform.Find("TileMask").GetComponent<RectMask2D>();
+            SpriteRenderer.gameObject.SetActive(true);
 
-			_config = building;
-			var offset = building.Offset;
-			Tiles[offset.X, offset.Y] = building.BuildingDefId;
-			previews.Add(this);
-			return this;
-		}
+            _config = building;
+            var offset = building.Offset;
+            Tiles[offset.X, offset.Y] = building.BuildingDefId;
+            previews.Add(this);
+            return this;
+        }
 
-		internal static void ClearTileArray(Vector2I newDimensions)
-		{
-			Tiles = new string[newDimensions.X, newDimensions.Y];
-			previews.Clear();
-		}
+        internal static void ClearTileArray(Vector2I newDimensions)
+        {
+            Tiles = new string[newDimensions.X, newDimensions.Y];
+            previews.Clear();
+        }
 
-		//runs after all tiles have been initialized via .Init()
-		internal static void ConnectAll()
-		{
-			foreach (var preview in previews)
-			{
-				var offset = preview._config.Offset;
-				var def = preview._config.BuildingDef!;
-				preview.UpdateTileTexture(def, offset);
-			}
-		}
+        //runs after all tiles have been initialized via .Init()
+        internal static void ConnectAll()
+        {
+            foreach (var preview in previews)
+            {
+                var offset = preview._config.Offset;
+                var def = preview._config.BuildingDef!;
+                preview.UpdateTileTexture(def, offset);
+            }
+        }
 
-		void UpdateTileTexture(BuildingDef def, Vector2I position)
-		{
-			BlockTileRenderer.Bits connection_bits = GetConnectionBits(position.X, position.Y);
-			int variantInt = (int)connection_bits;
+        void UpdateTileTexture(BuildingDef def, Vector2I position)
+        {
+            BlockTileRenderer.Bits connection_bits = GetConnectionBits(position.X, position.Y);
+            int variantInt = (int)connection_bits;
 
-			if (!_tileSprites.TryGetValue(def, out var spriteDict))
-			{
-				_tileSprites[def] = spriteDict = new Dictionary<int, Sprite>();
-			}
-			if(!_tileMasks.TryGetValue(def, out var maskDict))
-			{
-				_tileMasks[def] = maskDict = new Dictionary<int, Vector4>();
-			}
-			if (!spriteDict.ContainsKey(variantInt))
-			{
+            if (!_tileSprites.TryGetValue(def, out var spriteDict))
+            {
+                _tileSprites[def] = spriteDict = new Dictionary<int, Sprite>();
+            }
+            if (!_tileMasks.TryGetValue(def, out var maskDict))
+            {
+                _tileMasks[def] = maskDict = new Dictionary<int, Vector4>();
+            }
+            if (!spriteDict.ContainsKey(variantInt))
+            {
 
-				if (!_tileInfos.TryGetValue(def, out var renderInfo))
-				{
-					_tileInfos[def] = renderInfo = new BlockTileRenderer.RenderInfo(World.Instance.blockTileRenderer, (int)def.TileLayer, LayerMask.NameToLayer("Place"), def, SimHashes.COMPOSITION, false); //using composition here to always get the default look, even with true tiles
-				}
+                if (!_tileInfos.TryGetValue(def, out var renderInfo))
+                {
+                    _tileInfos[def] = renderInfo = new BlockTileRenderer.RenderInfo(World.Instance.blockTileRenderer, (int)def.TileLayer, LayerMask.NameToLayer("Place"), def, SimHashes.COMPOSITION, false); //using composition here to always get the default look, even with true tiles
+                }
 
-				SgtLogger.Assert(renderInfo, "renderInfo");
-				SgtLogger.Assert(renderInfo?.material, "renderInfo.material");
-				SgtLogger.Assert(renderInfo?.material?.mainTexture, "renderInfo.material.mainTexture");
-				//SgtLogger.l("Trying to get tile variant for " + def.Name + " with variant " + GetConnectionBits(position.X, position.Y));
-				var tex = def.BlockTileAtlas.texture;
+                SgtLogger.Assert(renderInfo, "renderInfo");
+                SgtLogger.Assert(renderInfo?.material, "renderInfo.material");
+                SgtLogger.Assert(renderInfo?.material?.mainTexture, "renderInfo.material.mainTexture");
+                //SgtLogger.l("Trying to get tile variant for " + def.Name + " with variant " + GetConnectionBits(position.X, position.Y));
+                var tex = def.BlockTileAtlas.texture;
 
-				Vector4 uv = renderInfo!.atlasInfo.First().uvBox; //do AddVertexInfo trimming for other tile variants
+                Vector4 uv = renderInfo!.atlasInfo.First().uvBox; //do AddVertexInfo trimming for other tile variants
 
-				for (int index = 0; index < renderInfo.atlasInfo.Length; index++)
-				{
-					var info = renderInfo.atlasInfo[index];
-					bool requiredConnectionsFulfilled = (connection_bits & info.requiredConnections) == info.requiredConnections;
-					bool forbidddenConnectionsTriggered = (connection_bits & info.forbiddenConnections) != 0;
-					if (requiredConnectionsFulfilled && !forbidddenConnectionsTriggered)
-					{
-						uv = info.uvBox;
-						//SgtLogger.l("Uv box for " + info.name + ": " + info.uvBox.ToString() + ", required: " + info.requiredConnections+"; forbidden: "+info.forbiddenConnections);
-						break;
-					}
-				}
-				float uMin = uv.x;
-				float vMin = uv.y;
-				float uMax = uv.z;
-				float vMax = uv.w;
+                for (int index = 0; index < renderInfo.atlasInfo.Length; index++)
+                {
+                    var info = renderInfo.atlasInfo[index];
+                    bool requiredConnectionsFulfilled = (connection_bits & info.requiredConnections) == info.requiredConnections;
+                    bool forbidddenConnectionsTriggered = (connection_bits & info.forbiddenConnections) != 0;
+                    if (requiredConnectionsFulfilled && !forbidddenConnectionsTriggered)
+                    {
+                        uv = info.uvBox;
+                        //SgtLogger.l("Uv box for " + info.name + ": " + info.uvBox.ToString() + ", required: " + info.requiredConnections+"; forbidden: "+info.forbiddenConnections);
+                        break;
+                    }
+                }
+                float uMin = uv.x;
+                float vMin = uv.y;
+                float uMax = uv.z;
+                float vMax = uv.w;
 
-				UnityEngine.Rect rect = new UnityEngine.Rect(
-					uMin * tex.width,
-					vMin * tex.height,
-					(uMax - uMin) * tex.width,
-					(vMax - vMin) * tex.height
-				);
+                UnityEngine.Rect rect = new UnityEngine.Rect(
+                    uMin * tex.width,
+                    vMin * tex.height,
+                    (uMax - uMin) * tex.width,
+                    (vMax - vMin) * tex.height
+                );
 
-				spriteDict[variantInt] = Sprite.Create(tex, rect, new(0.5f, 0.5f), 128); // 128 ppu ;
+                spriteDict[variantInt] = Sprite.Create(tex, rect, new(0.5f, 0.5f), 128); // 128 ppu ;
 
-				bool connectedLeft = (connection_bits & BlockTileRenderer.Bits.Left) != 0;
-				bool connectedRight = (connection_bits & BlockTileRenderer.Bits.Right) != 0;
-				bool connectedTop = (connection_bits & BlockTileRenderer.Bits.Up) != 0;
-				bool connectedBottom = (connection_bits & BlockTileRenderer.Bits.Down) != 0;
+                bool connectedLeft = (connection_bits & BlockTileRenderer.Bits.Left) != 0;
+                bool connectedRight = (connection_bits & BlockTileRenderer.Bits.Right) != 0;
+                bool connectedTop = (connection_bits & BlockTileRenderer.Bits.Up) != 0;
+                bool connectedBottom = (connection_bits & BlockTileRenderer.Bits.Down) != 0;
 
-				var padding = _mask.padding;
-				padding.x = connectedLeft ? -1 : -50;
-				padding.y = connectedTop ? -1 : -50;
-				padding.z = connectedRight  ? -1 : -50;
-				padding.w = connectedBottom ? -1 : -50;
+                var padding = _mask.padding;
+                padding.x = connectedLeft ? -1 : -50;
+                padding.y = connectedTop ? -1 : -50;
+                padding.z = connectedRight ? -1 : -50;
+                padding.w = connectedBottom ? -1 : -50;
 
-				maskDict[variantInt] = padding;
-			}
-			_mask.padding = maskDict[variantInt];
-			SpriteRenderer.sprite = spriteDict[variantInt];
-		}
-		public virtual BlockTileRenderer.Bits GetConnectionBits(int x, int y)
-		{
-			BlockTileRenderer.Bits connectionBits = (BlockTileRenderer.Bits)0;
-			var tileID = Tiles[x, y];
-			int width = Tiles.GetLength(0) - 1;
-			int height = Tiles.GetLength(1) - 1;
-			if (y > 0)
-			{
-				if (Tiles[x, y - 1] == tileID)
-					connectionBits |= BlockTileRenderer.Bits.Up; //idk why this is the correct way, but im not attempting to understand it
-			}
-			if (x > 0 && Tiles[x - 1, y] == tileID)
-				connectionBits |= BlockTileRenderer.Bits.Left;
-			if (x < width && Tiles[x + 1, y] == tileID)
-				connectionBits |= BlockTileRenderer.Bits.Right;
-			if (y < height)
-			{
-				if (Tiles[x, y + 1] == tileID)
-					connectionBits |= BlockTileRenderer.Bits.Down;
-			}
-			return connectionBits;
-		}
-	}
+                maskDict[variantInt] = padding;
+            }
+            _mask.padding = maskDict[variantInt];
+            SpriteRenderer.sprite = spriteDict[variantInt];
+        }
+        public virtual BlockTileRenderer.Bits GetConnectionBits(int x, int y)
+        {
+            BlockTileRenderer.Bits connectionBits = (BlockTileRenderer.Bits)0;
+            var tileID = Tiles[x, y];
+            int width = Tiles.GetLength(0) - 1;
+            int height = Tiles.GetLength(1) - 1;
+            if (y > 0)
+            {
+                if (Tiles[x, y - 1] == tileID)
+                    connectionBits |= BlockTileRenderer.Bits.Up; //idk why this is the correct way, but im not attempting to understand it
+            }
+            if (x > 0 && Tiles[x - 1, y] == tileID)
+                connectionBits |= BlockTileRenderer.Bits.Left;
+            if (x < width && Tiles[x + 1, y] == tileID)
+                connectionBits |= BlockTileRenderer.Bits.Right;
+            if (y < height)
+            {
+                if (Tiles[x, y + 1] == tileID)
+                    connectionBits |= BlockTileRenderer.Bits.Down;
+            }
+            return connectionBits;
+        }
+    }
 }
