@@ -33,6 +33,10 @@ The blueprint pipeline (create → save → reload → place, notes, folders, MP
 running colony, so it can't be unit-tested. Run [`docs/smoke-test-checklist.md`](../docs/smoke-test-checklist.md)
 in-game after any change to the blueprint data, tools, visualizers, or UI.
 
+Automating that pass by launching the game and asserting inside a live colony is feasible
+on a dev machine (not in CI) — feasibility analysis and proposed design in
+[`docs/in-game-regression-testing.md`](../docs/in-game-regression-testing.md).
+
 ## Shared config
 
 `test/Directory.Build.props` chains the repo-root props (for the game `<Reference>` items and

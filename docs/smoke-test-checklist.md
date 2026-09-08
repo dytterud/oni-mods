@@ -5,6 +5,9 @@ meaningful pipeline tests are `[RequiresGameInstall]` (see [test/README.md](../t
 Run this pass in-game after any change that touches blueprint data, the tools, the
 visualizers, or the UI (e.g. every commit of the nullable / language-modernization work).
 
+Automating this pass is possible but not yet built — see
+[in-game-regression-testing.md](in-game-regression-testing.md).
+
 Build a Debug mod (`-c Debug`, real install configured via `Directory.Build.props.user` —
 see [README.md](../README.md)), launch ONI, load or start a colony.
 
