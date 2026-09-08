@@ -27,7 +27,7 @@ namespace BlueprintsV2.BlueprintData
 		static UnderConstructionDataTransfer? lastSelected;
 		public static KSelectable? TemporarySelectable { get; private set; }
 
-		public static bool HasDataTransferComponents(BuildingUnderConstruction building)
+		public static bool HasDataTransferComponents(BuildingUnderConstruction? building)
 		{
 			if (building == null)
 				return false;

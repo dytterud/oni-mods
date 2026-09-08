@@ -888,16 +888,12 @@ namespace BlueprintsV2.UnityUI
 		}
 		void OnBlueprintDeleted(Blueprint bp)
 		{
-
-			if (bp != null)
+			if (BlueprintEntries.TryGetValue(bp, out var uientry))
 			{
-				if (BlueprintEntries.TryGetValue(bp, out var uientry))
-				{
-					UnityEngine.Object.Destroy(uientry.gameObject);
-					BlueprintEntries.Remove(bp);
-				}
-				ModAssets.BlueprintFileHandling.DeleteBlueprint(bp);
+				UnityEngine.Object.Destroy(uientry.gameObject);
+				BlueprintEntries.Remove(bp);
 			}
+			ModAssets.BlueprintFileHandling.DeleteBlueprint(bp);
 
 			if (bp == TargetBlueprint)
 				TargetBlueprint = null;
@@ -981,7 +977,7 @@ namespace BlueprintsV2.UnityUI
 			var PresetHolder = Util.KInstantiateUI(prefab, parent, true);
 
 			UIUtils.TryChangeText(PresetHolder.transform, "Label", name);
-			if (description != null && description.Length > 0)
+			if (!string.IsNullOrEmpty(description))
 			{
 				UIUtils.AddSimpleTooltipToObject(PresetHolder.transform.Find("Label"), description, true, onBottom: true);
 			}

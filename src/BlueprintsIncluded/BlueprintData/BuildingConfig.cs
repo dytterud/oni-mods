@@ -407,19 +407,17 @@ namespace BlueprintsV2.BlueprintData
 		/// </summary>
 		/// <param name="otherBuildingConfig">The other <see cref="BuildingConfig"/> to test for equality</param>
 		/// <returns>True if the two objects are equal, false otherwise</returns>
-		public bool Equals(BuildingConfig otherBuildingConfig)
+		public bool Equals(BuildingConfig? otherBuildingConfig)
 		{
 			return otherBuildingConfig != null && Offset == otherBuildingConfig.Offset && BuildingDef == otherBuildingConfig.BuildingDef && Orientation == otherBuildingConfig.Orientation;
 		}
 		internal void SetBuildingData(string Id, JObject data)
 		{
-			if (Id.IsNullOrWhiteSpace() || data == null)
+			if (Id.IsNullOrWhiteSpace())
 				return;
 
-			if (AdditionalBuildingData == null)
-				AdditionalBuildingData = new();
+			AdditionalBuildingData ??= new();
 			AdditionalBuildingData[Id] = data;
-
 		}
 		internal void SetConduitFlags(int flag)
 		{

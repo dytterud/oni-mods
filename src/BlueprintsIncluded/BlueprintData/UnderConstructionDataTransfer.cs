@@ -44,13 +44,8 @@ namespace BlueprintsV2.BlueprintData
 
 		public void SetDataToApply(string id, JObject value)
 		{
-			//SgtLogger.l("registering stored data for " + id);
-			if (id.IsNullOrWhiteSpace() || value == null)
-			{
-				//SgtLogger.l("data was null");
+			if (id.IsNullOrWhiteSpace())
 				return;
-			}
-			//SgtLogger.l("registering stored data for " + id);
 			ToApplyData[id] = JsonConvert.SerializeObject(value);
 		}
 		public void SetDataToApply(string id, string serializedValue)

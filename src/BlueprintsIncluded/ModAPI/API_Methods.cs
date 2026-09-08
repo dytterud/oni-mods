@@ -312,7 +312,7 @@ namespace BlueprintsV2.ModAPI
 				}
 			}
 		}
-		public static void TryApplyingStoredData(GameObject gameObject, string Key, JObject data)
+		public static void TryApplyingStoredData(GameObject gameObject, string Key, JObject? data)
 		{
 			if (AdditionalBuildingDataEntries.TryGetValue(Key, out var Methods) && data != null)
 			{

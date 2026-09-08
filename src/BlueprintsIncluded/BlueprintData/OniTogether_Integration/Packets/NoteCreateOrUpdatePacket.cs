@@ -23,8 +23,6 @@ namespace BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
 
 		public NoteCreateOrUpdatePacket(BlueprintNote dataHandler)
 		{
-			if (dataHandler == null)
-				return;
 			cell = dataHandler.NaturalBuildingCell();
 
 			sb.Clear();

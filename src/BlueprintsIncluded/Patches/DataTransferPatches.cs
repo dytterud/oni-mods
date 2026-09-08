@@ -42,11 +42,8 @@ namespace BlueprintsV2.Patches
 					__instance.Unsubscribe(-1661515756, OnBuildingConstructed);
 				}
 			}
-			static void OnBuildingConstructed(object data)
+			static void OnBuildingConstructed(object? data)
 			{
-				if (data == null)
-					return;
-
 				//SgtLogger.l("onbuildingconstructed");
 				if (data is BonusEvent.GameplayEventData bonusData)
 				{

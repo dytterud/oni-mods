@@ -251,14 +251,11 @@ namespace BlueprintsV2
 		}
 		public static void ExportToClipboard(Blueprint bp)
 		{
-			if (bp != null)
-			{
-				sb.Clear();
-				StringWriter sw = new StringWriter(sb);
-				bp.WriteJsonString(sw);
-				string ToCopy = sb.ToString().CompressString();
-				IO_Utils.PutToClipboard(ToCopy);
-			}
+			sb.Clear();
+			StringWriter sw = new StringWriter(sb);
+			bp.WriteJsonString(sw);
+			string ToCopy = sb.ToString().CompressString();
+			IO_Utils.PutToClipboard(ToCopy);
 		}
 
 		public static GameObject ParentScreen => GameScreenManager.Instance.GetParent(GameScreenManager.UIRenderTarget.ScreenSpaceOverlay);

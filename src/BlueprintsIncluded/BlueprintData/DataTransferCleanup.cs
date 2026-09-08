@@ -26,12 +26,12 @@ namespace BlueprintsV2.BlueprintData
 			base.OnCleanUp();
 			Unsubscribe(handle);
 		}
-		void GlobalSelectHandler(object data)
+		void GlobalSelectHandler(object? data)
 		{
 			if (!ComponentInUse || destroyed)
 				return;
 
-			if (data != null && data is GameObject go && go == gameObject)
+			if (data is GameObject go && go == gameObject)
 				return;
 
 			UnderConstructionDataSettingHelper.HandleDeselection(this);

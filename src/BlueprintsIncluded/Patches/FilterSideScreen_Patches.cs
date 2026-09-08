@@ -14,7 +14,7 @@ namespace BlueprintsV2.Patches
         [HarmonyPatch(typeof(FilterSideScreen), nameof(FilterSideScreen.IsValidForTarget))]
         public class FilterSideScreen_IsValidForTarget_Patch
         {
-            public static void Postfix(FilterSideScreen __instance, GameObject target, ref bool __result)
+            public static void Postfix(FilterSideScreen __instance, GameObject? target, ref bool __result)
             {
                 if (__result || __instance.isLogicFilter)
                     return;

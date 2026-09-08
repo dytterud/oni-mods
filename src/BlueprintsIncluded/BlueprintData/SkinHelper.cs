@@ -134,9 +134,6 @@ namespace BlueprintsV2.BlueprintData
 		}
 		public static void TryApplyArtableSkin(GameObject building, JObject facadeObj)
 		{
-			if (facadeObj == null)
-				return;
-
 			var token = facadeObj.SelectToken("CurrentStage");
 			if (token == null)
 				return;
@@ -179,9 +176,6 @@ namespace BlueprintsV2.BlueprintData
 		}
 		public static void TryApplyBuildingSkin(GameObject building, JObject facadeObj)
 		{
-			if (facadeObj == null)
-				return;
-
 			var token = facadeObj.SelectToken("CurrentFacade");
 			if (token == null)
 				return;
