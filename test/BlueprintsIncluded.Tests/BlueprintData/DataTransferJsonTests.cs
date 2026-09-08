@@ -33,7 +33,8 @@ namespace BlueprintsIncluded.Tests.BlueprintData
 
 			// legacy form: the value was JsonConvert.SerializeObject'd into a string first
 			var legacy = new JObject { ["k"] = JsonConvert.SerializeObject(payload) };
-			T fromLegacy = EmbeddedJson.To<T>(legacy["k"]!);
+			T? fromLegacy = EmbeddedJson.To<T>(legacy["k"]);
+			Assert.NotNull(fromLegacy);
 			Assert.Equal(expectedJson, JsonConvert.SerializeObject(fromLegacy));
 			Assert.True(equal(payload, fromLegacy));
 
@@ -41,7 +42,8 @@ namespace BlueprintsIncluded.Tests.BlueprintData
 			var nested = new JObject { ["k"] = EmbeddedJson.From(payload) };
 			Assert.NotEqual(JTokenType.String, nested["k"]!.Type);
 			var reparsed = JObject.Parse(nested.ToString(Formatting.None));
-			T fromNested = EmbeddedJson.To<T>(reparsed["k"]!);
+			T? fromNested = EmbeddedJson.To<T>(reparsed["k"]);
+			Assert.NotNull(fromNested);
 			Assert.Equal(expectedJson, JsonConvert.SerializeObject(fromNested));
 			Assert.True(equal(payload, fromNested));
 		}
