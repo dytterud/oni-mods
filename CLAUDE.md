@@ -42,13 +42,15 @@ Sub-namespaces mirror folders: `Patches/`, `Tools/`, `BlueprintData/`, `UnityUI/
   for `UtilLibs` / `UtilLibs.Tests` (vendored code relies on unqualified `UnityEngine`
   names) — add explicit `using`s when editing UtilLibs.
 - `Nullable` is **enabled** for `BlueprintsIncluded`, **disabled** for vendored `UtilLibs`
-  (same split as `ImplicitUsings`). The migration is subsystem-by-subsystem: `BlueprintData/`
-  is annotated (zero warnings); `Tools/`, `Visualizers/`, `UnityUI/` still emit CS86xx
-  warnings. Nullable IDs are **not** in `WarningsAsErrors` until that finishes, so the build
-  stays green. Klei-injected fields (`[MyCmpGet]` etc.) use `= null!;`.
+  (same split as `ImplicitUsings`). Fully migrated: the CS86xx family is in
+  `WarningsAsErrors` (via the `nullable` token), so a regression fails the build.
+  Klei-injected / FUI-builder-wired fields use `= null!;` (assigned before any use, never
+  actually null in-game); genuinely-optional values use `T?`. Test projects clear
+  `WarningsAsErrors`, so nullable stays advisory there.
 - `EnforceCodeStyleInBuild=true`: IDExxxx style violations **fail the build** for production
-  projects. `WarningsAsErrors=CS0618;CS0612`: calling an `[Obsolete]` game API breaks the
-  build. `CS0649` is suppressed (Klei injects fields by reflection).
+  projects. `WarningsAsErrors=CS0618;CS0612;nullable`: calling an `[Obsolete]` game API or
+  introducing a nullable warning breaks the build. `CS0649` is suppressed (Klei injects
+  fields by reflection).
 - `LangVersion=14.0` on `netstandard2.1` works via PolySharp compile-time polyfills.
 
 ## Harmony patching
