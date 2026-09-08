@@ -16,6 +16,25 @@ namespace BlueprintsV2.BlueprintData
 	/// </summary>
 	public sealed class BuildingConfig : IEquatable<BuildingConfig>
 	{
+		/// <summary>
+		/// JSON keys used by <see cref="WriteJson"/> / <see cref="ReadJson"/>. These are part of
+		/// the on-disk <c>.blueprint</c> format (shared lineage with upstream BlueprintsV2) and
+		/// must never change value.
+		/// </summary>
+		static class JsonKeys
+		{
+			public const string Offset = "offset";
+			public const string OffsetX = "x";
+			public const string OffsetY = "y";
+			public const string BuildingDef = "buildingdef";
+			public const string SelectedElements = "selected_elements";
+			public const string Orientation = "orientation";
+			public const string Flags = "flags";
+			public const string BuildingData = "buildingData";
+			public const string BuildingDataKey = "Key";
+			public const string BuildingDataValue = "Value";
+			public const string TempDisabled = "tempDisabled";
+		}
 
 		/// <summary>
 		/// The offset from the bottom left of a blueprint.
@@ -162,46 +181,46 @@ namespace BlueprintsV2.BlueprintData
 
 			if (Offset.x != 0 || Offset.y != 0)
 			{
-				jsonWriter.WritePropertyName("offset");
+				jsonWriter.WritePropertyName(JsonKeys.Offset);
 				jsonWriter.WriteStartObject();
 
 				if (Offset.x != 0)
 				{
-					jsonWriter.WritePropertyName("x");
+					jsonWriter.WritePropertyName(JsonKeys.OffsetX);
 					jsonWriter.WriteValue(Offset.x);
 				}
 
 				if (Offset.y != 0)
 				{
-					jsonWriter.WritePropertyName("y");
+					jsonWriter.WritePropertyName(JsonKeys.OffsetY);
 					jsonWriter.WriteValue(Offset.y);
 				}
 
 				jsonWriter.WriteEndObject();
 			}
 
-			jsonWriter.WritePropertyName("buildingdef");
+			jsonWriter.WritePropertyName(JsonKeys.BuildingDef);
 			jsonWriter.WriteValue(BuildingDef.PrefabID);
 
-			jsonWriter.WritePropertyName("selected_elements");
+			jsonWriter.WritePropertyName(JsonKeys.SelectedElements);
 			jsonWriter.WriteStartArray();
 			SelectedElements.ForEach(elementTag => jsonWriter.WriteValue(elementTag.GetHash()));
 			jsonWriter.WriteEndArray();
 
 			if (Orientation != 0)
 			{
-				jsonWriter.WritePropertyName("orientation");
+				jsonWriter.WritePropertyName(JsonKeys.Orientation);
 				jsonWriter.WriteValue((int)Orientation);
 			}
 			//compatibility for old bp mod
 			if (GetConduitFlags(out int flags))
 			{
-				jsonWriter.WritePropertyName("flags");
+				jsonWriter.WritePropertyName(JsonKeys.Flags);
 				jsonWriter.WriteValue(flags);
 			}
 			if (AdditionalBuildingData != null)
 			{
-				jsonWriter.WritePropertyName("buildingData");
+				jsonWriter.WritePropertyName(JsonKeys.BuildingData);
 				jsonWriter.WriteStartArray();
 				AdditionalBuildingData.ToList().ForEach(dataEntry =>
 				{
@@ -209,8 +228,8 @@ namespace BlueprintsV2.BlueprintData
 						return;
 					JObject data = new JObject()
 					{
-					new JProperty("Key",dataEntry.Key),
-					new JProperty ("Value",dataEntry.Value)
+					new JProperty(JsonKeys.BuildingDataKey, dataEntry.Key),
+					new JProperty(JsonKeys.BuildingDataValue, dataEntry.Value)
 					};
 					data.WriteTo(jsonWriter);
 				}
@@ -219,7 +238,7 @@ namespace BlueprintsV2.BlueprintData
 			}
 			if (BuildingDisabled == true)
 			{
-				jsonWriter.WritePropertyName("tempDisabled");
+				jsonWriter.WritePropertyName(JsonKeys.TempDisabled);
 				jsonWriter.WriteValue(BuildingDisabled);
 			}
 
@@ -270,17 +289,17 @@ namespace BlueprintsV2.BlueprintData
 		/// <param name="rootObject">The <see cref="JObject"/> to use to read from</param>
 		public void ReadJson(JObject rootObject)
 		{
-			JToken offsetToken = rootObject.SelectToken("offset");
-			JToken buildingDefToken = rootObject.SelectToken("buildingdef");
-			JToken selectedElementsToken = rootObject.SelectToken("selected_elements");
-			JToken orientationToken = rootObject.SelectToken("orientation");
-			JToken flagsToken = rootObject.SelectToken("flags");
-			JToken buildingDataToken = rootObject.SelectToken("buildingData");
+			JToken offsetToken = rootObject.SelectToken(JsonKeys.Offset);
+			JToken buildingDefToken = rootObject.SelectToken(JsonKeys.BuildingDef);
+			JToken selectedElementsToken = rootObject.SelectToken(JsonKeys.SelectedElements);
+			JToken orientationToken = rootObject.SelectToken(JsonKeys.Orientation);
+			JToken flagsToken = rootObject.SelectToken(JsonKeys.Flags);
+			JToken buildingDataToken = rootObject.SelectToken(JsonKeys.BuildingData);
 
 			if (offsetToken != null && offsetToken.Type == JTokenType.Object)
 			{
-				JToken xToken = offsetToken.SelectToken("x");
-				JToken yToken = offsetToken.SelectToken("y");
+				JToken xToken = offsetToken.SelectToken(JsonKeys.OffsetX);
+				JToken yToken = offsetToken.SelectToken(JsonKeys.OffsetY);
 				int x = 0, y = 0;
 				if (xToken != null && xToken.Type == JTokenType.Integer)
 					x = xToken.Value<int>();
@@ -342,8 +361,8 @@ namespace BlueprintsV2.BlueprintData
 				{
 					foreach (JObject dataToken in additionalDataTokens)
 					{
-						string key = dataToken.GetValue("Key").Value<string>();
-						JObject value = dataToken.GetValue("Value").Value<JObject>();
+						string key = dataToken.GetValue(JsonKeys.BuildingDataKey).Value<string>();
+						JObject value = dataToken.GetValue(JsonKeys.BuildingDataValue).Value<JObject>();
 						if (key == null || key.Length == 0 || value == null)
 							continue;
 
@@ -351,7 +370,7 @@ namespace BlueprintsV2.BlueprintData
 					}
 				}
 			}
-			JToken temporarilyDisabledToken = rootObject.SelectToken("tempDisabled");
+			JToken temporarilyDisabledToken = rootObject.SelectToken(JsonKeys.TempDisabled);
 			if (temporarilyDisabledToken != null && temporarilyDisabledToken.Type == JTokenType.Boolean)
 			{
 				BuildingDisabled = temporarilyDisabledToken.Value<bool>();

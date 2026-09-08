@@ -10,13 +10,14 @@ namespace BlueprintsV2.BlueprintData
 	{
 		internal class DataTransfer_UserNameable
 		{
+			const string SavedNameKey = "savedName";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<UserNameable>(out var component))
 				{
 					return new JObject()
 					{
-						{ "savedName", component.savedName},
+						{ SavedNameKey, component.savedName},
 					};
 				}
 				return null;
@@ -25,7 +26,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<UserNameable>(out var targetComponent))
 				{
-					if (!jObject.TryGet<string>("savedName", out var savedName))
+					if (!jObject.TryGet<string>(SavedNameKey, out var savedName))
 						return;
 					targetComponent.SetName(savedName);
 				}
@@ -33,6 +34,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_BuildingEnabledButton
 		{
+			const string IsEnabledKey = "IsEnabled";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<BuildingEnabledButton>(out var component))
@@ -43,7 +45,7 @@ namespace BlueprintsV2.BlueprintData
 
 					return new JObject()
 					{
-						{ "IsEnabled", shouldBeEnabled},
+						{ IsEnabledKey, shouldBeEnabled},
 					};
 				}
 				return null;
@@ -52,7 +54,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<BuildingEnabledButton>(out var targetComponent))
 				{
-					if (!jObject.TryGet<bool>("IsEnabled", out var IsEnabled))
+					if (!jObject.TryGet<bool>(IsEnabledKey, out var IsEnabled))
 						return;
 					targetComponent.IsEnabled = IsEnabled;
 				}
@@ -60,6 +62,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_Repairable
 		{
+			const string ForbiddenRepairKey = "ForbiddenRepair";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Repairable>(out var component))
@@ -81,7 +84,7 @@ namespace BlueprintsV2.BlueprintData
 
 					return new JObject()
 					{
-						{ "ForbiddenRepair", repairForbiddenState},
+						{ ForbiddenRepairKey, repairForbiddenState},
 					};
 				}
 				return null;
@@ -90,7 +93,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<Repairable>(out var targetComponent))
 				{
-					if (!jObject.TryGet<bool>("ForbiddenRepair", out var RepairForbidden))
+					if (!jObject.TryGet<bool>(ForbiddenRepairKey, out var RepairForbidden))
 						return;
 					if (targetComponent.smi == null)
 					{
@@ -105,6 +108,8 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_StorageTile
 		{
+			const string TargetTagKey = "TargetTag";
+			const string UserMaxCapacityKey = "UserMaxCapacity";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				var smi = arg.GetSMI<StorageTile.Instance>();
@@ -113,8 +118,8 @@ namespace BlueprintsV2.BlueprintData
 				{
 					return new JObject()
 					{
-						{ "TargetTag", smi.TargetTag.ToString()},
-						{ "UserMaxCapacity", smi.UserMaxCapacity},
+						{ TargetTagKey, smi.TargetTag.ToString()},
+						{ UserMaxCapacityKey, smi.UserMaxCapacity},
 					};
 				}
 				return null;
@@ -125,13 +130,13 @@ namespace BlueprintsV2.BlueprintData
 
 				if (smi != null)
 				{
-					if (!jObject.TryGet<string>("TargetTag", out var TargetTag))
+					if (!jObject.TryGet<string>(TargetTagKey, out var TargetTag))
 						return;
 					var tagParsed = TagManager.Create(TargetTag);
 					if (tagParsed.IsValid)
 						smi.SetTargetItem(tagParsed);
 
-					if (!jObject.TryGet<float>("UserMaxCapacity", out var UserMaxCapacity))
+					if (!jObject.TryGet<float>(UserMaxCapacityKey, out var UserMaxCapacity))
 						return;
 					smi.UserMaxCapacity = UserMaxCapacity;
 				}
@@ -139,6 +144,9 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_SingleEntityReceptacle
 		{
+			const string RequestedEntityTagKey = "requestedEntityTag";
+			const string RequestedEntityAdditionalFilterTagKey = "requestedEntityAdditionalFilterTag";
+			const string AutoReplaceEntityKey = "autoReplaceEntity";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<SingleEntityReceptacle>(out var component))
@@ -172,9 +180,9 @@ namespace BlueprintsV2.BlueprintData
 
 					return new JObject()
 					{
-						{ "requestedEntityTag", requestedEntityTagString},
-						{ "requestedEntityAdditionalFilterTag", additionalFilterTagString},
-						{ "autoReplaceEntity", component.autoReplaceEntity }
+						{ RequestedEntityTagKey, requestedEntityTagString},
+						{ RequestedEntityAdditionalFilterTagKey, additionalFilterTagString},
+						{ AutoReplaceEntityKey, component.autoReplaceEntity }
 					};
 				}
 				return null;
@@ -183,11 +191,11 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<SingleEntityReceptacle>(out var targetComponent))
 				{
-					if (!jObject.TryGet<string>("requestedEntityTag", out var requestedEntityTag))
+					if (!jObject.TryGet<string>(RequestedEntityTagKey, out var requestedEntityTag))
 						return;
-					if (!jObject.TryGet<string>("requestedEntityAdditionalFilterTag", out var requestedEntityAdditionalFilterTag))
+					if (!jObject.TryGet<string>(RequestedEntityAdditionalFilterTagKey, out var requestedEntityAdditionalFilterTag))
 						return;
-					if (!jObject.TryGet<bool>("autoReplaceEntity", out var autoReplaceEntity))
+					if (!jObject.TryGet<bool>(AutoReplaceEntityKey, out var autoReplaceEntity))
 						return;
 
 					//SgtLogger.l("Requested Entity Tag: " + requestedEntityTag + ", extra filter: " + requestedEntityAdditionalFilterTag);
@@ -204,14 +212,16 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_LogicClusterLocationSensor
 		{
+			const string ActiveInSpaceKey = "activeInSpace";
+			const string ActiveLocationsKey = "activeLocations";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicClusterLocationSensor>(out var component))
 				{
 					return new JObject()
 					{
-                        { "activeInSpace", component.activeInSpace},
-                        { "activeLocations", EmbeddedJson.From(component.activeLocations.Select(axial => new Tuple<int,int>(axial.Q,axial.R)))},
+                        { ActiveInSpaceKey, component.activeInSpace},
+                        { ActiveLocationsKey, EmbeddedJson.From(component.activeLocations.Select(axial => new Tuple<int,int>(axial.Q,axial.R)))},
 					};
 				}
 				return null;
@@ -220,9 +230,9 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<LogicClusterLocationSensor>(out var targetComponent))
 				{
-					if (!jObject.TryGet<bool>("activeInSpace", out var activeInSpace))
+					if (!jObject.TryGet<bool>(ActiveInSpaceKey, out var activeInSpace))
 						return;
-					if (!jObject.TryGetEmbedded<List<Tuple<int, int>>>("activeLocations", out var activeLocations))
+					if (!jObject.TryGetEmbedded<List<Tuple<int, int>>>(ActiveLocationsKey, out var activeLocations))
 						return;
 
 					//applying values
@@ -241,15 +251,18 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_LogicCounter
 		{
+			const string MaxCountKey = "maxCount";
+			const string ResetCountAtMaxKey = "resetCountAtMax";
+			const string AdvancedModeKey = "advancedMode";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicCounter>(out var component))
 				{
 					return new JObject()
 					{
-						{ "maxCount", component.maxCount},
-						{ "resetCountAtMax", component.resetCountAtMax},
-						{ "advancedMode", component.advancedMode},
+						{ MaxCountKey, component.maxCount},
+						{ ResetCountAtMaxKey, component.resetCountAtMax},
+						{ AdvancedModeKey, component.advancedMode},
 					};
 				}
 				return null;
@@ -258,15 +271,15 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<LogicCounter>(out var targetComponent))
 				{
-					if (!jObject.TryGet<int>("maxCount", out var maxCount))
+					if (!jObject.TryGet<int>(MaxCountKey, out var maxCount))
 						return;
 					targetComponent.maxCount = maxCount;
 
-					if (!jObject.TryGet<bool>("resetCountAtMax", out var resetCountAtMax))
+					if (!jObject.TryGet<bool>(ResetCountAtMaxKey, out var resetCountAtMax))
 						return;
 					targetComponent.resetCountAtMax = resetCountAtMax;
 
-					if (!jObject.TryGet<bool>("advancedMode", out var advancedMode))
+					if (!jObject.TryGet<bool>(AdvancedModeKey, out var advancedMode))
 						return;
 					targetComponent.advancedMode = advancedMode;
 				}
@@ -274,6 +287,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_PixelPack
 		{
+			const string ColorSettingsKey = "colorSettings";
 			class PixelPackColor
 			{
 				public float r, g, b, a;
@@ -320,7 +334,7 @@ namespace BlueprintsV2.BlueprintData
 					}
 					return new JObject()
 					{
-						{ "colorSettings", EmbeddedJson.From(transferedData)},
+						{ ColorSettingsKey, EmbeddedJson.From(transferedData)},
 					};
 				}
 				return null;
@@ -329,7 +343,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<PixelPack>(out var targetComponent))
 				{
-					if (!jObject.TryGetEmbedded<PixelPackColorData[]>("colorSettings", out var colorSettings))
+					if (!jObject.TryGetEmbedded<PixelPackColorData[]>(ColorSettingsKey, out var colorSettings))
 						return;
 
 					//applying values
@@ -362,13 +376,14 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_IUserControlledCapacity
 		{
+			const string UserMaxCapacityKey = "UserMaxCapacity";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<IUserControlledCapacity>(out var component))
 				{
 					return new JObject()
 					{
-						{ "UserMaxCapacity", component.UserMaxCapacity},
+						{ UserMaxCapacityKey, component.UserMaxCapacity},
 					};
 				}
 				return null;
@@ -377,7 +392,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<IUserControlledCapacity>(out var targetComponent))
 				{
-					if (!jObject.TryGet<float>("UserMaxCapacity", out var UserMaxCapacity))
+					if (!jObject.TryGet<float>(UserMaxCapacityKey, out var UserMaxCapacity))
 						return;
 					targetComponent.UserMaxCapacity = UserMaxCapacity;
 				}
@@ -388,13 +403,14 @@ namespace BlueprintsV2.BlueprintData
 		/// </summary>
 		internal class DataTransfer_Automatable
 		{
+			const string AutomationOnlyKey = "automationOnly";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Automatable>(out var component))
 				{
 					return new JObject()
 					{
-						{ "automationOnly", component.automationOnly},
+						{ AutomationOnlyKey, component.automationOnly},
 					};
 				}
 				return null;
@@ -403,7 +419,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<Automatable>(out var targetComponent))
 				{
-					if (!jObject.TryGet<bool>("automationOnly", out var automationOnly))
+					if (!jObject.TryGet<bool>(AutomationOnlyKey, out var automationOnly))
 						return;
 					targetComponent.SetAutomationOnly(automationOnly);
 				}
@@ -411,14 +427,16 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_LogicTimeOfDaySensor
 		{
+			const string StartTimeKey = "startTime";
+			const string DurationKey = "duration";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicTimeOfDaySensor>(out var component))
 				{
 					return new JObject()
 					{
-						{ "startTime", component.startTime},
-						{ "duration", component.duration},
+						{ StartTimeKey, component.startTime},
+						{ DurationKey, component.duration},
 					};
 				}
 				return null;
@@ -427,9 +445,9 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<LogicTimeOfDaySensor>(out var targetComponent))
 				{
-					if (!jObject.TryGet<float>("startTime", out var startTime))
+					if (!jObject.TryGet<float>(StartTimeKey, out var startTime))
 						return;
-					if (!jObject.TryGet<float>("duration", out var duration))
+					if (!jObject.TryGet<float>(DurationKey, out var duration))
 						return;
 
 					//applying values
@@ -440,14 +458,16 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_IActivationRangeTarget
 		{
+			const string ActivateValueKey = "ActivateValue";
+			const string DeactivateValueKey = "DeactivateValue";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<IActivationRangeTarget>(out var component))
 				{
 					return new JObject()
 					{
-						{ "ActivateValue", component.ActivateValue},
-						{ "DeactivateValue", component.DeactivateValue},
+						{ ActivateValueKey, component.ActivateValue},
+						{ DeactivateValueKey, component.DeactivateValue},
 					};
 				}
 				return null;
@@ -456,11 +476,11 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<IActivationRangeTarget>(out var targetComponent))
 				{
-					if (!jObject.TryGet<int>("DeactivateValue", out var DeactivateValue))
+					if (!jObject.TryGet<int>(DeactivateValueKey, out var DeactivateValue))
 						return;
 					targetComponent.DeactivateValue = DeactivateValue;
 
-					if (!jObject.TryGet<int>("ActivateValue", out var ActivateValue))
+					if (!jObject.TryGet<int>(ActivateValueKey, out var ActivateValue))
 						return;
 					targetComponent.ActivateValue = ActivateValue;
 				}
@@ -468,6 +488,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_SpaceHeater
 		{
+			const string CurrentPowerConsumptionKey = "CurrentPowerConsumption";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<SpaceHeater>(out var component))
@@ -477,7 +498,7 @@ namespace BlueprintsV2.BlueprintData
 
 					return new JObject()
 					{
-						{ "CurrentPowerConsumption", component.CurrentPowerConsumption},
+						{ CurrentPowerConsumptionKey, component.CurrentPowerConsumption},
 					};
 				}
 				return null;
@@ -489,7 +510,7 @@ namespace BlueprintsV2.BlueprintData
 					if (!targetComponent.produceHeat)
 						return;
 
-					if (!jObject.TryGet<float>("CurrentPowerConsumption", out var CurrentPowerConsumption))
+					if (!jObject.TryGet<float>(CurrentPowerConsumptionKey, out var CurrentPowerConsumption))
 						return;
 					targetComponent.SetUserSpecifiedPowerConsumptionValue(CurrentPowerConsumption);
 				}
@@ -497,13 +518,14 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_Clinic
 		{
+			const string SicknessSliderValueKey = "sicknessSliderValue";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Clinic>(out var component))
 				{
 					return new JObject()
 					{
-						{ "sicknessSliderValue", component.sicknessSliderValue},
+						{ SicknessSliderValueKey, component.sicknessSliderValue},
 					};
 				}
 				return null;
@@ -512,7 +534,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<Clinic>(out var targetComponent))
 				{
-					if (!jObject.TryGet<float>("sicknessSliderValue", out var sicknessSliderValue))
+					if (!jObject.TryGet<float>(SicknessSliderValueKey, out var sicknessSliderValue))
 						return;
 
 					if (targetComponent is ISliderControl sliderControl)
@@ -522,6 +544,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_EnergyGenerator
 		{
+			const string BatteryRefillPercentKey = "batteryRefillPercent";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<EnergyGenerator>(out var component))
@@ -530,7 +553,7 @@ namespace BlueprintsV2.BlueprintData
 						return null;
 					return new JObject()
 					{
-						{ "batteryRefillPercent", component.batteryRefillPercent},
+						{ BatteryRefillPercentKey, component.batteryRefillPercent},
 					};
 				}
 				return null;
@@ -542,7 +565,7 @@ namespace BlueprintsV2.BlueprintData
 					if (targetComponent.ignoreBatteryRefillPercent)
 						return;
 
-					if (!jObject.TryGet<float>("batteryRefillPercent", out var batteryRefillPercent))
+					if (!jObject.TryGet<float>(BatteryRefillPercentKey, out var batteryRefillPercent))
 						return;
 					targetComponent.batteryRefillPercent = batteryRefillPercent;
 				}
@@ -550,13 +573,14 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_FoodStorage
 		{
+			const string SpicedFoodOnlyKey = "SpicedFoodOnly";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<FoodStorage>(out var component) && component.SpicedFoodOnly == true)
 				{
 					return new JObject()
 					{
-						{ "SpicedFoodOnly", component.SpicedFoodOnly},
+						{ SpicedFoodOnlyKey, component.SpicedFoodOnly},
 					};
 				}
 				return null;
@@ -565,20 +589,21 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<FoodStorage>(out var targetComponent))
 				{
-					if (jObject.TryGet<bool>("SpicedFoodOnly", out var spicedFoodOnly))
+					if (jObject.TryGet<bool>(SpicedFoodOnlyKey, out var spicedFoodOnly))
 						targetComponent.SpicedFoodOnly = spicedFoodOnly;
 				}
 			}
 		}
 		internal class DataTransfer_AutoDisinfectable
 		{
+			const string EnableAutoDisinfectKey = "enableAutoDisinfect";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<AutoDisinfectable>(out var component) && component.enableAutoDisinfect == false) //only store nondefault value
 				{
 					return new JObject()
 					{
-						{ "enableAutoDisinfect", component.enableAutoDisinfect},
+						{ EnableAutoDisinfectKey, component.enableAutoDisinfect},
 					};
 				}
 				return null;
@@ -587,7 +612,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<AutoDisinfectable>(out var targetComponent))
 				{
-					if (jObject.TryGet<bool>("enableAutoDisinfect", out var enableAutoDisinfect))
+					if (jObject.TryGet<bool>(EnableAutoDisinfectKey, out var enableAutoDisinfect))
 					{
 						if (enableAutoDisinfect)
 							targetComponent.EnableAutoDisinfect();
@@ -599,6 +624,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_Door
 		{
+			const string RequestedStateKey = "requestedState";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Door>(out var component))
@@ -608,7 +634,7 @@ namespace BlueprintsV2.BlueprintData
 
 					return new JObject()
 					{
-						{ "requestedState", (int)component.RequestedState},
+						{ RequestedStateKey, (int)component.RequestedState},
 					};
 				}
 				return null;
@@ -617,7 +643,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<Door>(out var targetComponent))
 				{
-					if (jObject.TryGet<int>("requestedState", out var requestedStateRaw))
+					if (jObject.TryGet<int>(RequestedStateKey, out var requestedStateRaw))
 					{
 						var requestedState = (Door.ControlState)requestedStateRaw;
 						if (BlueprintState.InstantBuild)
@@ -633,13 +659,14 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_DirectionControl
 		{
+			const string AllowedDirectionKey = "allowedDirection";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<DirectionControl>(out var component))
 				{
 					return new JObject()
 					{
-						{ "allowedDirection", (int)component.allowedDirection},
+						{ AllowedDirectionKey, (int)component.allowedDirection},
 					};
 				}
 				return null;
@@ -648,7 +675,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<DirectionControl>(out var targetComponent))
 				{
-					if (jObject.TryGet<int>("allowedDirection", out var allowedDirectionRaw))
+					if (jObject.TryGet<int>(AllowedDirectionKey, out var allowedDirectionRaw))
 						targetComponent.SetAllowedDirection((WorkableReactable.AllowedDirection)allowedDirectionRaw);
 				}
 			}
@@ -656,6 +683,7 @@ namespace BlueprintsV2.BlueprintData
 
 		internal class DataTransfer_Prioritizable
 		{
+			const string MasterPrioritySettingKey = "masterPrioritySetting";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Prioritizable>(out var component))
@@ -667,7 +695,7 @@ namespace BlueprintsV2.BlueprintData
 					//SgtLogger.l("Getting prio " + prio.priority_value + " from " + arg.name);
 					return new JObject()
 					{
-						{ "masterPrioritySetting", EmbeddedJson.From(prio)},
+						{ MasterPrioritySettingKey, EmbeddedJson.From(prio)},
 					};
 				}
 				return null;
@@ -676,7 +704,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<Prioritizable>(out var targetComponent))
 				{
-					if (jObject.TryGetEmbedded<PrioritySetting>("masterPrioritySetting", out var masterPrioritySetting))
+					if (jObject.TryGetEmbedded<PrioritySetting>(MasterPrioritySettingKey, out var masterPrioritySetting))
 					{
 						//SgtLogger.l("applying prio: " + masterPrioritySetting.priority_value);
 						targetComponent.SetMasterPriority(masterPrioritySetting);
@@ -686,6 +714,8 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_TreeFilterable
 		{
+			const string AcceptedTagSetKey = "acceptedTagSet";
+			const string OnlyFetchMarkedItemsKey = "onlyFetchMarkedItems";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<TreeFilterable>(out var component))
@@ -699,8 +729,8 @@ namespace BlueprintsV2.BlueprintData
 
 					return new JObject()
 					{
-						{ "acceptedTagSet", EmbeddedJson.From(tags)},
-						{ "onlyFetchMarkedItems", onlyFetchMarkedItems},
+						{ AcceptedTagSetKey, EmbeddedJson.From(tags)},
+						{ OnlyFetchMarkedItemsKey, onlyFetchMarkedItems},
 					};
 				}
 				return null;
@@ -712,10 +742,10 @@ namespace BlueprintsV2.BlueprintData
 					if (!targetComponent.copySettingsEnabled)
 						return;
 
-					if (jObject.TryGetEmbedded<HashSet<Tag>>("acceptedTagSet", out var acceptedTagSet))
+					if (jObject.TryGetEmbedded<HashSet<Tag>>(AcceptedTagSetKey, out var acceptedTagSet))
 						targetComponent.UpdateFilters(acceptedTagSet);
 
-					if (jObject.TryGet<bool>("onlyFetchMarkedItems", out var onlyFetchMarkedItems))
+					if (jObject.TryGet<bool>(OnlyFetchMarkedItemsKey, out var onlyFetchMarkedItems))
 					{
 						var storage = targetComponent.GetFilterStorage();
 						if (storage.allowSettingOnlyFetchMarkedItems)
@@ -726,6 +756,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_FlatTagFilterable
 		{
+			const string SelectedTagsKey = "selectedTags";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<FlatTagFilterable>(out var component))
@@ -737,7 +768,7 @@ namespace BlueprintsV2.BlueprintData
 
 					return new JObject()
 					{
-						{ "selectedTags", EmbeddedJson.From(selectedTags)},
+						{ SelectedTagsKey, EmbeddedJson.From(selectedTags)},
 					};
 				}
 				return null;
@@ -748,7 +779,7 @@ namespace BlueprintsV2.BlueprintData
 				{
 					if (!targetComponent.currentlyUserAssignable)
 						return;
-					if (jObject.TryGetEmbedded<HashSet<Tag>>("selectedTags", out var selectedTags))
+					if (jObject.TryGetEmbedded<HashSet<Tag>>(SelectedTagsKey, out var selectedTags))
 					{
 						targetComponent.selectedTags.Clear();
 						foreach (Tag selectedTag in selectedTags)
@@ -765,13 +796,14 @@ namespace BlueprintsV2.BlueprintData
 
 		internal class DataTransfer_Filterable
 		{
+			const string SelectedTagKey = "SelectedTag";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Filterable>(out var component))
 				{
 					return new JObject()
 					{
-						{ "SelectedTag", component.SelectedTag.ToString()}
+						{ SelectedTagKey, component.SelectedTag.ToString()}
 					};
 				}
 				return null;
@@ -780,7 +812,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<Filterable>(out var targetComponent))
 				{
-					if (!jObject.TryGet<string>("SelectedTag", out var selectedTagString))
+					if (!jObject.TryGet<string>(SelectedTagKey, out var selectedTagString))
 						return;
 
 					var selectedTag = selectedTagString.IsNullOrWhiteSpace() ? Tag.Invalid : TagManager.Create(selectedTagString);
@@ -794,14 +826,16 @@ namespace BlueprintsV2.BlueprintData
 		/// </summary>
 		internal class DataTransfer_AccessControl
 		{
+			const string DefaultPermissionByTagKey = "defaultPermissionByTag";
+			const string SavedPermissionsByIdKey = "savedPermissionsById";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<AccessControl>(out var component) && component.controlEnabled)
 				{
 					return new JObject()
 					{
-						{ "defaultPermissionByTag", EmbeddedJson.From(component.defaultPermissionByTag)},
-						{ "savedPermissionsById", EmbeddedJson.From(component.savedPermissionsById)}
+						{ DefaultPermissionByTagKey, EmbeddedJson.From(component.defaultPermissionByTag)},
+						{ SavedPermissionsByIdKey, EmbeddedJson.From(component.savedPermissionsById)}
 					};
 				}
 				return null;
@@ -810,11 +844,11 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<AccessControl>(out var targetComponent) && targetComponent.controlEnabled)
 				{
-					if (!jObject.TryGetEmbedded<List<KeyValuePair<Tag, Permission>>>("defaultPermissionByTag", out var defaultPermissionByTag))
+					if (!jObject.TryGetEmbedded<List<KeyValuePair<Tag, Permission>>>(DefaultPermissionByTagKey, out var defaultPermissionByTag))
 						return;
 					targetComponent.defaultPermissionByTag = defaultPermissionByTag;
 
-					if (!jObject.TryGetEmbedded<List<KeyValuePair<int, Permission>>>("savedPermissionsById", out var savedPermissionsById))
+					if (!jObject.TryGetEmbedded<List<KeyValuePair<int, Permission>>>(SavedPermissionsByIdKey, out var savedPermissionsById))
 						return;
 					try
 					{
@@ -830,13 +864,14 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_LimitValve
 		{
+			const string LimitKey = "Limit";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LimitValve>(out var component))
 				{
 					return new JObject()
 					{
-						{ "Limit", component.Limit}
+						{ LimitKey, component.Limit}
 					};
 				}
 				return null;
@@ -845,7 +880,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<LimitValve>(out var targetComponent))
 				{
-					if (!jObject.TryGet<float>("Limit", out var Limit))
+					if (!jObject.TryGet<float>(LimitKey, out var Limit))
 						return;
 
 					//applying values
@@ -855,13 +890,14 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_Valve
 		{
+			const string DesiredFlowKey = "DesiredFlow";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Valve>(out var component))
 				{
 					return new JObject()
 					{
-						{ "DesiredFlow", component.DesiredFlow}
+						{ DesiredFlowKey, component.DesiredFlow}
 					};
 				}
 				return null;
@@ -870,7 +906,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<Valve>(out var targetComponent))
 				{
-					if (!jObject.TryGet<float>("DesiredFlow", out var DesiredFlow))
+					if (!jObject.TryGet<float>(DesiredFlowKey, out var DesiredFlow))
 						return;
 
 					//applying values
@@ -881,16 +917,20 @@ namespace BlueprintsV2.BlueprintData
 
 		internal class DataTransfer_LogicTimerSensor
 		{
+			const string OnDurationKey = "onDuration";
+			const string OffDurationKey = "offDuration";
+			const string TimeElapsedInCurrentStateKey = "timeElapsedInCurrentState";
+			const string DisplayCyclesModeKey = "displayCyclesMode";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicTimerSensor>(out var sourceComponent))
 				{
 					return new JObject()
 					{
-						{ "onDuration", sourceComponent.onDuration},
-						{ "offDuration", sourceComponent.offDuration},
-						{ "timeElapsedInCurrentState", sourceComponent.timeElapsedInCurrentState},
-						{ "displayCyclesMode", sourceComponent.displayCyclesMode},
+						{ OnDurationKey, sourceComponent.onDuration},
+						{ OffDurationKey, sourceComponent.offDuration},
+						{ TimeElapsedInCurrentStateKey, sourceComponent.timeElapsedInCurrentState},
+						{ DisplayCyclesModeKey, sourceComponent.displayCyclesMode},
 					};
 				}
 				return null;
@@ -899,13 +939,13 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<LogicTimerSensor>(out var targetComponent))
 				{
-					if (!jObject.TryGet<float>("onDuration", out var onDuration))
+					if (!jObject.TryGet<float>(OnDurationKey, out var onDuration))
 						return;
-					if (!jObject.TryGet<float>("offDuration", out var offDuration))
+					if (!jObject.TryGet<float>(OffDurationKey, out var offDuration))
 						return;
-					if (!jObject.TryGet<float>("timeElapsedInCurrentState", out var timeElapsedInCurrentState))
+					if (!jObject.TryGet<float>(TimeElapsedInCurrentStateKey, out var timeElapsedInCurrentState))
 						return;
-					if (!jObject.TryGet<bool>("displayCyclesMode", out var displayCyclesMode))
+					if (!jObject.TryGet<bool>(DisplayCyclesModeKey, out var displayCyclesMode))
 						return;
 
 					//applying values
@@ -918,18 +958,24 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_LogicAlarm
 		{
+			const string NotificationNameKey = "notificationName";
+			const string NotificationTooltipKey = "notificationTooltip";
+			const string NotificationTypeKey = "notificationType";
+			const string PauseOnNotifyKey = "pauseOnNotify";
+			const string ZoomOnNotifyKey = "zoomOnNotify";
+			const string CooldownKey = "cooldown";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicAlarm>(out var component))
 				{
 					return new JObject()
 					{
-						{ "notificationName", component.notificationName},
-						{ "notificationTooltip", component.notificationTooltip},
-						{ "notificationType", (int)component.notificationType},
-						{ "pauseOnNotify", component.pauseOnNotify},
-						{ "zoomOnNotify", component.zoomOnNotify},
-						{ "cooldown", component.cooldown},
+						{ NotificationNameKey, component.notificationName},
+						{ NotificationTooltipKey, component.notificationTooltip},
+						{ NotificationTypeKey, (int)component.notificationType},
+						{ PauseOnNotifyKey, component.pauseOnNotify},
+						{ ZoomOnNotifyKey, component.zoomOnNotify},
+						{ CooldownKey, component.cooldown},
 					};
 				}
 				return null;
@@ -938,17 +984,17 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<LogicAlarm>(out var targetComponent))
 				{
-					if (jObject.TryGet<string>("notificationName", out var notificationName))
+					if (jObject.TryGet<string>(NotificationNameKey, out var notificationName))
 						targetComponent.notificationName = notificationName;
-					if (jObject.TryGet<string>("notificationTooltip", out var notificationTooltip))
+					if (jObject.TryGet<string>(NotificationTooltipKey, out var notificationTooltip))
 						targetComponent.notificationTooltip = notificationTooltip;
-					if (jObject.TryGet<int>("notificationType", out var notificationType))
+					if (jObject.TryGet<int>(NotificationTypeKey, out var notificationType))
 						targetComponent.notificationType = (NotificationType)notificationType;
-					if (jObject.TryGet<bool>("pauseOnNotify", out var pauseOnNotify))
+					if (jObject.TryGet<bool>(PauseOnNotifyKey, out var pauseOnNotify))
 						targetComponent.pauseOnNotify = pauseOnNotify;
-					if (jObject.TryGet<bool>("zoomOnNotify", out var zoomOnNotify))
+					if (jObject.TryGet<bool>(ZoomOnNotifyKey, out var zoomOnNotify))
 						targetComponent.zoomOnNotify = zoomOnNotify;
-					if (jObject.TryGet<float>("cooldown", out var cooldown))
+					if (jObject.TryGet<float>(CooldownKey, out var cooldown))
 						targetComponent.cooldown = cooldown;
 					targetComponent.UpdateNotification(true);
 				}
@@ -956,6 +1002,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_Switch
 		{
+			const string SwitchedOnKey = "switchedOn";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<Switch>(out var component))
@@ -966,7 +1013,7 @@ namespace BlueprintsV2.BlueprintData
 
 					return new JObject()
 					{
-						{ "switchedOn", isSwitchedOn}
+						{ SwitchedOnKey, isSwitchedOn}
 					};
 				}
 				return null;
@@ -975,7 +1022,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<Switch>(out var targetComponent))
 				{
-					if (!jObject.TryGet<bool>("switchedOn", out var switchedOn))
+					if (!jObject.TryGet<bool>(SwitchedOnKey, out var switchedOn))
 						return;
 
 					//applying values
@@ -986,16 +1033,20 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_LogicCritterCountSensor
 		{
+			const string CountThresholdKey = "countThreshold";
+			const string ActivateOnGreaterThanKey = "activateOnGreaterThan";
+			const string CountCrittersKey = "countCritters";
+			const string CountEggsKey = "countEggs";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicCritterCountSensor>(out var sourceComponent))
 				{
 					return new JObject()
 					{
-						{ "countThreshold", sourceComponent.countThreshold},
-						{ "activateOnGreaterThan", sourceComponent.activateOnGreaterThan},
-						{ "countCritters", sourceComponent.countCritters},
-						{ "countEggs", sourceComponent.countEggs},
+						{ CountThresholdKey, sourceComponent.countThreshold},
+						{ ActivateOnGreaterThanKey, sourceComponent.activateOnGreaterThan},
+						{ CountCrittersKey, sourceComponent.countCritters},
+						{ CountEggsKey, sourceComponent.countEggs},
 					};
 				}
 				return null;
@@ -1004,13 +1055,13 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<LogicCritterCountSensor>(out var targetComponent))
 				{
-					if (!jObject.TryGet<int>("countThreshold", out var countThreshold))
+					if (!jObject.TryGet<int>(CountThresholdKey, out var countThreshold))
 						return;
-					if (!jObject.TryGet<bool>("activateOnGreaterThan", out var activateAboveThreshold))
+					if (!jObject.TryGet<bool>(ActivateOnGreaterThanKey, out var activateAboveThreshold))
 						return;
-					if (!jObject.TryGet<bool>("countCritters", out var countCritters))
+					if (!jObject.TryGet<bool>(CountCrittersKey, out var countCritters))
 						return;
-					if (!jObject.TryGet<bool>("countEggs", out var countEggs))
+					if (!jObject.TryGet<bool>(CountEggsKey, out var countEggs))
 						return;
 
 					//applying values
@@ -1024,14 +1075,16 @@ namespace BlueprintsV2.BlueprintData
 
 		internal class DataTransfer_IThresholdSwitch
 		{
+			const string ThresholdKey = "Threshold";
+			const string ActivateAboveThresholdKey = "ActivateAboveThreshold";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<IThresholdSwitch>(out var sourceComponent))
 				{
 					return new JObject()
 					{
-						{ "Threshold", sourceComponent.Threshold},
-						{ "ActivateAboveThreshold", sourceComponent.ActivateAboveThreshold}
+						{ ThresholdKey, sourceComponent.Threshold},
+						{ ActivateAboveThresholdKey, sourceComponent.ActivateAboveThreshold}
 					};
 				}
 				return null;
@@ -1040,9 +1093,9 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<IThresholdSwitch>(out var targetComponent))
 				{
-					if (!jObject.TryGet<float>("Threshold", out var Threshold))
+					if (!jObject.TryGet<float>(ThresholdKey, out var Threshold))
 						return;
-					if (!jObject.TryGet<bool>("ActivateAboveThreshold", out var activateAboveThreshold))
+					if (!jObject.TryGet<bool>(ActivateAboveThresholdKey, out var activateAboveThreshold))
 						return;
 					targetComponent.ActivateAboveThreshold = activateAboveThreshold;
 					targetComponent.Threshold = Threshold;
@@ -1051,13 +1104,14 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_GenericLogicGateDelay<T>
 		{
+			const string DelayAmountKey = "DelayAmount";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<T>(out var sourceComponent))
 				{
 					return new JObject()
 					{
-						{ "DelayAmount", (float)Traverse.Create(sourceComponent).Property("DelayAmount").GetValue()}
+						{ DelayAmountKey, (float)Traverse.Create(sourceComponent).Property("DelayAmount").GetValue()}
 					};
 				}
 				return null;
@@ -1066,7 +1120,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<T>(out var targetComponent))
 				{
-					if (!jObject.TryGet<float>("DelayAmount", out var DelayAmount))
+					if (!jObject.TryGet<float>(DelayAmountKey, out var DelayAmount))
 						return;
 
 					//applying values
@@ -1077,13 +1131,14 @@ namespace BlueprintsV2.BlueprintData
 
 		internal class DataTransfer_LogicRibbonWriter
 		{
+			const string SelectedBitKey = "selectedBit";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicRibbonWriter>(out var sourceComponent))
 				{
 					return new JObject()
 					{
-						{ "selectedBit", sourceComponent.GetBitSelection()}
+						{ SelectedBitKey, sourceComponent.GetBitSelection()}
 					};
 				}
 				return null;
@@ -1092,7 +1147,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<LogicRibbonWriter>(out var targetComponent))
 				{
-					if (!jObject.TryGet<int>("selectedBit", out var selectedBit))
+					if (!jObject.TryGet<int>(SelectedBitKey, out var selectedBit))
 						return;
 
 					//applying values
@@ -1102,13 +1157,14 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_LogicRibbonReader
 		{
+			const string SelectedBitKey = "selectedBit";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<LogicRibbonReader>(out var sourceComponent))
 				{
 					return new JObject()
 					{
-						{ "selectedBit", sourceComponent.GetBitSelection()}
+						{ SelectedBitKey, sourceComponent.GetBitSelection()}
 					};
 				}
 				return null;
@@ -1117,7 +1173,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<LogicRibbonReader>(out var targetComponent))
 				{
-					if (!jObject.TryGet<int>("selectedBit", out var selectedBit))
+					if (!jObject.TryGet<int>(SelectedBitKey, out var selectedBit))
 						return;
 
 					//applying values
@@ -1129,14 +1185,16 @@ namespace BlueprintsV2.BlueprintData
 
 		internal class DataTransfer_HighEnergyParticleSpawner
 		{
+			const string DirectionKey = "Direction";
+			const string ParticleThresholdKey = "particleThreshold";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<HighEnergyParticleSpawner>(out var component))
 				{
 					return new JObject()
 					{
-						{ "Direction", (int)component.Direction},
-						{ "particleThreshold", component.particleThreshold},
+						{ DirectionKey, (int)component.Direction},
+						{ ParticleThresholdKey, component.particleThreshold},
 					};
 				}
 				return null;
@@ -1145,9 +1203,9 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<HighEnergyParticleSpawner>(out var targetComponent))
 				{
-					if (!jObject.TryGet<int>("Direction", out var Direction))
+					if (!jObject.TryGet<int>(DirectionKey, out var Direction))
 						return;
-					if (!jObject.TryGet<float>("particleThreshold", out var particleThreshold))
+					if (!jObject.TryGet<float>(ParticleThresholdKey, out var particleThreshold))
 						return;
 
 					//applying values
@@ -1158,13 +1216,14 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_HighEnergyParticleRedirector
 		{
+			const string DirectionKey = "Direction";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				if (arg.TryGetComponent<HighEnergyParticleRedirector>(out var component))
 				{
 					return new JObject()
 					{
-						{ "Direction", (int)component.Direction},
+						{ DirectionKey, (int)component.Direction},
 					};
 				}
 				return null;
@@ -1173,7 +1232,7 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (building.TryGetComponent<HighEnergyParticleRedirector>(out var targetComponent))
 				{
-					if (!jObject.TryGet<int>("Direction", out var Direction))
+					if (!jObject.TryGet<int>(DirectionKey, out var Direction))
 						return;
 
 					//applying values
@@ -1183,6 +1242,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 		internal class DataTransfer_HEPBattery
 		{
+			const string ParticleThresholdKey = "particleThreshold";
 			internal static JObject? TryGetData(GameObject arg)
 			{
 				var component = arg.GetSMI<HEPBattery.Instance>();
@@ -1190,7 +1250,7 @@ namespace BlueprintsV2.BlueprintData
 				{
 					return new JObject()
 					{
-						{ "particleThreshold", component.particleThreshold},
+						{ ParticleThresholdKey, component.particleThreshold},
 					};
 				}
 				return null;
@@ -1200,7 +1260,7 @@ namespace BlueprintsV2.BlueprintData
 				var targetComponent = building.GetSMI<HEPBattery.Instance>();
 				if (targetComponent != null)
 				{
-					if (!jObject.TryGet<float>("particleThreshold", out var particleThreshold))
+					if (!jObject.TryGet<float>(ParticleThresholdKey, out var particleThreshold))
 						return;
 
 					//applying values
