@@ -1,7 +1,6 @@
-﻿namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors
+﻿namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
+
+public enum PlanShape
 {
-    public enum PlanShape
-    {
-        Rectangle, Circle, Diamond
-    }
+    Rectangle, Circle, Diamond
 }

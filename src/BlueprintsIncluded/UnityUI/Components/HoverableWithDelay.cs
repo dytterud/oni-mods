@@ -2,61 +2,60 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace BlueprintsV2.UnityUI.Components
+namespace BlueprintsV2.UnityUI.Components;
+
+internal class HoverableWithDelay : KMonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    internal class HoverableWithDelay : KMonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    public float delayS = 0.20f;
+    float timeSincePointerEnter = 0;
+    public System.Action? OnPointerEnterAction, OnPointerExitAction;
+
+    public override void OnCmpEnable()
     {
-        public float delayS = 0.20f;
-        float timeSincePointerEnter = 0;
-        public System.Action? OnPointerEnterAction, OnPointerExitAction;
+        base.OnCmpEnable();
+    }
+    public override void OnCmpDisable()
+    {
+        base.OnCmpDisable();
+        StopDelayedHoverCoroutine();
+    }
 
-        public override void OnCmpEnable()
-        {
-            base.OnCmpEnable();
-        }
-        public override void OnCmpDisable()
-        {
-            base.OnCmpDisable();
-            StopDelayedHoverCoroutine();
-        }
+    Coroutine? HoverCoroutine = null;
 
-        Coroutine? HoverCoroutine = null;
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        StopDelayedHoverCoroutine();
+        if (OnPointerExitAction != null)
+            OnPointerExitAction();
+    }
+    IEnumerator DelayedHoverTrigger()
+    {
+        while (timeSincePointerEnter < delayS)
+        {
+            timeSincePointerEnter += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        if (OnPointerEnterAction != null)
+            OnPointerEnterAction();
+    }
 
-        public void OnPointerExit(PointerEventData eventData)
+    void StopDelayedHoverCoroutine()
+    {
+        if (HoverCoroutine != null)
         {
-            StopDelayedHoverCoroutine();
-            if (OnPointerExitAction != null)
-                OnPointerExitAction();
+            StopCoroutine(HoverCoroutine);
+            HoverCoroutine = null;
         }
-        IEnumerator DelayedHoverTrigger()
-        {
-            while (timeSincePointerEnter < delayS)
-            {
-                timeSincePointerEnter += Time.unscaledDeltaTime;
-                yield return null;
-            }
-            if (OnPointerEnterAction != null)
-                OnPointerEnterAction();
-        }
+    }
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        timeSincePointerEnter = 0;
+        HoverCoroutine = StartCoroutine(DelayedHoverTrigger());
+    }
 
-        void StopDelayedHoverCoroutine()
-        {
-            if (HoverCoroutine != null)
-            {
-                StopCoroutine(HoverCoroutine);
-                HoverCoroutine = null;
-            }
-        }
-        public void OnPointerEnter(PointerEventData eventData)
-        {
-            timeSincePointerEnter = 0;
-            HoverCoroutine = StartCoroutine(DelayedHoverTrigger());
-        }
-
-        internal void Init(System.Action? onHoverEnter, System.Action? onHoverExit)
-        {
-            OnPointerEnterAction = onHoverEnter;
-            OnPointerExitAction = onHoverExit;
-        }
+    internal void Init(System.Action? onHoverEnter, System.Action? onHoverExit)
+    {
+        OnPointerEnterAction = onHoverEnter;
+        OnPointerExitAction = onHoverExit;
     }
 }

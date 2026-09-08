@@ -1,7 +1,6 @@
-﻿namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors
+﻿namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
+
+public enum PlanColor
 {
-    public enum PlanColor
-    {
-        Gray, Blue, Green, Red, Cyan, Magenta, Violet, Orange, Yellow, White, Black
-    }
+    Gray, Blue, Green, Red, Cyan, Magenta, Violet, Orange, Yellow, White, Black
 }

@@ -2,8 +2,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Xunit;
 
-namespace BlueprintsIncluded.Tests
-{
+namespace BlueprintsIncluded.Tests;
+
 	/// <summary>
 	/// The committed <c>./lib</c> game assemblies are reference-only (refasmer output):
 	/// their metadata compiles but their method bodies can't execute. Any test that
@@ -45,4 +45,3 @@ namespace BlueprintsIncluded.Tests
 				Skip = "Requires a real ONI install; the offline ./lib assemblies are reference-only.";
 		}
 	}
-}

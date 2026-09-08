@@ -1,17 +1,16 @@
 ﻿using HarmonyLib;
 using UtilLibs;
 
-namespace BlueprintsV2.Patches
+namespace BlueprintsV2.Patches;
+
+class LocalisationPatch
 {
-    class LocalisationPatch
+    [HarmonyPatch(typeof(Localization), "Initialize")]
+    public class Localization_Initialize_Patch
     {
-        [HarmonyPatch(typeof(Localization), "Initialize")]
-        public class Localization_Initialize_Patch
+        public static void Postfix()
         {
-            public static void Postfix()
-            {
-                LocalisationUtil.Translate(typeof(STRINGS), true);
-            }
+            LocalisationUtil.Translate(typeof(STRINGS), true);
         }
     }
 }

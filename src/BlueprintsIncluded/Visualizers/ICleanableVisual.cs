@@ -1,8 +1,7 @@
-﻿namespace BlueprintsV2.Visualizers
+﻿namespace BlueprintsV2.Visualizers;
+
+public interface ICleanableVisual
 {
-    public interface ICleanableVisual
-    {
-        int DirtyCell { get; }
-        void Clean();
-    }
+    int DirtyCell { get; }
+    void Clean();
 }

@@ -6,214 +6,237 @@ using PeterHan.PLib.Actions;
 using UnityEngine;
 using UtilLibs;
 
-namespace BlueprintsV2
+namespace BlueprintsV2;
+
+internal class ModAssets
 {
-    internal class ModAssets
+    public static ObjectLayer BlueprintNotesLayer = ObjectLayer.FillPlacer;
+    public static Sprite Note_Placer_Sprite = null!, NoteToolIcon_Sprite = null!, AddNoteToolIcon_Sprite = null!;
+    public static Sprite Gas_Placer_Sprite = null!, Liquid_Placer_Sprite = null!, Solid_Placer_Sprite = null!, Special_Placer_Sprite = null!;
+    public static Sprite PlanningToolPreview_Square = null!, PlanningToolPreview_Circle = null!, PlanningToolPreview_Diamond = null!;
+
+    public static Sprite BLUEPRINTS_CREATE_ICON_SPRITE = null!;
+    public static Sprite BLUEPRINTS_CREATE_VISUALIZER_SPRITE = null!;
+    public static Sprite BLUEPRINTS_APPLY_SETTINGS_SPRITE = null!;
+
+    public static Sprite BLUEPRINTS_USE_ICON_SPRITE = null!;
+    public static Sprite BLUEPRINTS_USE_VISUALIZER_SPRITE = null!;
+
+    public static Sprite BLUEPRINTS_SNAPSHOT_ICON_SPRITE = null!;
+    public static Sprite BLUEPRINTS_SNAPSHOT_VISUALIZER_SPRITE = null!;
+
+    public static Color BLUEPRINTS_COLOR_VALIDPLACEMENT = Color.white;
+    public static Color BLUEPRINTS_COLOR_INVALIDPLACEMENT = Color.red;
+    public static Color BLUEPRINTS_COLOR_NOTECH = Color.yellow;
+    public static Color BLUEPRINTS_COLOR_NOMATERIALS = UIUtils.rgb(255, 107, 8);
+    public static Color BLUEPRINTS_COLOR_NOTALLOWEDINWORLD = UIUtils.rgb(135, 97, 79);
+    public static Color BLUEPRINTS_COLOR_CAN_APPLY_SETTINGS = new Color32(30, 144, 255, 255);
+    public static Color BLUEPRINTS_COLOR_INVISIBLE = new Color32(255, 255, 255, 51);
+
+    public static Color BLUEPRINTS_COLOR_BLUEPRINT_DRAG = new Color32(0, 119, 145, 255);
+
+    public static HashSet<char> BLUEPRINTS_FILE_DISALLOWEDCHARACTERS;
+    public static HashSet<char> BLUEPRINTS_PATH_DISALLOWEDCHARACTERS;
+
+    public static HashSet<string> BLUEPRINTS_AUTOFILE_IGNORE = new();
+    public static FileSystemWatcher BLUEPRINTS_AUTOFILE_WATCHER = null!;
+    static ModAssets()
     {
-        public static ObjectLayer BlueprintNotesLayer = ObjectLayer.FillPlacer;
-        public static Sprite Note_Placer_Sprite = null!, NoteToolIcon_Sprite = null!, AddNoteToolIcon_Sprite = null!;
-        public static Sprite Gas_Placer_Sprite = null!, Liquid_Placer_Sprite = null!, Solid_Placer_Sprite = null!, Special_Placer_Sprite = null!;
-        public static Sprite PlanningToolPreview_Square = null!, PlanningToolPreview_Circle = null!, PlanningToolPreview_Diamond = null!;
+        BLUEPRINTS_FILE_DISALLOWEDCHARACTERS = new HashSet<char>();
+        BLUEPRINTS_FILE_DISALLOWEDCHARACTERS.UnionWith(System.IO.Path.GetInvalidFileNameChars());
 
-        public static Sprite BLUEPRINTS_CREATE_ICON_SPRITE = null!;
-        public static Sprite BLUEPRINTS_CREATE_VISUALIZER_SPRITE = null!;
-        public static Sprite BLUEPRINTS_APPLY_SETTINGS_SPRITE = null!;
+        BLUEPRINTS_PATH_DISALLOWEDCHARACTERS = new HashSet<char>();
+        BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.UnionWith(Path.GetInvalidFileNameChars());
+        BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.UnionWith(Path.GetInvalidPathChars());
 
-        public static Sprite BLUEPRINTS_USE_ICON_SPRITE = null!;
-        public static Sprite BLUEPRINTS_USE_VISUALIZER_SPRITE = null!;
+        BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.Remove('/');
+        BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.Remove('\\');
+        BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.Remove(Path.DirectorySeparatorChar);
+        BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.Remove(Path.AltDirectorySeparatorChar);
 
-        public static Sprite BLUEPRINTS_SNAPSHOT_ICON_SPRITE = null!;
-        public static Sprite BLUEPRINTS_SNAPSHOT_VISUALIZER_SPRITE = null!;
+    }
 
-        public static Color BLUEPRINTS_COLOR_VALIDPLACEMENT = Color.white;
-        public static Color BLUEPRINTS_COLOR_INVALIDPLACEMENT = Color.red;
-        public static Color BLUEPRINTS_COLOR_NOTECH = Color.yellow;
-        public static Color BLUEPRINTS_COLOR_NOMATERIALS = UIUtils.rgb(255, 107, 8);
-        public static Color BLUEPRINTS_COLOR_NOTALLOWEDINWORLD = UIUtils.rgb(135, 97, 79);
-        public static Color BLUEPRINTS_COLOR_CAN_APPLY_SETTINGS = new Color32(30, 144, 255, 255);
-        public static Color BLUEPRINTS_COLOR_INVISIBLE = new Color32(255, 255, 255, 51);
 
-        public static Color BLUEPRINTS_COLOR_BLUEPRINT_DRAG = new Color32(0, 119, 145, 255);
+    public static GameObject BlueprintSelectionScreenGO = null!;
+    public static GameObject BlueprintInfoStateGO = null!;
+    public static GameObject NoteToolStateScreenGO = null!;
+    public static GameObject IconSelectorGO = null!;
+    public static GameObject RenamingScreenGO = null!;
+    public static void LoadAssets()
+    {
+        var bundle = AssetUtils.LoadAssetBundle("blueprints_ui", platformSpecific: true);
+        BlueprintSelectionScreenGO = bundle.LoadAsset<GameObject>("Assets/UIs/blueprintSelector.prefab");
+        BlueprintInfoStateGO = bundle.LoadAsset<GameObject>("Assets/UIs/UseBlueprintStateContainer.prefab");
+        NoteToolStateScreenGO = bundle.LoadAsset<GameObject>("Assets/UIs/NoteToolStateContainer.prefab");
+        IconSelectorGO = bundle.LoadAsset<GameObject>("Assets/UIs/IconSelector.prefab");
+        RenamingScreenGO = bundle.LoadAsset<GameObject>("Assets/UIs/BlueprintNameDialogue.prefab");
+        //UIUtils.ListAllChildren(Assets.transform);
+        BlueprintInfoStateGO.AddOrGet<CurrentBlueprintStateScreen>();
+        NoteToolStateScreenGO.AddOrGet<NoteToolScreen>();
+        IconSelectorGO.AddOrGet<SpriteSelectorScreen>();
 
-        public static HashSet<char> BLUEPRINTS_FILE_DISALLOWEDCHARACTERS;
-        public static HashSet<char> BLUEPRINTS_PATH_DISALLOWEDCHARACTERS;
+        var TMPConverter = new TMPConverter();
+        TMPConverter.ReplaceAllText(BlueprintSelectionScreenGO);
+        TMPConverter.ReplaceAllText(BlueprintInfoStateGO);
+        TMPConverter.ReplaceAllText(NoteToolStateScreenGO);
+        TMPConverter.ReplaceAllText(IconSelectorGO);
+        TMPConverter.ReplaceAllText(RenamingScreenGO);
+    }
+    public static bool HasPrevFolder()
+    {
+        if (SelectedFolder == null)
+            return false;
+        return true;
+    }
+    public static bool HasNextFolder()
+    {
+        if (!BlueprintFileHandling.BlueprintFolders.Any())
+            return false;
+        if (SelectedFolder != null && BlueprintFileHandling.BlueprintFolders.IndexOf(SelectedFolder) >= BlueprintFileHandling.BlueprintFolders.Count - 1)
+            return false;
+        return true;
+    }
 
-        public static HashSet<string> BLUEPRINTS_AUTOFILE_IGNORE = new();
-        public static FileSystemWatcher BLUEPRINTS_AUTOFILE_WATCHER = null!;
-        static ModAssets()
+    public static void SelectPreviousFolder()
+    {
+        if (SelectedFolder == null)
+            return;
+
+        var folderIndex = BlueprintFileHandling.BlueprintFolders.IndexOf(SelectedFolder);
+        folderIndex--;
+        SgtLogger.l("SelectPreviousFolder: " + folderIndex);
+
+        if (folderIndex < 0)
+            SelectedFolder = null;
+        else
         {
-            BLUEPRINTS_FILE_DISALLOWEDCHARACTERS = new HashSet<char>();
-            BLUEPRINTS_FILE_DISALLOWEDCHARACTERS.UnionWith(System.IO.Path.GetInvalidFileNameChars());
+            int max = BlueprintFileHandling.BlueprintFolders.Count;
 
-            BLUEPRINTS_PATH_DISALLOWEDCHARACTERS = new HashSet<char>();
-            BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.UnionWith(Path.GetInvalidFileNameChars());
-            BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.UnionWith(Path.GetInvalidPathChars());
-
-            BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.Remove('/');
-            BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.Remove('\\');
-            BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.Remove(Path.DirectorySeparatorChar);
-            BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.Remove(Path.AltDirectorySeparatorChar);
-
+            if (folderIndex >= max)
+                folderIndex = max - 1;
+            SelectedFolder = BlueprintFileHandling.BlueprintFolders[folderIndex];
         }
+        SelectFirstBlueprintInSelected();
+    }
 
+    public static void SelectNextFolder()
+    {
+        if (!BlueprintFileHandling.BlueprintFolders.Any())
+            return;
 
-        public static GameObject BlueprintSelectionScreenGO = null!;
-        public static GameObject BlueprintInfoStateGO = null!;
-        public static GameObject NoteToolStateScreenGO = null!;
-        public static GameObject IconSelectorGO = null!;
-        public static GameObject RenamingScreenGO = null!;
-        public static void LoadAssets()
+        if (SelectedFolder == null)
+            SelectedFolder = BlueprintFileHandling.BlueprintFolders[0];
+
+        else
         {
-            var bundle = AssetUtils.LoadAssetBundle("blueprints_ui", platformSpecific: true);
-            BlueprintSelectionScreenGO = bundle.LoadAsset<GameObject>("Assets/UIs/blueprintSelector.prefab");
-            BlueprintInfoStateGO = bundle.LoadAsset<GameObject>("Assets/UIs/UseBlueprintStateContainer.prefab");
-            NoteToolStateScreenGO = bundle.LoadAsset<GameObject>("Assets/UIs/NoteToolStateContainer.prefab");
-            IconSelectorGO = bundle.LoadAsset<GameObject>("Assets/UIs/IconSelector.prefab");
-            RenamingScreenGO = bundle.LoadAsset<GameObject>("Assets/UIs/BlueprintNameDialogue.prefab");
-            //UIUtils.ListAllChildren(Assets.transform);
-            BlueprintInfoStateGO.AddOrGet<CurrentBlueprintStateScreen>();
-            NoteToolStateScreenGO.AddOrGet<NoteToolScreen>();
-            IconSelectorGO.AddOrGet<SpriteSelectorScreen>();
-
-            var TMPConverter = new TMPConverter();
-            TMPConverter.ReplaceAllText(BlueprintSelectionScreenGO);
-            TMPConverter.ReplaceAllText(BlueprintInfoStateGO);
-            TMPConverter.ReplaceAllText(NoteToolStateScreenGO);
-            TMPConverter.ReplaceAllText(IconSelectorGO);
-            TMPConverter.ReplaceAllText(RenamingScreenGO);
-        }
-        public static bool HasPrevFolder()
-        {
-            if (SelectedFolder == null)
-                return false;
-            return true;
-        }
-        public static bool HasNextFolder()
-        {
-            if (!BlueprintFileHandling.BlueprintFolders.Any())
-                return false;
-            if (SelectedFolder != null && BlueprintFileHandling.BlueprintFolders.IndexOf(SelectedFolder) >= BlueprintFileHandling.BlueprintFolders.Count - 1)
-                return false;
-            return true;
-        }
-
-        public static void SelectPreviousFolder()
-        {
-            if (SelectedFolder == null)
-                return;
-
             var folderIndex = BlueprintFileHandling.BlueprintFolders.IndexOf(SelectedFolder);
-            folderIndex--;
-            SgtLogger.l("SelectPreviousFolder: " + folderIndex);
+            int max = BlueprintFileHandling.BlueprintFolders.Count;
+            folderIndex++;
 
-            if (folderIndex < 0)
-                SelectedFolder = null;
+            if (folderIndex >= max)
+                folderIndex = max - 1;
+            SgtLogger.l("SelectNextFolder: " + folderIndex);
+            SelectedFolder = BlueprintFileHandling.BlueprintFolders[folderIndex];
+        }
+        SelectFirstBlueprintInSelected();
+    }
+    static void SelectFirstBlueprintInSelected()
+    {
+        var folder = GetCurrentFolder();
+        if (folder == null || !folder.HasBlueprints)
+            return;
+        SelectedBlueprint = folder.Blueprints.First();
+    }
+
+    public static string[] GetAllFolderNames()
+    {
+        return BlueprintFileHandling.BlueprintFolders.Select(x => x.Name).ToArray();
+    }
+    public static BlueprintFolder GetCurrentFolder() => SelectedFolder == null ? BlueprintFileHandling.RootFolder : SelectedFolder;
+    public static BlueprintFolder? SelectedFolder;
+    public static Blueprint? SelectedBlueprint;
+    public static Dictionary<BlueprintSelectedMaterial, Tag> DynamicReplacementTags = new();
+
+    public static void RemoveReplacementTag(BlueprintSelectedMaterial tag)
+    {
+        DynamicReplacementTags.Remove(tag);
+    }
+    public static void AddOrSetReplacementTag(BlueprintSelectedMaterial tag, Tag replacement)
+    {
+        if (!DynamicReplacementTags.ContainsKey(tag) && replacement != tag.SelectedTag)
+            DynamicReplacementTags.Add(tag, replacement);
+        else
+        {
+            if (replacement == tag.SelectedTag)
+                DynamicReplacementTags.Remove(tag);
             else
-            {
-                int max = BlueprintFileHandling.BlueprintFolders.Count;
-
-                if (folderIndex >= max)
-                    folderIndex = max - 1;
-                SelectedFolder = BlueprintFileHandling.BlueprintFolders[folderIndex];
-            }
-            SelectFirstBlueprintInSelected();
+                DynamicReplacementTags[tag] = replacement;
         }
-
-        public static void SelectNextFolder()
+    }
+    public static bool HasReplacementTag(BlueprintSelectedMaterial mat) => DynamicReplacementTags.ContainsKey(mat);
+    public static void ClearReplacementTags()
+    {
+        DynamicReplacementTags.Clear();
+    }
+    public static bool TryGetReplacementTag(BlueprintSelectedMaterial tag, out Tag replacement, ulong playerId = BlueprintState.PlayerId_DefaultTilePreviews)
+    {
+        replacement = null;
+        if ((SelectedBlueprint == null && !BlueprintSelectionScreen.HasBlueprintSelected() && !BlueprintState.CurrentStateInfo(playerId).IsPlacingSnapshot) || (BlueprintState.CurrentStateInfo(playerId).IsPlacingSnapshot && !BlueprintState.CurrentStateInfo(playerId).MaterialReplacementInSnapshots)) //only do replacement in regular blueprint tool, not in snapshot tool
         {
-            if (!BlueprintFileHandling.BlueprintFolders.Any())
-                return;
-
-            if (SelectedFolder == null)
-                SelectedFolder = BlueprintFileHandling.BlueprintFolders[0];
-
-            else
-            {
-                var folderIndex = BlueprintFileHandling.BlueprintFolders.IndexOf(SelectedFolder);
-                int max = BlueprintFileHandling.BlueprintFolders.Count;
-                folderIndex++;
-
-                if (folderIndex >= max)
-                    folderIndex = max - 1;
-                SgtLogger.l("SelectNextFolder: " + folderIndex);
-                SelectedFolder = BlueprintFileHandling.BlueprintFolders[folderIndex];
-            }
-            SelectFirstBlueprintInSelected();
-        }
-        static void SelectFirstBlueprintInSelected()
-        {
-            var folder = GetCurrentFolder();
-            if (folder == null || !folder.HasBlueprints)
-                return;
-            SelectedBlueprint = folder.Blueprints.First();
-        }
-
-        public static string[] GetAllFolderNames()
-        {
-            return BlueprintFileHandling.BlueprintFolders.Select(x => x.Name).ToArray();
-        }
-        public static BlueprintFolder GetCurrentFolder() => SelectedFolder == null ? BlueprintFileHandling.RootFolder : SelectedFolder;
-        public static BlueprintFolder? SelectedFolder;
-        public static Blueprint? SelectedBlueprint;
-        public static Dictionary<BlueprintSelectedMaterial, Tag> DynamicReplacementTags = new();
-
-        public static void RemoveReplacementTag(BlueprintSelectedMaterial tag)
-        {
-            DynamicReplacementTags.Remove(tag);
-        }
-        public static void AddOrSetReplacementTag(BlueprintSelectedMaterial tag, Tag replacement)
-        {
-            if (!DynamicReplacementTags.ContainsKey(tag) && replacement != tag.SelectedTag)
-                DynamicReplacementTags.Add(tag, replacement);
-            else
-            {
-                if (replacement == tag.SelectedTag)
-                    DynamicReplacementTags.Remove(tag);
-                else
-                    DynamicReplacementTags[tag] = replacement;
-            }
-        }
-        public static bool HasReplacementTag(BlueprintSelectedMaterial mat) => DynamicReplacementTags.ContainsKey(mat);
-        public static void ClearReplacementTags()
-        {
-            DynamicReplacementTags.Clear();
-        }
-        public static bool TryGetReplacementTag(BlueprintSelectedMaterial tag, out Tag replacement, ulong playerId = BlueprintState.PlayerId_DefaultTilePreviews)
-        {
-            replacement = null;
-            if ((SelectedBlueprint == null && !BlueprintSelectionScreen.HasBlueprintSelected() && !BlueprintState.CurrentStateInfo(playerId).IsPlacingSnapshot) || (BlueprintState.CurrentStateInfo(playerId).IsPlacingSnapshot && !BlueprintState.CurrentStateInfo(playerId).MaterialReplacementInSnapshots)) //only do replacement in regular blueprint tool, not in snapshot tool
-            {
-                return false;
-            }
-
-            if (DynamicReplacementTags.ContainsKey(tag))
-            {
-                replacement = DynamicReplacementTags[tag];
-                return true;
-            }
             return false;
         }
-        public static StringBuilder sb = new StringBuilder();
 
-        internal static bool TryImportBlueprintFromString(string bpString, [NotNullWhen(true)] out Blueprint? bp, bool storeToFile = true)
+        if (DynamicReplacementTags.ContainsKey(tag))
         {
-            bp = null;
+            replacement = DynamicReplacementTags[tag];
+            return true;
+        }
+        return false;
+    }
+    public static StringBuilder sb = new StringBuilder();
+
+    internal static bool TryImportBlueprintFromString(string bpString, [NotNullWhen(true)] out Blueprint? bp, bool storeToFile = true)
+    {
+        bp = null;
+        try
+        {
+            if (bpString == string.Empty)
+                return false;
+            sb.Clear();
+            sb.Append(bpString);
+            bp = new Blueprint(sb);
+            if (bp == null)
+                return false;
+
+            if (storeToFile)
+            {
+                bp.SetFolder(SelectedFolder?.Name ?? string.Empty);
+                BlueprintFileHandling.HandleBlueprintLoading(bp.FilePath);
+            }
+            return true;
+        }
+        catch (Exception e)
+        {
+            SgtLogger.logError(e.Message);
+            return false;
+        }
+    }
+
+    public static bool ImportFromClipboard([NotNullWhen(true)] out Blueprint? bp)
+    {
+        bp = null;
+        if (IO_Utils.TryGetStringFromClipboard(out string clipboard))
+        {
             try
             {
-                if (bpString == string.Empty)
-                    return false;
-                sb.Clear();
-                sb.Append(bpString);
-                bp = new Blueprint(sb);
-                if (bp == null)
-                    return false;
-
-                if (storeToFile)
-                {
-                    bp.SetFolder(SelectedFolder?.Name ?? string.Empty);
-                    BlueprintFileHandling.HandleBlueprintLoading(bp.FilePath);
-                }
-                return true;
+                string uncompressed = clipboard.DecompressString();
+                ///base64 import
+                if (TryImportBlueprintFromString(uncompressed, out bp))
+                    return true;
+                ///raw json import
+                else if (TryImportBlueprintFromString(clipboard, out bp))
+                    return true;
+                return false;
             }
             catch (Exception e)
             {
@@ -221,624 +244,600 @@ namespace BlueprintsV2
                 return false;
             }
         }
+        return false;
+    }
+    public static void ExportToClipboard(Blueprint bp)
+    {
+        sb.Clear();
+        StringWriter sw = new StringWriter(sb);
+        bp.WriteJsonString(sw);
+        string ToCopy = sb.ToString().CompressString();
+        IO_Utils.PutToClipboard(ToCopy);
+    }
 
-        public static bool ImportFromClipboard([NotNullWhen(true)] out Blueprint? bp)
+    public static GameObject ParentScreen => GameScreenManager.Instance.GetParent(GameScreenManager.UIRenderTarget.ScreenSpaceOverlay);
+
+    public static class BlueprintFileHandling
+    {
+        public static BlueprintFolder RootFolder = null!;
+        public static List<BlueprintFolder> BlueprintFolders = new();
+
+        //public static HashSet<Blueprint> Blueprints = new();
+
+
+        public static string GetBlueprintDirectory()
         {
-            bp = null;
-            if (IO_Utils.TryGetStringFromClipboard(out string clipboard))
+            string folderLocation = Path.Combine(Util.RootFolder(), "blueprints");
+            if (!Directory.Exists(folderLocation))
             {
-                try
-                {
-                    string uncompressed = clipboard.DecompressString();
-                    ///base64 import
-                    if (TryImportBlueprintFromString(uncompressed, out bp))
-                        return true;
-                    ///raw json import
-                    else if (TryImportBlueprintFromString(clipboard, out bp))
-                        return true;
-                    return false;
-                }
-                catch (Exception e)
-                {
-                    SgtLogger.logError(e.Message);
-                    return false;
-                }
+                Directory.CreateDirectory(folderLocation);
             }
+
+            return folderLocation;
+        }
+
+        public static bool AttachFileWatcher()
+        {
+            string blueprintDirectory = GetBlueprintDirectory();
+
+            ModAssets.BLUEPRINTS_AUTOFILE_WATCHER = new FileSystemWatcher
+            {
+                Path = blueprintDirectory,
+                IncludeSubdirectories = true,
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.CreationTime,
+                Filter = "*.*"
+            };
+
+            ModAssets.BLUEPRINTS_AUTOFILE_WATCHER.Created += (sender, eventArgs) =>
+            {
+                SgtLogger.l("file watcher creation event triggered on " + eventArgs.Name + ", " + eventArgs.FullPath, "BP FileWatcher");
+                if (ModAssets.BLUEPRINTS_AUTOFILE_IGNORE.Contains(eventArgs.FullPath))
+                {
+                    ModAssets.BLUEPRINTS_AUTOFILE_IGNORE.Remove(eventArgs.FullPath);
+                    return;
+                }
+
+                if (eventArgs.FullPath.EndsWith(".blueprint") || eventArgs.FullPath.EndsWith(".json"))
+                {
+                    HandleBlueprintLoading(eventArgs.FullPath);
+                }
+            };
+            ModAssets.BLUEPRINTS_AUTOFILE_WATCHER.Deleted += (sender, eventArgs) =>
+            {
+                SgtLogger.l("file watcher deletion event triggered on " + eventArgs.Name + ", " + eventArgs.FullPath, "BP FileWatcher");
+                if (ModAssets.BLUEPRINTS_AUTOFILE_IGNORE.Contains(eventArgs.FullPath))
+                {
+                    ModAssets.BLUEPRINTS_AUTOFILE_IGNORE.Remove(eventArgs.FullPath);
+                }
+
+                if (eventArgs.FullPath.EndsWith(".blueprint") || eventArgs.FullPath.EndsWith(".json"))
+                {
+                    HandleBlueprintDeletion(eventArgs.FullPath);
+                }
+            };
+
+            ModAssets.BLUEPRINTS_AUTOFILE_WATCHER.EnableRaisingEvents = true;
             return false;
         }
-        public static void ExportToClipboard(Blueprint bp)
+
+        public static void ReloadBlueprints(bool ingame)
         {
-            sb.Clear();
-            StringWriter sw = new StringWriter(sb);
-            bp.WriteJsonString(sw);
-            string ToCopy = sb.ToString().CompressString();
-            IO_Utils.PutToClipboard(ToCopy);
-        }
+            RootFolder = null!;
+            BlueprintFolders.Clear();
+            //Blueprints.Clear();
+            LoadFolder(GetBlueprintDirectory());
 
-        public static GameObject ParentScreen => GameScreenManager.Instance.GetParent(GameScreenManager.UIRenderTarget.ScreenSpaceOverlay);
-
-        public static class BlueprintFileHandling
-        {
-            public static BlueprintFolder RootFolder = null!;
-            public static List<BlueprintFolder> BlueprintFolders = new();
-
-            //public static HashSet<Blueprint> Blueprints = new();
-
-
-            public static string GetBlueprintDirectory()
+            if (ingame)
             {
-                string folderLocation = Path.Combine(Util.RootFolder(), "blueprints");
-                if (!Directory.Exists(folderLocation))
-                {
-                    Directory.CreateDirectory(folderLocation);
-                }
-
-                return folderLocation;
-            }
-
-            public static bool AttachFileWatcher()
-            {
-                string blueprintDirectory = GetBlueprintDirectory();
-
-                ModAssets.BLUEPRINTS_AUTOFILE_WATCHER = new FileSystemWatcher
-                {
-                    Path = blueprintDirectory,
-                    IncludeSubdirectories = true,
-                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.CreationTime,
-                    Filter = "*.*"
-                };
-
-                ModAssets.BLUEPRINTS_AUTOFILE_WATCHER.Created += (sender, eventArgs) =>
-                {
-                    SgtLogger.l("file watcher creation event triggered on " + eventArgs.Name + ", " + eventArgs.FullPath, "BP FileWatcher");
-                    if (ModAssets.BLUEPRINTS_AUTOFILE_IGNORE.Contains(eventArgs.FullPath))
-                    {
-                        ModAssets.BLUEPRINTS_AUTOFILE_IGNORE.Remove(eventArgs.FullPath);
-                        return;
-                    }
-
-                    if (eventArgs.FullPath.EndsWith(".blueprint") || eventArgs.FullPath.EndsWith(".json"))
-                    {
-                        HandleBlueprintLoading(eventArgs.FullPath);
-                    }
-                };
-                ModAssets.BLUEPRINTS_AUTOFILE_WATCHER.Deleted += (sender, eventArgs) =>
-                {
-                    SgtLogger.l("file watcher deletion event triggered on " + eventArgs.Name + ", " + eventArgs.FullPath, "BP FileWatcher");
-                    if (ModAssets.BLUEPRINTS_AUTOFILE_IGNORE.Contains(eventArgs.FullPath))
-                    {
-                        ModAssets.BLUEPRINTS_AUTOFILE_IGNORE.Remove(eventArgs.FullPath);
-                    }
-
-                    if (eventArgs.FullPath.EndsWith(".blueprint") || eventArgs.FullPath.EndsWith(".json"))
-                    {
-                        HandleBlueprintDeletion(eventArgs.FullPath);
-                    }
-                };
-
-                ModAssets.BLUEPRINTS_AUTOFILE_WATCHER.EnableRaisingEvents = true;
-                return false;
-            }
-
-            public static void ReloadBlueprints(bool ingame)
-            {
-                RootFolder = null!;
-                BlueprintFolders.Clear();
-                //Blueprints.Clear();
-                LoadFolder(GetBlueprintDirectory());
-
-                if (ingame)
-                {
-                    BlueprintState.ClearVisuals();
-                    if (HasBlueprints())
-                        BlueprintState.VisualizeBlueprint(Grid.PosToXY(PlayerController.GetCursorPos(KInputManager.GetMousePos())), SelectedBlueprint);
-                }
-            }
-
-            public static void DeleteBlueprint(Blueprint bp)
-            {
-                //Blueprints.Remove(bp);
-                if (SelectedBlueprint == bp)
-                    SelectedBlueprint = null;
-                bp.DeleteFile();
-                bp.RemoveFromFolder();
-            }
-
-            public static bool TryGetFolder(Blueprint bp, [NotNullWhen(true)] out BlueprintFolder? folder)
-            {
-                if (RootFolder.ContainsBlueprint(bp))
-                {
-                    folder = RootFolder;
-                    return true;
-                }
-                folder = BlueprintFolders.FirstOrDefault(x => x.ContainsBlueprint(bp));
-                return folder != null;
-            }
-            public static bool TryGetFolder(string? folderName, [NotNullWhen(true)] out BlueprintFolder? folder)
-            {
-                if (folderName == null || folderName == "")
-                {
-                    folder = RootFolder;
-                    return true;
-                }
-                folder = BlueprintFolders.FirstOrDefault(x => x.Name == folderName);
-                return folder != null;
-            }
-
-            public static bool HasBlueprints()
-            {
-                if (BlueprintFolders.Count == 0 && !RootFolder.HasBlueprints)
-                {
-                    return false;
-                }
-
-                if (RootFolder.HasBlueprints)
-                    return true;
-
-                foreach (var blueprintFolder in BlueprintFolders)
-                {
-                    if (blueprintFolder.HasBlueprints)
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            public static void LoadFolder(string folder, string? ParentFolder = null)
-            {
-                BlueprintFolder CurrentFolder;
-                //root
-                if (ParentFolder == null)
-                {
-                    CurrentFolder = new BlueprintFolder("");
-                }
-                else
-                {
-                    CurrentFolder = new BlueprintFolder(Path.GetFileName(folder));
-                }
-
-                string parentName = Path.GetFileName(Path.GetDirectoryName(folder));
-
-                var fileInfos = new DirectoryInfo(folder).GetFiles();
-
-                var files = fileInfos.OrderBy(info => info.LastWriteTimeUtc).Select(info => info.FullName).ToList();
-                string[] subfolders = Directory.GetDirectories(folder);
-
-                foreach (string file in files)
-                {
-                    if (file.EndsWith(".blueprint") || file.EndsWith(".json"))
-                    {
-                        if (file.StartsWith("._")) //Mac specific metadata files that are created on non macOs-native filesystems
-                            continue;
-
-                        if (LoadBlueprint(file, out Blueprint blueprint))
-                        {
-                            CurrentFolder.AddBlueprint(blueprint);
-                        }
-                    }
-                }
-
-                foreach (string subfolder in subfolders)
-                {
-                    LoadFolder(subfolder, folder);
-                }
-
-                if (ParentFolder == null)
-                {
-                    RootFolder = CurrentFolder;
-                    CurrentFolder.Name = STRINGS.UI.BLUEPRINTS_ROOTFOLDER;
-                }
-                else if (CurrentFolder.HasBlueprints)
-                {
-                    BlueprintFolders.Add(CurrentFolder);
-                }
-            }
-            public static BlueprintFolder AddOrGetFolder(string folderName)
-            {
-                if (TryGetBlueprintFolder(folderName, out var folder))
-                {
-                    return folder;
-                }
-                return CreateFolder(folderName);
-            }
-            public static bool TryGetBlueprintFolder(string folderName, [NotNullWhen(true)] out BlueprintFolder? folder)
-            {
-                folder = null;
-                if (folderName.IsNullOrWhiteSpace())
-                {
-                    folder = RootFolder;
-                    return true;
-                }
-                foreach (var f in BlueprintFolders)
-                {
-                    if (f.Name == folderName)
-                    {
-                        folder = f;
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            private static BlueprintFolder CreateFolder(string folderName)
-            {
-                var folder = new BlueprintFolder(folderName);
-                BlueprintFolders.Add(folder);
-                return folder;
-            }
-            public static void HandleBlueprintLoading(string filePath)
-            {
-                if (LoadBlueprint(filePath, out Blueprint blueprint))
-                {
-                    if (blueprint.Folder == Path.GetDirectoryName(GetBlueprintDirectory()) || string.IsNullOrEmpty(blueprint.Folder))
-                    {
-                        SgtLogger.l("adding to root folder", blueprint.FriendlyName);
-                        RootFolder.AddBlueprint(blueprint);
-                    }
-                    else
-                    {
-                        SgtLogger.l("putting in folder", blueprint.FriendlyName);
-                        var folder = BlueprintFolders.FirstOrDefault(f => f.Name == blueprint.Folder);
-                        if (folder == null)
-                        {
-                            folder = CreateFolder(blueprint.Folder);
-                        }
-                        folder.AddBlueprint(blueprint);
-                    }
-                    BlueprintSelectionScreen.RefreshOnBpChanges();
-                }
-                else
-                    SgtLogger.warning("not a blueprint");
-            }
-            public static void HandleBlueprintDeletion(string fileLocation)
-            {
-                SgtLogger.l("Path: " + fileLocation, "BP FileWatcher Deletion");
-                Blueprint? ToRemove = null;
-                foreach (var folder in BlueprintFileHandling.BlueprintFolders)
-                {
-                    foreach (var bp in folder.Blueprints)
-                    {
-                        if (bp.FilePath == fileLocation)
-                        {
-                            ToRemove = bp;
-                            break;
-                        }
-                    }
-                }
-                if (ToRemove != null)
-                {
-                    DeleteBlueprint(ToRemove);
-                    BlueprintSelectionScreen.RefreshOnBpChanges();
-                }
-            }
-
-
-            public static bool LoadBlueprint(string blueprintLocation, out Blueprint blueprint)
-            {
-                blueprint = new Blueprint(blueprintLocation);
-                if (!blueprint.ReadBinary())
-                {
-                    blueprint.ReadJson();
-                }
-                return !blueprint.IsEmpty();
+                BlueprintState.ClearVisuals();
+                if (HasBlueprints())
+                    BlueprintState.VisualizeBlueprint(Grid.PosToXY(PlayerController.GetCursorPos(KInputManager.GetMousePos())), SelectedBlueprint);
             }
         }
 
-        internal static void RegisterActions()
+        public static void DeleteBlueprint(Blueprint bp)
         {
-            var actionManager = new PActionManager();
-
-            Actions.BlueprintsCreateAction = actionManager.CreateAction(ActionKeys.ACTION_CREATE_KEY,
-                STRINGS.UI.ACTIONS.CREATE_TITLE, new PKeyBinding(KKeyCode.C, Modifier.Shift | Modifier.Ctrl));
-
-            Actions.BlueprintsUseAction = actionManager.CreateAction(ActionKeys.ACTION_USE_KEY,
-                STRINGS.UI.ACTIONS.USE_TITLE, new PKeyBinding(KKeyCode.V, Modifier.Shift | Modifier.Ctrl));
-
-            Actions.BlueprintsSnapshotAction = actionManager.CreateAction(ActionKeys.ACTION_SNAPSHOT_KEY,
-                STRINGS.UI.ACTIONS.SNAPSHOT_TITLE, new PKeyBinding(KKeyCode.C, Modifier.Ctrl));
-
-            Actions.BlueprintsSnapshotReuseAction = actionManager.CreateAction(ActionKeys.ACTION_SNAPSHOT_KEY,
-                STRINGS.UI.ACTIONS.SNAPSHOT_REUSE_TITLE, new PKeyBinding(KKeyCode.V, Modifier.Ctrl));
-
-            Actions.BlueprintsReopenSelectionAction = actionManager.CreateAction(ActionKeys.ACTION_RESELECT_KEY,
-                STRINGS.UI.ACTIONS.SELECT_DIFFERENT_TITLE, new PKeyBinding(KKeyCode.E, Modifier.Ctrl));
-
-            Actions.BlueprintsSwapAnchorAction = actionManager.CreateAction(ActionKeys.ACTION_SWAP_ANCHOR_KEY,
-                STRINGS.UI.ACTIONS.CHANGE_ANCHOR_TITLE, new PKeyBinding(KKeyCode.R, Modifier.Ctrl));
-
-            Actions.BlueprintsToggleForce = actionManager.CreateAction(ActionKeys.ACTION_FORCE_TOGGLE_KEY,
-                STRINGS.UI.ACTIONS.TOGGLE_FORCE, new PKeyBinding(KKeyCode.F));
-
-
-            Actions.BlueprintsCreateNoteAction = actionManager.CreateAction(ActionKeys.ACTION_NOTETOOL_KEY,
-                STRINGS.UI.ACTIONS.NOTETOOL_TITLE);
-
-            Actions.BlueprintsSelectPrevious = actionManager.CreateAction(ActionKeys.ACTION_SELECT_PREV_BLUEPRINT_KEY,
-                STRINGS.UI.ACTIONS.SELECT_PREV, new PKeyBinding(KKeyCode.MouseScrollDown, Modifier.Shift));
-            Actions.BlueprintsSelectNext = actionManager.CreateAction(ActionKeys.ACTION_SELECT_NEXT_BLUEPRINT_KEY,
-                STRINGS.UI.ACTIONS.SELECT_NEXT, new PKeyBinding(KKeyCode.MouseScrollUp, Modifier.Shift));
-
-            Actions.BlueprintsSelectPreviousFolder = actionManager.CreateAction(ActionKeys.ACTION_SELECT_PREV_BLUEPRINT_KEY,
-                STRINGS.UI.ACTIONS.SELECT_PREV_FOLDER, new PKeyBinding(KKeyCode.MouseScrollDown, Modifier.Shift | Modifier.Ctrl));
-            Actions.BlueprintsSelectNextFolder = actionManager.CreateAction(ActionKeys.ACTION_SELECT_NEXT_BLUEPRINT_KEY,
-                STRINGS.UI.ACTIONS.SELECT_NEXT_FOLDER, new PKeyBinding(KKeyCode.MouseScrollUp, Modifier.Shift | Modifier.Ctrl));
-
-            Actions.BlueprintsRotate = actionManager.CreateAction(ActionKeys.ACTION_ROTATE_BLUEPRINT_KEY,
-                STRINGS.UI.ACTIONS.ROTATE_BLUEPRINT, new PKeyBinding(KKeyCode.R));
-            Actions.BlueprintsRotateInverse = actionManager.CreateAction(ActionKeys.ACTION_ROTATE_INV_BLUEPRINT_KEY,
-                STRINGS.UI.ACTIONS.ROTATE_INV_BLUEPRINT, new PKeyBinding(KKeyCode.R, Modifier.Shift));
-
-            Actions.BlueprintsFlipHorizontal = actionManager.CreateAction(ActionKeys.ACTION_FLIP_HORIZONTAL_KEY,
-                STRINGS.UI.ACTIONS.FLIP_BLUEPRINT_H, new PKeyBinding(KKeyCode.H, Modifier.Shift));
-            Actions.BlueprintsFlipVertical = actionManager.CreateAction(ActionKeys.ACTION_FLIP_VERTICAL_KEY,
-                STRINGS.UI.ACTIONS.FLIP_BLUEPRINT_V, new PKeyBinding(KKeyCode.V, Modifier.Shift));
-
-
-
-            Actions.BlueprintsToggleHotkeyToolTips = actionManager.CreateAction(ActionKeys.ACTION_TOGGLETOOLTIPS_KEY,
-                STRINGS.UI.ACTIONS.TOGGLETOOLTIPS, new PKeyBinding(KKeyCode.Z));
+            //Blueprints.Remove(bp);
+            if (SelectedBlueprint == bp)
+                SelectedBlueprint = null;
+            bp.DeleteFile();
+            bp.RemoveFromFolder();
         }
 
-        public static Sprite GetBlueprintIconSprite(string? id)
+        public static bool TryGetFolder(Blueprint bp, [NotNullWhen(true)] out BlueprintFolder? folder)
         {
-            var sprite = Assets.GetSprite(id);
-            if (sprite == null)
-                sprite = Def.GetUISprite(id).first;
-            if (sprite == null)
-                sprite = Assets.GetSprite("unknown");
-            return sprite;
-        }
-
-        /// <summary>
-        /// Static Tag == only 1 possible material, not re-selectable
-        /// </summary>
-        /// <param name="tagMaterial"></param>
-        /// <param name="name"></param>
-        /// <param name="desc"></param>
-        /// <param name="icon"></param>
-        /// <returns></returns>
-        internal static bool IsStaticTag(BlueprintSelectedMaterial tagMaterial, out string name, out string desc, out Sprite icon)
-        {
-            name = tagMaterial.CategoryTag.Name;
-            desc = string.Empty;
-            icon = Assets.GetSprite("unknown");
-            var possibleItems = GetValidMaterials(tagMaterial.CategoryTag, false);
-
-            if (possibleItems.Count() <= 1)
+            if (RootFolder.ContainsBlueprint(bp))
             {
-                //SgtLogger.l(possibleItems.Count + "", "possibruh");
-                if (possibleItems.Count == 0)
-                    return true;
-                var tag = possibleItems.First();
-                var prefab = Assets.TryGetPrefab(tag);
-                name = prefab.GetProperName();
-                desc = GameUtil.GetMaterialTooltips(tag);
-                icon = Def.GetUISprite(prefab).first;
-                //SgtLogger.l($"{name}: {desc}","DESC");
-
+                folder = RootFolder;
                 return true;
             }
+            folder = BlueprintFolders.FirstOrDefault(x => x.ContainsBlueprint(bp));
+            return folder != null;
+        }
+        public static bool TryGetFolder(string? folderName, [NotNullWhen(true)] out BlueprintFolder? folder)
+        {
+            if (folderName == null || folderName == "")
+            {
+                folder = RootFolder;
+                return true;
+            }
+            folder = BlueprintFolders.FirstOrDefault(x => x.Name == folderName);
+            return folder != null;
+        }
+
+        public static bool HasBlueprints()
+        {
+            if (BlueprintFolders.Count == 0 && !RootFolder.HasBlueprints)
+            {
+                return false;
+            }
+
+            if (RootFolder.HasBlueprints)
+                return true;
+
+            foreach (var blueprintFolder in BlueprintFolders)
+            {
+                if (blueprintFolder.HasBlueprints)
+                {
+                    return true;
+                }
+            }
 
             return false;
         }
 
-        public static Tag GetFirstAvailableMaterial(Tag materialType, float mass)
+        public static void LoadFolder(string folder, string? ParentFolder = null)
         {
-            var mats = GetValidMaterials(materialType);
-            foreach (var mat in mats)
+            BlueprintFolder CurrentFolder;
+            //root
+            if (ParentFolder == null)
             {
-                if (ClusterManager.Instance.activeWorld.worldInventory.GetAmount(mat, true) >= mass || DebugHandler.InstantBuildMode || Game.Instance.SandboxModeActive || MaterialSelector.AllowInsufficientMaterialBuild())
-                    return mat;
-            }
-            SgtLogger.warning("could not find viable replacementTag for materialType " + materialType);
-            return materialType;
-        }
-
-        public static List<Tag> GetValidMaterials(Tag materialTypeTags, bool omitDisabledElements = true)
-        {
-            List<Tag> validMaterials = new List<Tag>();
-            var actualTags = materialTypeTags.ToString().Split('&');
-            foreach (var actualTag in actualTags)
-            {
-                foreach (Element element in ElementLoader.elements)
-                {
-                    if (!(element.disabled && omitDisabledElements)
-                        && (element.IsSolid || ModAPI.API_Methods.AllowNonSolids(actualTag))
-                        && (element.tag == actualTag || element.HasTag(actualTag)))
-                    {
-                        validMaterials.Add(element.tag);
-                    }
-                }
-                foreach (Tag materialBuildingElement in GameTags.MaterialBuildingElements)
-                {
-                    if (materialBuildingElement != actualTag)
-                    {
-                        continue;
-                    }
-
-                    foreach (GameObject item in Assets.GetPrefabsWithTag(materialBuildingElement))
-                    {
-                        KPrefabID component = item.GetComponent<KPrefabID>();
-                        if (component != null && !validMaterials.Contains(component.PrefabTag))
-                        {
-                            validMaterials.Add(component.PrefabTag);
-                        }
-                    }
-                }
-            }
-            validMaterials = validMaterials.OrderBy(x => x.Name).ToList();
-            return validMaterials;
-        }
-
-        public static VisualizerType GetVisualizerType(BuildingDef def)
-        {
-            if (def.IsTilePiece
-                && def.isKAnimTile
-                && !def.BuildingComplete.TryGetComponent<Door>(out _)
-                && def.TileLayer != ObjectLayer.LadderTile
-                )
-            {
-                if (def.BuildingComplete.GetComponent<IHaveUtilityNetworkMgr>() != null)
-                {
-                    return VisualizerType.UTILITY;
-                }
-                else
-                {
-                    return VisualizerType.TILE;
-                }
+                CurrentFolder = new BlueprintFolder("");
             }
             else
             {
-                return VisualizerType.BUILDING;
+                CurrentFolder = new BlueprintFolder(Path.GetFileName(folder));
+            }
+
+            string parentName = Path.GetFileName(Path.GetDirectoryName(folder));
+
+            var fileInfos = new DirectoryInfo(folder).GetFiles();
+
+            var files = fileInfos.OrderBy(info => info.LastWriteTimeUtc).Select(info => info.FullName).ToList();
+            string[] subfolders = Directory.GetDirectories(folder);
+
+            foreach (string file in files)
+            {
+                if (file.EndsWith(".blueprint") || file.EndsWith(".json"))
+                {
+                    if (file.StartsWith("._")) //Mac specific metadata files that are created on non macOs-native filesystems
+                        continue;
+
+                    if (LoadBlueprint(file, out Blueprint blueprint))
+                    {
+                        CurrentFolder.AddBlueprint(blueprint);
+                    }
+                }
+            }
+
+            foreach (string subfolder in subfolders)
+            {
+                LoadFolder(subfolder, folder);
+            }
+
+            if (ParentFolder == null)
+            {
+                RootFolder = CurrentFolder;
+                CurrentFolder.Name = STRINGS.UI.BLUEPRINTS_ROOTFOLDER;
+            }
+            else if (CurrentFolder.HasBlueprints)
+            {
+                BlueprintFolders.Add(CurrentFolder);
             }
         }
-
-        internal static float GetSpawnTemperature(BuildingDef def, Tag[] selectedElements)
+        public static BlueprintFolder AddOrGetFolder(string folderName)
         {
-            float minMeltTemp = ElementLoader.GetMinMeltingPointAmongElements(selectedElements) - 10f;
-            return Mathf.Min(def.Temperature, minMeltTemp);
-        }
-
-        public static int IconSort(string x, string y)
-        {
-            int arrow = CompareArrow(x, y);
-            if (arrow != 0)
-                return arrow;
-            int num = CompareNumber(x, y);
-            if (num != 0)
-                return num;
-            return x.CompareTo(y);
-        }
-
-
-        private static int CompareArrow(string first, string second)
-        {
-            bool firstContains = first.IndexOf("_arrow_") != -1;
-            bool secondContains = second.IndexOf("_arrow_") != -1;
-
-            if (firstContains && !secondContains)
-                return 1;
-            else if (!firstContains && secondContains)
-                return -1;
-            return 0;
-        }
-        private static int CompareNumber(string first, string second)
-        {
-            bool firstContains = first.IndexOf("_num_") != -1;
-            bool secondContains = second.IndexOf("_num_") != -1;
-
-            if (firstContains && !secondContains)
-                return 1;
-            else if (!firstContains && secondContains)
-                return -1;
-            return 0;
-        }
-
-
-        public static class ActionKeys
-        {
-            public static readonly string ACTION_CREATE_KEY = "BlueprintsV2.create.opentool";
-            public static readonly string ACTION_USE_KEY = "BlueprintsV2.use.opentool";
-            public static readonly string ACTION_SNAPSHOT_KEY = "BlueprintsV2.snapshot.opentool";
-            public static readonly string ACTION_RESELECT_KEY = "BlueprintsV2.reselect";
-            public static readonly string ACTION_SWAP_ANCHOR_KEY = "BlueprintsV2.anchorswap";
-            public static readonly string ACTION_FORCE_TOGGLE_KEY = "BlueprintsV2.toggleforce";
-            public static readonly string ACTION_NOTETOOL_KEY = "BlueprintsV2.notetool.opentool";
-
-            public static readonly string ACTION_FLIP_HORIZONTAL_KEY = "BlueprintsV2.flipH";
-            public static readonly string ACTION_FLIP_VERTICAL_KEY = "BlueprintsV2.flipV";
-            public static readonly string ACTION_ROTATE_BLUEPRINT_KEY = "BlueprintsV2.rotate";
-            public static readonly string ACTION_ROTATE_INV_BLUEPRINT_KEY = "BlueprintsV2.rotateinverted";
-            public static readonly string ACTION_SELECT_NEXT_BLUEPRINT_KEY = "BlueprintsV2.selectnext";
-            public static readonly string ACTION_SELECT_PREV_BLUEPRINT_KEY = "BlueprintsV2.selectprev";
-            public static readonly string ACTION_SELECT_NEXT_FOLDER_KEY = "BlueprintsV2.selectnextfolder";
-            public static readonly string ACTION_SELECT_PREV_FOLDER_KEY = "BlueprintsV2.selectprevfolder";
-            public static readonly string ACTION_TOGGLETOOLTIPS_KEY = "BlueprintsV2.toggletoooltips";
-        }
-        public static class Actions
-        {
-            public static PAction BlueprintsCreateAction { get; set; } = null!;
-            public static PAction BlueprintsUseAction { get; set; } = null!;
-            public static PAction BlueprintsCreateNoteAction { get; set; } = null!;
-            public static PAction BlueprintsSnapshotAction { get; set; } = null!;
-            public static PAction BlueprintsSnapshotReuseAction { get; set; } = null!;
-            public static PAction BlueprintsReopenSelectionAction { get; set; } = null!;
-            public static PAction BlueprintsSwapAnchorAction { get; set; } = null!;
-            public static PAction BlueprintsToggleForce { get; set; } = null!;
-
-            public static PAction BlueprintsFlipHorizontal { get; set; } = null!;
-            public static PAction BlueprintsFlipVertical { get; set; } = null!;
-            public static PAction BlueprintsRotate { get; set; } = null!;
-            public static PAction BlueprintsRotateInverse { get; set; } = null!;
-            public static PAction BlueprintsSelectNext { get; set; } = null!;
-            public static PAction BlueprintsSelectPrevious { get; set; } = null!;
-            public static PAction BlueprintsSelectNextFolder { get; set; } = null!;
-            public static PAction BlueprintsSelectPreviousFolder { get; set; } = null!;
-
-
-            public static PAction BlueprintsToggleHotkeyToolTips { get; set; } = null!;
-
-        }
-        public static bool TryGetFilterLayerId(ObjectLayer objectLayer, [NotNullWhen(true)] out string? filterLayerId)
-        {
-            filterLayerId = null;
-            switch (objectLayer)
+            if (TryGetBlueprintFolder(folderName, out var folder))
             {
-                case ObjectLayer.Building:
-                case ObjectLayer.FoundationTile:
-                case ObjectLayer.AttachableBuilding:
-                case ObjectLayer.PlasticTile:
-                case ObjectLayer.LadderTile:
-                    filterLayerId = ToolParameterMenu.FILTERLAYERS.BUILDINGS;
+                return folder;
+            }
+            return CreateFolder(folderName);
+        }
+        public static bool TryGetBlueprintFolder(string folderName, [NotNullWhen(true)] out BlueprintFolder? folder)
+        {
+            folder = null;
+            if (folderName.IsNullOrWhiteSpace())
+            {
+                folder = RootFolder;
+                return true;
+            }
+            foreach (var f in BlueprintFolders)
+            {
+                if (f.Name == folderName)
+                {
+                    folder = f;
                     return true;
-
-                case ObjectLayer.Backwall:
-                case ObjectLayer.Canvases:
-                case ObjectLayer.ReplacementBackwall:
-                    filterLayerId = ToolParameterMenu.FILTERLAYERS.BACKWALL;
-                    return true;
-
-                case ObjectLayer.GasConduit:
-                case ObjectLayer.GasConduitConnection:
-                case ObjectLayer.GasConduitTile:
-                case ObjectLayer.ReplacementGasConduit:
-                    filterLayerId = ToolParameterMenu.FILTERLAYERS.GASCONDUIT;
-                    return true;
-
-                case ObjectLayer.LiquidConduit:
-                case ObjectLayer.LiquidConduitConnection:
-                case ObjectLayer.LiquidConduitTile:
-                case ObjectLayer.ReplacementLiquidConduit:
-                    filterLayerId = ToolParameterMenu.FILTERLAYERS.LIQUIDCONDUIT;
-                    return true;
-
-                case ObjectLayer.SolidConduit:
-                case ObjectLayer.SolidConduitConnection:
-                case ObjectLayer.SolidConduitTile:
-                    filterLayerId = ToolParameterMenu.FILTERLAYERS.SOLIDCONDUIT;
-                    return true;
-
-                case ObjectLayer.Wire:
-                case ObjectLayer.WireConnectors:
-                case ObjectLayer.WireTile:
-                case ObjectLayer.ReplacementWire:
-                    filterLayerId = ToolParameterMenu.FILTERLAYERS.WIRES;
-                    return true;
-
-                case ObjectLayer.LogicGate:
-                case ObjectLayer.LogicWire:
-                case ObjectLayer.LogicWireTile:
-                case ObjectLayer.ReplacementLogicWire:
-                    filterLayerId = ToolParameterMenu.FILTERLAYERS.LOGIC;
-                    return true;
-
-                case ObjectLayer.DigPlacer:
-                    filterLayerId = ToolParameterMenu.FILTERLAYERS.DIGPLACER;
-                    return true;
+                }
             }
             return false;
         }
+
+        private static BlueprintFolder CreateFolder(string folderName)
+        {
+            var folder = new BlueprintFolder(folderName);
+            BlueprintFolders.Add(folder);
+            return folder;
+        }
+        public static void HandleBlueprintLoading(string filePath)
+        {
+            if (LoadBlueprint(filePath, out Blueprint blueprint))
+            {
+                if (blueprint.Folder == Path.GetDirectoryName(GetBlueprintDirectory()) || string.IsNullOrEmpty(blueprint.Folder))
+                {
+                    SgtLogger.l("adding to root folder", blueprint.FriendlyName);
+                    RootFolder.AddBlueprint(blueprint);
+                }
+                else
+                {
+                    SgtLogger.l("putting in folder", blueprint.FriendlyName);
+                    var folder = BlueprintFolders.FirstOrDefault(f => f.Name == blueprint.Folder);
+                    if (folder == null)
+                    {
+                        folder = CreateFolder(blueprint.Folder);
+                    }
+                    folder.AddBlueprint(blueprint);
+                }
+                BlueprintSelectionScreen.RefreshOnBpChanges();
+            }
+            else
+                SgtLogger.warning("not a blueprint");
+        }
+        public static void HandleBlueprintDeletion(string fileLocation)
+        {
+            SgtLogger.l("Path: " + fileLocation, "BP FileWatcher Deletion");
+            Blueprint? ToRemove = null;
+            foreach (var folder in BlueprintFileHandling.BlueprintFolders)
+            {
+                foreach (var bp in folder.Blueprints)
+                {
+                    if (bp.FilePath == fileLocation)
+                    {
+                        ToRemove = bp;
+                        break;
+                    }
+                }
+            }
+            if (ToRemove != null)
+            {
+                DeleteBlueprint(ToRemove);
+                BlueprintSelectionScreen.RefreshOnBpChanges();
+            }
+        }
+
+
+        public static bool LoadBlueprint(string blueprintLocation, out Blueprint blueprint)
+        {
+            blueprint = new Blueprint(blueprintLocation);
+            if (!blueprint.ReadBinary())
+            {
+                blueprint.ReadJson();
+            }
+            return !blueprint.IsEmpty();
+        }
+    }
+
+    internal static void RegisterActions()
+    {
+        var actionManager = new PActionManager();
+
+        Actions.BlueprintsCreateAction = actionManager.CreateAction(ActionKeys.ACTION_CREATE_KEY,
+            STRINGS.UI.ACTIONS.CREATE_TITLE, new PKeyBinding(KKeyCode.C, Modifier.Shift | Modifier.Ctrl));
+
+        Actions.BlueprintsUseAction = actionManager.CreateAction(ActionKeys.ACTION_USE_KEY,
+            STRINGS.UI.ACTIONS.USE_TITLE, new PKeyBinding(KKeyCode.V, Modifier.Shift | Modifier.Ctrl));
+
+        Actions.BlueprintsSnapshotAction = actionManager.CreateAction(ActionKeys.ACTION_SNAPSHOT_KEY,
+            STRINGS.UI.ACTIONS.SNAPSHOT_TITLE, new PKeyBinding(KKeyCode.C, Modifier.Ctrl));
+
+        Actions.BlueprintsSnapshotReuseAction = actionManager.CreateAction(ActionKeys.ACTION_SNAPSHOT_KEY,
+            STRINGS.UI.ACTIONS.SNAPSHOT_REUSE_TITLE, new PKeyBinding(KKeyCode.V, Modifier.Ctrl));
+
+        Actions.BlueprintsReopenSelectionAction = actionManager.CreateAction(ActionKeys.ACTION_RESELECT_KEY,
+            STRINGS.UI.ACTIONS.SELECT_DIFFERENT_TITLE, new PKeyBinding(KKeyCode.E, Modifier.Ctrl));
+
+        Actions.BlueprintsSwapAnchorAction = actionManager.CreateAction(ActionKeys.ACTION_SWAP_ANCHOR_KEY,
+            STRINGS.UI.ACTIONS.CHANGE_ANCHOR_TITLE, new PKeyBinding(KKeyCode.R, Modifier.Ctrl));
+
+        Actions.BlueprintsToggleForce = actionManager.CreateAction(ActionKeys.ACTION_FORCE_TOGGLE_KEY,
+            STRINGS.UI.ACTIONS.TOGGLE_FORCE, new PKeyBinding(KKeyCode.F));
+
+
+        Actions.BlueprintsCreateNoteAction = actionManager.CreateAction(ActionKeys.ACTION_NOTETOOL_KEY,
+            STRINGS.UI.ACTIONS.NOTETOOL_TITLE);
+
+        Actions.BlueprintsSelectPrevious = actionManager.CreateAction(ActionKeys.ACTION_SELECT_PREV_BLUEPRINT_KEY,
+            STRINGS.UI.ACTIONS.SELECT_PREV, new PKeyBinding(KKeyCode.MouseScrollDown, Modifier.Shift));
+        Actions.BlueprintsSelectNext = actionManager.CreateAction(ActionKeys.ACTION_SELECT_NEXT_BLUEPRINT_KEY,
+            STRINGS.UI.ACTIONS.SELECT_NEXT, new PKeyBinding(KKeyCode.MouseScrollUp, Modifier.Shift));
+
+        Actions.BlueprintsSelectPreviousFolder = actionManager.CreateAction(ActionKeys.ACTION_SELECT_PREV_BLUEPRINT_KEY,
+            STRINGS.UI.ACTIONS.SELECT_PREV_FOLDER, new PKeyBinding(KKeyCode.MouseScrollDown, Modifier.Shift | Modifier.Ctrl));
+        Actions.BlueprintsSelectNextFolder = actionManager.CreateAction(ActionKeys.ACTION_SELECT_NEXT_BLUEPRINT_KEY,
+            STRINGS.UI.ACTIONS.SELECT_NEXT_FOLDER, new PKeyBinding(KKeyCode.MouseScrollUp, Modifier.Shift | Modifier.Ctrl));
+
+        Actions.BlueprintsRotate = actionManager.CreateAction(ActionKeys.ACTION_ROTATE_BLUEPRINT_KEY,
+            STRINGS.UI.ACTIONS.ROTATE_BLUEPRINT, new PKeyBinding(KKeyCode.R));
+        Actions.BlueprintsRotateInverse = actionManager.CreateAction(ActionKeys.ACTION_ROTATE_INV_BLUEPRINT_KEY,
+            STRINGS.UI.ACTIONS.ROTATE_INV_BLUEPRINT, new PKeyBinding(KKeyCode.R, Modifier.Shift));
+
+        Actions.BlueprintsFlipHorizontal = actionManager.CreateAction(ActionKeys.ACTION_FLIP_HORIZONTAL_KEY,
+            STRINGS.UI.ACTIONS.FLIP_BLUEPRINT_H, new PKeyBinding(KKeyCode.H, Modifier.Shift));
+        Actions.BlueprintsFlipVertical = actionManager.CreateAction(ActionKeys.ACTION_FLIP_VERTICAL_KEY,
+            STRINGS.UI.ACTIONS.FLIP_BLUEPRINT_V, new PKeyBinding(KKeyCode.V, Modifier.Shift));
+
+
+
+        Actions.BlueprintsToggleHotkeyToolTips = actionManager.CreateAction(ActionKeys.ACTION_TOGGLETOOLTIPS_KEY,
+            STRINGS.UI.ACTIONS.TOGGLETOOLTIPS, new PKeyBinding(KKeyCode.Z));
+    }
+
+    public static Sprite GetBlueprintIconSprite(string? id)
+    {
+        var sprite = Assets.GetSprite(id);
+        if (sprite == null)
+            sprite = Def.GetUISprite(id).first;
+        if (sprite == null)
+            sprite = Assets.GetSprite("unknown");
+        return sprite;
+    }
+
+    /// <summary>
+    /// Static Tag == only 1 possible material, not re-selectable
+    /// </summary>
+    /// <param name="tagMaterial"></param>
+    /// <param name="name"></param>
+    /// <param name="desc"></param>
+    /// <param name="icon"></param>
+    /// <returns></returns>
+    internal static bool IsStaticTag(BlueprintSelectedMaterial tagMaterial, out string name, out string desc, out Sprite icon)
+    {
+        name = tagMaterial.CategoryTag.Name;
+        desc = string.Empty;
+        icon = Assets.GetSprite("unknown");
+        var possibleItems = GetValidMaterials(tagMaterial.CategoryTag, false);
+
+        if (possibleItems.Count() <= 1)
+        {
+            //SgtLogger.l(possibleItems.Count + "", "possibruh");
+            if (possibleItems.Count == 0)
+                return true;
+            var tag = possibleItems.First();
+            var prefab = Assets.TryGetPrefab(tag);
+            name = prefab.GetProperName();
+            desc = GameUtil.GetMaterialTooltips(tag);
+            icon = Def.GetUISprite(prefab).first;
+            //SgtLogger.l($"{name}: {desc}","DESC");
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public static Tag GetFirstAvailableMaterial(Tag materialType, float mass)
+    {
+        var mats = GetValidMaterials(materialType);
+        foreach (var mat in mats)
+        {
+            if (ClusterManager.Instance.activeWorld.worldInventory.GetAmount(mat, true) >= mass || DebugHandler.InstantBuildMode || Game.Instance.SandboxModeActive || MaterialSelector.AllowInsufficientMaterialBuild())
+                return mat;
+        }
+        SgtLogger.warning("could not find viable replacementTag for materialType " + materialType);
+        return materialType;
+    }
+
+    public static List<Tag> GetValidMaterials(Tag materialTypeTags, bool omitDisabledElements = true)
+    {
+        List<Tag> validMaterials = new List<Tag>();
+        var actualTags = materialTypeTags.ToString().Split('&');
+        foreach (var actualTag in actualTags)
+        {
+            foreach (Element element in ElementLoader.elements)
+            {
+                if (!(element.disabled && omitDisabledElements)
+                    && (element.IsSolid || ModAPI.API_Methods.AllowNonSolids(actualTag))
+                    && (element.tag == actualTag || element.HasTag(actualTag)))
+                {
+                    validMaterials.Add(element.tag);
+                }
+            }
+            foreach (Tag materialBuildingElement in GameTags.MaterialBuildingElements)
+            {
+                if (materialBuildingElement != actualTag)
+                {
+                    continue;
+                }
+
+                foreach (GameObject item in Assets.GetPrefabsWithTag(materialBuildingElement))
+                {
+                    KPrefabID component = item.GetComponent<KPrefabID>();
+                    if (component != null && !validMaterials.Contains(component.PrefabTag))
+                    {
+                        validMaterials.Add(component.PrefabTag);
+                    }
+                }
+            }
+        }
+        validMaterials = validMaterials.OrderBy(x => x.Name).ToList();
+        return validMaterials;
+    }
+
+    public static VisualizerType GetVisualizerType(BuildingDef def)
+    {
+        if (def.IsTilePiece
+            && def.isKAnimTile
+            && !def.BuildingComplete.TryGetComponent<Door>(out _)
+            && def.TileLayer != ObjectLayer.LadderTile
+            )
+        {
+            if (def.BuildingComplete.GetComponent<IHaveUtilityNetworkMgr>() != null)
+            {
+                return VisualizerType.UTILITY;
+            }
+            else
+            {
+                return VisualizerType.TILE;
+            }
+        }
+        else
+        {
+            return VisualizerType.BUILDING;
+        }
+    }
+
+    internal static float GetSpawnTemperature(BuildingDef def, Tag[] selectedElements)
+    {
+        float minMeltTemp = ElementLoader.GetMinMeltingPointAmongElements(selectedElements) - 10f;
+        return Mathf.Min(def.Temperature, minMeltTemp);
+    }
+
+    public static int IconSort(string x, string y)
+    {
+        int arrow = CompareArrow(x, y);
+        if (arrow != 0)
+            return arrow;
+        int num = CompareNumber(x, y);
+        if (num != 0)
+            return num;
+        return x.CompareTo(y);
+    }
+
+
+    private static int CompareArrow(string first, string second)
+    {
+        bool firstContains = first.IndexOf("_arrow_") != -1;
+        bool secondContains = second.IndexOf("_arrow_") != -1;
+
+        if (firstContains && !secondContains)
+            return 1;
+        else if (!firstContains && secondContains)
+            return -1;
+        return 0;
+    }
+    private static int CompareNumber(string first, string second)
+    {
+        bool firstContains = first.IndexOf("_num_") != -1;
+        bool secondContains = second.IndexOf("_num_") != -1;
+
+        if (firstContains && !secondContains)
+            return 1;
+        else if (!firstContains && secondContains)
+            return -1;
+        return 0;
+    }
+
+
+    public static class ActionKeys
+    {
+        public static readonly string ACTION_CREATE_KEY = "BlueprintsV2.create.opentool";
+        public static readonly string ACTION_USE_KEY = "BlueprintsV2.use.opentool";
+        public static readonly string ACTION_SNAPSHOT_KEY = "BlueprintsV2.snapshot.opentool";
+        public static readonly string ACTION_RESELECT_KEY = "BlueprintsV2.reselect";
+        public static readonly string ACTION_SWAP_ANCHOR_KEY = "BlueprintsV2.anchorswap";
+        public static readonly string ACTION_FORCE_TOGGLE_KEY = "BlueprintsV2.toggleforce";
+        public static readonly string ACTION_NOTETOOL_KEY = "BlueprintsV2.notetool.opentool";
+
+        public static readonly string ACTION_FLIP_HORIZONTAL_KEY = "BlueprintsV2.flipH";
+        public static readonly string ACTION_FLIP_VERTICAL_KEY = "BlueprintsV2.flipV";
+        public static readonly string ACTION_ROTATE_BLUEPRINT_KEY = "BlueprintsV2.rotate";
+        public static readonly string ACTION_ROTATE_INV_BLUEPRINT_KEY = "BlueprintsV2.rotateinverted";
+        public static readonly string ACTION_SELECT_NEXT_BLUEPRINT_KEY = "BlueprintsV2.selectnext";
+        public static readonly string ACTION_SELECT_PREV_BLUEPRINT_KEY = "BlueprintsV2.selectprev";
+        public static readonly string ACTION_SELECT_NEXT_FOLDER_KEY = "BlueprintsV2.selectnextfolder";
+        public static readonly string ACTION_SELECT_PREV_FOLDER_KEY = "BlueprintsV2.selectprevfolder";
+        public static readonly string ACTION_TOGGLETOOLTIPS_KEY = "BlueprintsV2.toggletoooltips";
+    }
+    public static class Actions
+    {
+        public static PAction BlueprintsCreateAction { get; set; } = null!;
+        public static PAction BlueprintsUseAction { get; set; } = null!;
+        public static PAction BlueprintsCreateNoteAction { get; set; } = null!;
+        public static PAction BlueprintsSnapshotAction { get; set; } = null!;
+        public static PAction BlueprintsSnapshotReuseAction { get; set; } = null!;
+        public static PAction BlueprintsReopenSelectionAction { get; set; } = null!;
+        public static PAction BlueprintsSwapAnchorAction { get; set; } = null!;
+        public static PAction BlueprintsToggleForce { get; set; } = null!;
+
+        public static PAction BlueprintsFlipHorizontal { get; set; } = null!;
+        public static PAction BlueprintsFlipVertical { get; set; } = null!;
+        public static PAction BlueprintsRotate { get; set; } = null!;
+        public static PAction BlueprintsRotateInverse { get; set; } = null!;
+        public static PAction BlueprintsSelectNext { get; set; } = null!;
+        public static PAction BlueprintsSelectPrevious { get; set; } = null!;
+        public static PAction BlueprintsSelectNextFolder { get; set; } = null!;
+        public static PAction BlueprintsSelectPreviousFolder { get; set; } = null!;
+
+
+        public static PAction BlueprintsToggleHotkeyToolTips { get; set; } = null!;
+
+    }
+    public static bool TryGetFilterLayerId(ObjectLayer objectLayer, [NotNullWhen(true)] out string? filterLayerId)
+    {
+        filterLayerId = null;
+        switch (objectLayer)
+        {
+            case ObjectLayer.Building:
+            case ObjectLayer.FoundationTile:
+            case ObjectLayer.AttachableBuilding:
+            case ObjectLayer.PlasticTile:
+            case ObjectLayer.LadderTile:
+                filterLayerId = ToolParameterMenu.FILTERLAYERS.BUILDINGS;
+                return true;
+
+            case ObjectLayer.Backwall:
+            case ObjectLayer.Canvases:
+            case ObjectLayer.ReplacementBackwall:
+                filterLayerId = ToolParameterMenu.FILTERLAYERS.BACKWALL;
+                return true;
+
+            case ObjectLayer.GasConduit:
+            case ObjectLayer.GasConduitConnection:
+            case ObjectLayer.GasConduitTile:
+            case ObjectLayer.ReplacementGasConduit:
+                filterLayerId = ToolParameterMenu.FILTERLAYERS.GASCONDUIT;
+                return true;
+
+            case ObjectLayer.LiquidConduit:
+            case ObjectLayer.LiquidConduitConnection:
+            case ObjectLayer.LiquidConduitTile:
+            case ObjectLayer.ReplacementLiquidConduit:
+                filterLayerId = ToolParameterMenu.FILTERLAYERS.LIQUIDCONDUIT;
+                return true;
+
+            case ObjectLayer.SolidConduit:
+            case ObjectLayer.SolidConduitConnection:
+            case ObjectLayer.SolidConduitTile:
+                filterLayerId = ToolParameterMenu.FILTERLAYERS.SOLIDCONDUIT;
+                return true;
+
+            case ObjectLayer.Wire:
+            case ObjectLayer.WireConnectors:
+            case ObjectLayer.WireTile:
+            case ObjectLayer.ReplacementWire:
+                filterLayerId = ToolParameterMenu.FILTERLAYERS.WIRES;
+                return true;
+
+            case ObjectLayer.LogicGate:
+            case ObjectLayer.LogicWire:
+            case ObjectLayer.LogicWireTile:
+            case ObjectLayer.ReplacementLogicWire:
+                filterLayerId = ToolParameterMenu.FILTERLAYERS.LOGIC;
+                return true;
+
+            case ObjectLayer.DigPlacer:
+                filterLayerId = ToolParameterMenu.FILTERLAYERS.DIGPLACER;
+                return true;
+        }
+        return false;
     }
 }

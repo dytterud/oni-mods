@@ -4,8 +4,8 @@ using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 using UnityEngine;
 using Xunit;
 
-namespace BlueprintsIncluded.Tests.BlueprintData
-{
+namespace BlueprintsIncluded.Tests.BlueprintData;
+
 	/// <summary>
 	/// Round-trips a <see cref="Blueprint"/> through <c>WriteJsonString</c> →
 	/// <c>new Blueprint(StringBuilder)</c> for the parts that do not require a running
@@ -84,4 +84,3 @@ namespace BlueprintsIncluded.Tests.BlueprintData
 			Assert.Empty(restored.WorldNotes);
 		}
 	}
-}

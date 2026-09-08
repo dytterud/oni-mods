@@ -1,11 +1,10 @@
-﻿namespace BlueprintsV2
-{
-    public enum VisualizerType
-    {
-        BUILDING,
-        UTILITY,
-        TILE,
+﻿namespace BlueprintsV2;
 
-        INVALID = -1
-    }
+public enum VisualizerType
+{
+    BUILDING,
+    UTILITY,
+    TILE,
+
+    INVALID = -1
 }

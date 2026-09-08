@@ -3,106 +3,105 @@ using BlueprintsV2.BlueprintData.PlannedElements;
 using UnityEngine;
 using static BlueprintsV2.BlueprintData.BlueprintState;
 
-namespace BlueprintsV2.Visualizers
+namespace BlueprintsV2.Visualizers;
+
+internal class ElementNoteVisual : IVisual
 {
-    internal class ElementNoteVisual : IVisual
+    public ulong GetPlayerId() => playerId;
+    private ulong playerId = PlayerId_DefaultTilePreviews;
+    public GameObject Visualizer { get; private set; }
+    public Vector2I Offset { get; private set; }
+
+    public PlanScreen.RequirementsState RequirementsState => PlanScreen.RequirementsState.Complete;
+
+    public string? BuildingID => null;
+
+    SimHashes ElementId;
+    float Amount, Temperature;
+
+    public static Tag GetInfoPrefabId(SimHashes elementId)
     {
-        public ulong GetPlayerId() => playerId;
-        private ulong playerId = PlayerId_DefaultTilePreviews;
-        public GameObject Visualizer { get; private set; }
-        public Vector2I Offset { get; private set; }
-
-        public PlanScreen.RequirementsState RequirementsState => PlanScreen.RequirementsState.Complete;
-
-        public string? BuildingID => null;
-
-        SimHashes ElementId;
-        float Amount, Temperature;
-
-        public static Tag GetInfoPrefabId(SimHashes elementId)
+        return ElementNoteConfig.ID;
+    }
+    public ElementNoteVisual(ulong playerId, int cell, Vector2I offset, SimHashes elementId, float amount, float temperature)
+    {
+        this.playerId = playerId;
+        Visualizer = GameUtil.KInstantiate(Assets.GetPrefab(GetInfoPrefabId(elementId)), Grid.CellToPosCBC(cell, Grid.SceneLayer.FXFront), Grid.SceneLayer.FXFront, "BlueprintModLiquidIndicatorVisual");
+        Visualizer.SetActive(IsPlaceable(cell));
+        Offset = offset;
+        if (Visualizer.TryGetComponent<ElementNote>(out var info))
         {
-            return ElementNoteConfig.ID;
+            info.SetInfo(elementId, amount, temperature);
         }
-        public ElementNoteVisual(ulong playerId, int cell, Vector2I offset, SimHashes elementId, float amount, float temperature)
+        ElementId = elementId;
+        Amount = amount;
+        Temperature = temperature;
+    }
+
+    public bool IsPlaceable(int cellParam)
+    {
+        return Grid.IsValidCell(cellParam) && Grid.IsVisible(cellParam);
+    }
+
+    public void MoveVisualizer(int cellParam, bool forceRedraw)
+    {
+        Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, Grid.SceneLayer.FXFront));
+        Visualizer.SetActive(IsPlaceable(cellParam));
+    }
+    public void ForceRedraw() { }
+
+    public bool TryUse(int cellParam)
+    {
+        if (IsPlaceable(cellParam))
         {
-            this.playerId = playerId;
-            Visualizer = GameUtil.KInstantiate(Assets.GetPrefab(GetInfoPrefabId(elementId)), Grid.CellToPosCBC(cell, Grid.SceneLayer.FXFront), Grid.SceneLayer.FXFront, "BlueprintModLiquidIndicatorVisual");
-            Visualizer.SetActive(IsPlaceable(cell));
-            Offset = offset;
-            if (Visualizer.TryGetComponent<ElementNote>(out var info))
+            if (BlueprintState.InstantBuild)
             {
-                info.SetInfo(elementId, amount, temperature);
+                SimMessages.ReplaceElement(cellParam, ElementId, CellEventLogger.Instance.SandBoxTool, Amount, Temperature);
             }
-            ElementId = elementId;
-            Amount = amount;
-            Temperature = temperature;
-        }
-
-        public bool IsPlaceable(int cellParam)
-        {
-            return Grid.IsValidCell(cellParam) && Grid.IsVisible(cellParam);
-        }
-
-        public void MoveVisualizer(int cellParam, bool forceRedraw)
-        {
-            Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, Grid.SceneLayer.FXFront));
-            Visualizer.SetActive(IsPlaceable(cellParam));
-        }
-        public void ForceRedraw() { }
-
-        public bool TryUse(int cellParam)
-        {
-            if (IsPlaceable(cellParam))
+            else
             {
-                if (BlueprintState.InstantBuild)
-                {
-                    SimMessages.ReplaceElement(cellParam, ElementId, CellEventLogger.Instance.SandBoxTool, Amount, Temperature);
-                }
-                else
-                {
-                    var existingItem = Grid.Objects[cellParam, (int)ModAssets.BlueprintNotesLayer];
+                var existingItem = Grid.Objects[cellParam, (int)ModAssets.BlueprintNotesLayer];
 
-                    if (existingItem != null)
-                    {
-                        existingItem.DeleteObject();
-                        Grid.Objects[cellParam, (int)ModAssets.BlueprintNotesLayer] = null;
-                    }
-
-                    var infoIndicator = Util.KInstantiate(Assets.GetPrefab(GetInfoPrefabId(ElementId)));
-                    Grid.Objects[cellParam, (int)ModAssets.BlueprintNotesLayer] = infoIndicator;
-                    Vector3 posCbc = Grid.CellToPosCBC(cellParam, MopTool.Instance.visualizerLayer);
-                    posCbc.z -= 0.15f;
-                    infoIndicator.transform.SetPosition(posCbc);
-                    if (infoIndicator.TryGetComponent<ElementNote>(out var info))
-                    {
-                        info.SetInfo(ElementId, Amount, Temperature, true);
-                    }
-                    infoIndicator.SetActive(true);
+                if (existingItem != null)
+                {
+                    existingItem.DeleteObject();
+                    Grid.Objects[cellParam, (int)ModAssets.BlueprintNotesLayer] = null;
                 }
-                return true;
+
+                var infoIndicator = Util.KInstantiate(Assets.GetPrefab(GetInfoPrefabId(ElementId)));
+                Grid.Objects[cellParam, (int)ModAssets.BlueprintNotesLayer] = infoIndicator;
+                Vector3 posCbc = Grid.CellToPosCBC(cellParam, MopTool.Instance.visualizerLayer);
+                posCbc.z -= 0.15f;
+                infoIndicator.transform.SetPosition(posCbc);
+                if (infoIndicator.TryGetComponent<ElementNote>(out var info))
+                {
+                    info.SetInfo(ElementId, Amount, Temperature, true);
+                }
+                infoIndicator.SetActive(true);
             }
-
-            return false;
+            return true;
         }
 
-        public PermittedRotations GetAllowedRotations() => BlueprintTransformationInfo.All;
-        public void ApplyRotation(Orientation rotation, bool flipped, bool flippedY)
-        {
-            //digging doesnt get rotated
-        }
+        return false;
+    }
 
-        public void RefreshColor()
-        {
-            //no tinting
-        }
-        public bool AllowedForRotation(Orientation rotation, bool flippedX, bool flippedY) => true;
-        public void DestroyVisualizer()
-        {
-            UnityEngine.Object.Destroy(Visualizer);
-        }
+    public PermittedRotations GetAllowedRotations() => BlueprintTransformationInfo.All;
+    public void ApplyRotation(Orientation rotation, bool flipped, bool flippedY)
+    {
+        //digging doesnt get rotated
+    }
 
-        public void SpawnDestroyedByForceTransformFx()
-        {
-        }
+    public void RefreshColor()
+    {
+        //no tinting
+    }
+    public bool AllowedForRotation(Orientation rotation, bool flippedX, bool flippedY) => true;
+    public void DestroyVisualizer()
+    {
+        UnityEngine.Object.Destroy(Visualizer);
+    }
+
+    public void SpawnDestroyedByForceTransformFx()
+    {
     }
 }

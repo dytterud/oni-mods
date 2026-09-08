@@ -1,60 +1,59 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-namespace BlueprintsV2.UnityUI.Components
+namespace BlueprintsV2.UnityUI.Components;
+
+internal class YesNoInfo : KMonoBehaviour
 {
-    internal class YesNoInfo : KMonoBehaviour
+    private bool showYes = false;
+
+    Image Yes = null!, No = null!;
+    GameObject YesGO = null!, NoGO = null!;
+
+    static Color? YesCol, NoCol;
+
+    public void SetInfoState(bool yes)
     {
-        private bool showYes = false;
+        showYes = yes;
+        RefreshIcons();
+    }
+    public override void OnSpawn()
+    {
+        base.OnSpawn();
+        RefreshIcons();
+    }
 
-        Image Yes = null!, No = null!;
-        GameObject YesGO = null!, NoGO = null!;
+    public override void OnPrefabInit()
+    {
+        base.OnPrefabInit();
+        YesGO = transform.Find("Yes").gameObject;
+        NoGO = transform.Find("No").gameObject;
 
-        static Color? YesCol, NoCol;
+        Yes = YesGO.GetComponent<Image>();
+        No = NoGO.GetComponent<Image>();
 
-        public void SetInfoState(bool yes)
-        {
-            showYes = yes;
-            RefreshIcons();
-        }
-        public override void OnSpawn()
-        {
-            base.OnSpawn();
-            RefreshIcons();
-        }
+        InitColors();
+        Yes.color = YesCol ?? Color.white;
+        No.color = NoCol ?? Color.white;
+    }
 
-        public override void OnPrefabInit()
-        {
-            base.OnPrefabInit();
-            YesGO = transform.Find("Yes").gameObject;
-            NoGO = transform.Find("No").gameObject;
+    void InitColors()
+    {
+        if (YesCol.HasValue)
+            return;
 
-            Yes = YesGO.GetComponent<Image>();
-            No = NoGO.GetComponent<Image>();
+        var ye = (Color)GlobalAssets.Instance.colorSet.logicOn;
+        ye.a = 1;
+        YesCol = ye;
 
-            InitColors();
-            Yes.color = YesCol ?? Color.white;
-            No.color = NoCol ?? Color.white;
-        }
+        var no = (Color)GlobalAssets.Instance.colorSet.logicOff;
+        no.a = 1;
+        NoCol = no;
+    }
 
-        void InitColors()
-        {
-            if (YesCol.HasValue)
-                return;
-
-            var ye = (Color)GlobalAssets.Instance.colorSet.logicOn;
-            ye.a = 1;
-            YesCol = ye;
-
-            var no = (Color)GlobalAssets.Instance.colorSet.logicOff;
-            no.a = 1;
-            NoCol = no;
-        }
-
-        void RefreshIcons()
-        {
-            YesGO.SetActive(showYes);
-            NoGO.SetActive(!showYes);
-        }
+    void RefreshIcons()
+    {
+        YesGO.SetActive(showYes);
+        NoGO.SetActive(!showYes);
     }
 }

@@ -5,8 +5,8 @@ using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Xunit;
 
-namespace BlueprintsIncluded.Tests.BlueprintData
-{
+namespace BlueprintsIncluded.Tests.BlueprintData;
+
 	/// <summary>
 	/// Round-trips <see cref="BlueprintNoteData"/> through its hand-written
 	/// <c>WriteDataJson</c> / <c>ReadDataJson</c> pair. Needs the Klei/Unity types
@@ -81,4 +81,3 @@ namespace BlueprintsIncluded.Tests.BlueprintData
 			Assert.Equal(source.ElementTemperature, clone.ElementTemperature);
 		}
 	}
-}

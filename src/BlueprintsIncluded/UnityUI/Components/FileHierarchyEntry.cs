@@ -9,219 +9,218 @@ using UtilLibs.UIcmp;
 using static BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT;
 using static BlueprintsV2.STRINGS.UI.DIALOGUE;
 
-namespace BlueprintsV2.UnityUI.Components
+namespace BlueprintsV2.UnityUI.Components;
+
+public class FileHierarchyEntry : KMonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    public class FileHierarchyEntry : KMonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    public Blueprint? blueprint;
+
+    public System.Action<bool>? OnDialogueToggled;
+    public System.Action? OnEntryClicked;
+    public System.Action<string>? OnRenamed, OnMoved;
+    FButton deleteButton = null!, renameButton = null!, moveButton = null!, exportButton = null!, retakeButton = null!
+        //, infoButton
+        ;
+    FToggleButton button = null!;
+    LocText Label = null!;
+    public System.Action<Blueprint>? OnSelectBlueprint, OnDeleted
+        //, OnInfoClicked
+        ;
+    public ToolTip Description = null!;
+    Image BlueprintIcon = null!;
+
+    List<GameObject> HoverShowButtons = [];
+
+    public void SetSelected(bool enabled)
     {
-        public Blueprint? blueprint;
+        if (button != null)
+            button.SetIsSelected(enabled);
+    }
+    public override void OnPrefabInit()
+    {
+        base.OnPrefabInit();
+        Description = UIUtils.AddSimpleTooltipToObject(this.gameObject, string.Empty, true, 250);
 
-        public System.Action<bool>? OnDialogueToggled;
-        public System.Action? OnEntryClicked;
-        public System.Action<string>? OnRenamed, OnMoved;
-        FButton deleteButton = null!, renameButton = null!, moveButton = null!, exportButton = null!, retakeButton = null!
-            //, infoButton
-            ;
-        FToggleButton button = null!;
-        LocText Label = null!;
-        public System.Action<Blueprint>? OnSelectBlueprint, OnDeleted
-            //, OnInfoClicked
-            ;
-        public ToolTip Description = null!;
-        Image BlueprintIcon = null!;
+        Label = transform.Find("Label").gameObject.GetComponent<LocText>();
+        button = gameObject.AddComponent<FToggleButton>();
+        renameButton = transform.Find("RenameButton").gameObject.AddComponent<FButton>();
+        deleteButton = transform.Find("DeleteButton").gameObject.AddComponent<FButton>();
+        moveButton = transform.Find("MoveFolderButton").gameObject.AddComponent<FButton>();
+        exportButton = transform.Find("ExportButton").gameObject.AddComponent<FButton>();
+        retakeButton = transform.Find("RetakeButton").gameObject.AddComponent<FButton>();
+        //infoButton = transform.Find("InfoButton").gameObject.AddComponent<FButton>();
+        BlueprintIcon = transform.Find("IconContainer/Icon").gameObject.GetComponent<Image>();
 
-        List<GameObject> HoverShowButtons = [];
-
-        public void SetSelected(bool enabled)
-        {
-            if (button != null)
-                button.SetIsSelected(enabled);
-        }
-        public override void OnPrefabInit()
-        {
-            base.OnPrefabInit();
-            Description = UIUtils.AddSimpleTooltipToObject(this.gameObject, string.Empty, true, 250);
-
-            Label = transform.Find("Label").gameObject.GetComponent<LocText>();
-            button = gameObject.AddComponent<FToggleButton>();
-            renameButton = transform.Find("RenameButton").gameObject.AddComponent<FButton>();
-            deleteButton = transform.Find("DeleteButton").gameObject.AddComponent<FButton>();
-            moveButton = transform.Find("MoveFolderButton").gameObject.AddComponent<FButton>();
-            exportButton = transform.Find("ExportButton").gameObject.AddComponent<FButton>();
-            retakeButton = transform.Find("RetakeButton").gameObject.AddComponent<FButton>();
-            //infoButton = transform.Find("InfoButton").gameObject.AddComponent<FButton>();
-            BlueprintIcon = transform.Find("IconContainer/Icon").gameObject.GetComponent<Image>();
-
-            HoverShowButtons = [deleteButton.gameObject, renameButton.gameObject, exportButton.gameObject, moveButton.gameObject, exportButton.gameObject, retakeButton.gameObject
+        HoverShowButtons = [deleteButton.gameObject, renameButton.gameObject, exportButton.gameObject, moveButton.gameObject, exportButton.gameObject, retakeButton.gameObject
 				//, infoButton?.gameObject
 				];
 
-            UIUtils.AddSimpleTooltipToObject(moveButton.transform, BLUEPRINTENTRY.TOOLTIP_MOVE);
-            UIUtils.AddSimpleTooltipToObject(renameButton.transform, BLUEPRINTENTRY.TOOLTIP_RENAME);
-            UIUtils.AddSimpleTooltipToObject(deleteButton.transform, BLUEPRINTENTRY.TOOLTIP_DELETE);
-            UIUtils.AddSimpleTooltipToObject(exportButton.transform, BLUEPRINTENTRY.TOOLTIP_EXPORT);
-            UIUtils.AddSimpleTooltipToObject(retakeButton.transform, BLUEPRINTENTRY.TOOLTIP_RETAKE);
-            //UIUtils.AddSimpleTooltipToObject(infoButton.transform, BLUEPRINTENTRY.TOOLTIP_INFO);
+        UIUtils.AddSimpleTooltipToObject(moveButton.transform, BLUEPRINTENTRY.TOOLTIP_MOVE);
+        UIUtils.AddSimpleTooltipToObject(renameButton.transform, BLUEPRINTENTRY.TOOLTIP_RENAME);
+        UIUtils.AddSimpleTooltipToObject(deleteButton.transform, BLUEPRINTENTRY.TOOLTIP_DELETE);
+        UIUtils.AddSimpleTooltipToObject(exportButton.transform, BLUEPRINTENTRY.TOOLTIP_EXPORT);
+        UIUtils.AddSimpleTooltipToObject(retakeButton.transform, BLUEPRINTENTRY.TOOLTIP_RETAKE);
+        //UIUtils.AddSimpleTooltipToObject(infoButton.transform, BLUEPRINTENTRY.TOOLTIP_INFO);
 
 
-            RefreshIcon();
-            OnPointerExit(null!);
-        }
+        RefreshIcon();
+        OnPointerExit(null!);
+    }
 
-        public override void OnSpawn()
+    public override void OnSpawn()
+    {
+        base.OnSpawn();
+        if (blueprint != null)
         {
-            base.OnSpawn();
-            if (blueprint != null)
-            {
-                Label.SetText(blueprint.FriendlyName);
-                deleteButton.OnClick += ConfirmDelete;
-                renameButton.OnClick += OpenRenameDialogue;
-                moveButton.OnClick += OpenFolderChangeDialogue;
-                button.OnClick += SelectBlueprint;
-                exportButton.OnClick += ExportBlueprintToClipboard;
-                retakeButton.OnClick += RetakeBlueprint;
-                //infoButton.OnClick += ShowBlueprintInfoScreen;
-            }
+            Label.SetText(blueprint.FriendlyName);
+            deleteButton.OnClick += ConfirmDelete;
+            renameButton.OnClick += OpenRenameDialogue;
+            moveButton.OnClick += OpenFolderChangeDialogue;
+            button.OnClick += SelectBlueprint;
+            exportButton.OnClick += ExportBlueprintToClipboard;
+            retakeButton.OnClick += RetakeBlueprint;
+            //infoButton.OnClick += ShowBlueprintInfoScreen;
         }
+    }
 
-        private void ExportBlueprintToClipboard()
-        {
-            if (blueprint != null)
-            {
-                SetDialogueState(true);
-                ModAssets.ExportToClipboard(blueprint);
-                DialogUtil.CreateConfirmDialog(BASE64_EXPORTED.TITLE, BASE64_EXPORTED.TEXT, on_confirm: () => SetDialogueState(false));
-            }
-        }
-        //void ShowBlueprintInfoScreen()
-        //{
-        //	if (blueprint == null || OnInfoClicked == null)
-        //		return;
-        //	OnInfoClicked(blueprint);
-        //}
-
-        private void RetakeBlueprint()
-        {
-            if (blueprint == null)
-                return;
-            SgtLogger.l("ReTake BP");
-            BlueprintSelectionScreen.Instance.Show(false);
-            UseBlueprintTool.Instance.DeactivateTool();
-            CreateBlueprintTool.ReTakeBlueprint(blueprint);
-        }
-        private void SelectBlueprint()
-        {
-            if (OnSelectBlueprint != null && blueprint != null)
-                OnSelectBlueprint(blueprint);
-            //ModAssets.SelectedBlueprint = blueprint;
-        }
-
-        void OpenFolderChangeDialogue()
-        {
-            var bp = blueprint;
-            if (bp == null)
-                return;
-            SetDialogueState(true);
-            var ChangeFolderAction = (string result) =>
-            {
-                SetDialogueState(false);
-                if (result == bp.Folder)
-                    return;
-
-                bp.SetFolder(result);
-                if (OnMoved != null)
-                    OnMoved(result);
-            };
-            BlueprintRenamingScreen.OpenNamingDialogue(STRINGS.UI.DIALOGUE.MOVETOFOLDER_TITLE, ChangeFolderAction, () => SetDialogueState(false), bp.Folder ?? "", true, ModAssets.GetAllFolderNames());
-
-            //DialogUtil.CreateTextInputDialog(MOVETOFOLDER_TITLE, blueprint.Folder, null, true, ChangeFolderAction, () => SetDialogueState(false), ModAssets.ParentScreen, true, false);
-        }
-
-        void SetDialogueState(bool state)
-        {
-            if (OnDialogueToggled != null)
-                OnDialogueToggled(state);
-        }
-
-        void OpenRenameDialogue()
-        {
-            var bp = blueprint;
-            if (bp == null)
-                return;
-            SetDialogueState(true);
-            var RenameAction = (string result) =>
-            {
-                SetDialogueState(false);
-                if (result == bp.FriendlyName)
-                    return;
-
-                bp.Rename(result);
-                Label.SetText(bp.FriendlyName);
-                if (OnRenamed != null)
-                    OnRenamed(result);
-            };
-            BlueprintRenamingScreen.OpenNamingDialogue(STRINGS.UI.DIALOGUE.RENAMEBLUEPRINT_TITLE, RenameAction, () => SetDialogueState(false), bp.FriendlyName);
-            //DialogUtil.CreateTextInputDialog(RENAMEBLUEPRINT_TITLE, blueprint.FriendlyName, null, false, RenameAction, () => SetDialogueState(false), ModAssets.ParentScreen, true, false);
-        }
-        void ConfirmDelete()
+    private void ExportBlueprintToClipboard()
+    {
+        if (blueprint != null)
         {
             SetDialogueState(true);
-            var OnDeleteAction = () =>
-            {
-                SetDialogueState(false);
-                DeleteBlueprint();
-            };
-            DialogUtil.CreateConfirmDialog(CONFIRMDELETE.TITLE, string.Format(CONFIRMDELETE.TEXT, blueprint?.FriendlyName), on_confirm: OnDeleteAction, on_cancel: () => SetDialogueState(false));
+            ModAssets.ExportToClipboard(blueprint);
+            DialogUtil.CreateConfirmDialog(BASE64_EXPORTED.TITLE, BASE64_EXPORTED.TEXT, on_confirm: () => SetDialogueState(false));
         }
+    }
+    //void ShowBlueprintInfoScreen()
+    //{
+    //	if (blueprint == null || OnInfoClicked == null)
+    //		return;
+    //	OnInfoClicked(blueprint);
+    //}
 
-        void DeleteBlueprint()
-        {
-            if (OnDeleted != null && blueprint != null)
-                OnDeleted(blueprint);
-        }
-        public void OnPointerExit(PointerEventData eventData)
-        {
-            foreach (var buttonGO in HoverShowButtons)
-            {
-                buttonGO.SetActive(false);
-            }
-        }
+    private void RetakeBlueprint()
+    {
+        if (blueprint == null)
+            return;
+        SgtLogger.l("ReTake BP");
+        BlueprintSelectionScreen.Instance.Show(false);
+        UseBlueprintTool.Instance.DeactivateTool();
+        CreateBlueprintTool.ReTakeBlueprint(blueprint);
+    }
+    private void SelectBlueprint()
+    {
+        if (OnSelectBlueprint != null && blueprint != null)
+            OnSelectBlueprint(blueprint);
+        //ModAssets.SelectedBlueprint = blueprint;
+    }
 
-        public void OnPointerEnter(PointerEventData eventData)
+    void OpenFolderChangeDialogue()
+    {
+        var bp = blueprint;
+        if (bp == null)
+            return;
+        SetDialogueState(true);
+        var ChangeFolderAction = (string result) =>
         {
-            foreach (var buttonGO in HoverShowButtons)
-            {
-                buttonGO.SetActive(true);
-            }
-        }
-
-        internal void RefreshTooltip()
-        {
-            if (blueprint == null)
+            SetDialogueState(false);
+            if (result == bp.Folder)
                 return;
 
-            Description?.SetSimpleTooltip(blueprint.UserDescription);
-        }
-        internal void RefreshIcon()
-        {
-            if (blueprint == null) return;
+            bp.SetFolder(result);
+            if (OnMoved != null)
+                OnMoved(result);
+        };
+        BlueprintRenamingScreen.OpenNamingDialogue(STRINGS.UI.DIALOGUE.MOVETOFOLDER_TITLE, ChangeFolderAction, () => SetDialogueState(false), bp.Folder ?? "", true, ModAssets.GetAllFolderNames());
 
-            if (!blueprint.IconId.IsNullOrWhiteSpace())
+        //DialogUtil.CreateTextInputDialog(MOVETOFOLDER_TITLE, blueprint.Folder, null, true, ChangeFolderAction, () => SetDialogueState(false), ModAssets.ParentScreen, true, false);
+    }
+
+    void SetDialogueState(bool state)
+    {
+        if (OnDialogueToggled != null)
+            OnDialogueToggled(state);
+    }
+
+    void OpenRenameDialogue()
+    {
+        var bp = blueprint;
+        if (bp == null)
+            return;
+        SetDialogueState(true);
+        var RenameAction = (string result) =>
+        {
+            SetDialogueState(false);
+            if (result == bp.FriendlyName)
+                return;
+
+            bp.Rename(result);
+            Label.SetText(bp.FriendlyName);
+            if (OnRenamed != null)
+                OnRenamed(result);
+        };
+        BlueprintRenamingScreen.OpenNamingDialogue(STRINGS.UI.DIALOGUE.RENAMEBLUEPRINT_TITLE, RenameAction, () => SetDialogueState(false), bp.FriendlyName);
+        //DialogUtil.CreateTextInputDialog(RENAMEBLUEPRINT_TITLE, blueprint.FriendlyName, null, false, RenameAction, () => SetDialogueState(false), ModAssets.ParentScreen, true, false);
+    }
+    void ConfirmDelete()
+    {
+        SetDialogueState(true);
+        var OnDeleteAction = () =>
+        {
+            SetDialogueState(false);
+            DeleteBlueprint();
+        };
+        DialogUtil.CreateConfirmDialog(CONFIRMDELETE.TITLE, string.Format(CONFIRMDELETE.TEXT, blueprint?.FriendlyName), on_confirm: OnDeleteAction, on_cancel: () => SetDialogueState(false));
+    }
+
+    void DeleteBlueprint()
+    {
+        if (OnDeleted != null && blueprint != null)
+            OnDeleted(blueprint);
+    }
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        foreach (var buttonGO in HoverShowButtons)
+        {
+            buttonGO.SetActive(false);
+        }
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        foreach (var buttonGO in HoverShowButtons)
+        {
+            buttonGO.SetActive(true);
+        }
+    }
+
+    internal void RefreshTooltip()
+    {
+        if (blueprint == null)
+            return;
+
+        Description?.SetSimpleTooltip(blueprint.UserDescription);
+    }
+    internal void RefreshIcon()
+    {
+        if (blueprint == null) return;
+
+        if (!blueprint.IconId.IsNullOrWhiteSpace())
+        {
+            BlueprintIcon.gameObject.SetActive(true);
+            BlueprintIcon.sprite = ModAssets.GetBlueprintIconSprite(blueprint.IconId);
+            if (blueprint.IconTintHex.IsNullOrWhiteSpace())
             {
-                BlueprintIcon.gameObject.SetActive(true);
-                BlueprintIcon.sprite = ModAssets.GetBlueprintIconSprite(blueprint.IconId);
-                if (blueprint.IconTintHex.IsNullOrWhiteSpace())
-                {
-                    BlueprintIcon.color = Color.white;
-                }
-                else
-                {
-                    BlueprintIcon.color = Util.ColorFromHex(blueprint.IconTintHex);
-                }
+                BlueprintIcon.color = Color.white;
             }
             else
             {
-                BlueprintIcon.gameObject.SetActive(false);
+                BlueprintIcon.color = Util.ColorFromHex(blueprint.IconTintHex);
             }
+        }
+        else
+        {
+            BlueprintIcon.gameObject.SetActive(false);
         }
     }
 }
