@@ -56,20 +56,12 @@ internal class ElementTypeSecondaryParameterMenu : KMonoBehaviour
 
 
             MultiToggle toggle = widetPrefab.GetComponentInChildren<MultiToggle>();
-            switch (parameter.Value)
+            toggle.ChangeState(parameter.Value switch
             {
-                case ToolParameterMenu.ToggleState.On:
-                    toggle.ChangeState(1);
-                    break;
-
-                case ToolParameterMenu.ToggleState.Disabled:
-                    toggle.ChangeState(2);
-                    break;
-
-                default:
-                    toggle.ChangeState(0);
-                    break;
-            }
+                ToolParameterMenu.ToggleState.On => 1,
+                ToolParameterMenu.ToggleState.Disabled => 2,
+                _ => 0,
+            });
 
             toggle.onClick += () =>
             {

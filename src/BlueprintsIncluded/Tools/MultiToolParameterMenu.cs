@@ -17,7 +17,7 @@ public class MultiToolParameterMenu : KMonoBehaviour
     public event SyncChanged? OnSyncChanged;
     public event ParamsChanged? OnParamsChanged;
 
-    private readonly Dictionary<string, GameObject> widgets = new Dictionary<string, GameObject>();
+    private readonly Dictionary<string, GameObject> widgets = new();
     private GameObject content = null!;
     private GameObject widgetContainer = null!;
     private Dictionary<string, ToolParameterMenu.ToggleState> parameters = null!;
@@ -145,20 +145,12 @@ public class MultiToolParameterMenu : KMonoBehaviour
             UIUtils.AddSimpleTooltipToObject(widetPrefab, Strings.Get("STRINGS.UI.TOOLS.FILTERLAYERS." + parameter.Key + ".TOOLTIP"), false);
 
             MultiToggle toggle = widetPrefab.GetComponentInChildren<MultiToggle>();
-            switch (parameter.Value)
+            toggle.ChangeState(parameter.Value switch
             {
-                case ToolParameterMenu.ToggleState.On:
-                    toggle.ChangeState(1);
-                    break;
-
-                case ToolParameterMenu.ToggleState.Disabled:
-                    toggle.ChangeState(2);
-                    break;
-
-                default:
-                    toggle.ChangeState(0);
-                    break;
-            }
+                ToolParameterMenu.ToggleState.On => 1,
+                ToolParameterMenu.ToggleState.Disabled => 2,
+                _ => 0,
+            });
 
             toggle.onClick += () =>
             {
