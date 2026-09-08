@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using UtilLibs;
-
-namespace BlueprintsV2.BlueprintData
+﻿namespace BlueprintsV2.BlueprintData
 {
     public class BlueprintSelectedMaterial : IEquatable<BlueprintSelectedMaterial>
     {

@@ -1,13 +1,9 @@
 ﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.UnityUI;
 using Rendering;
-using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 using UtilLibs;
 using UtilLibs.UIcmp;
-using static Rendering.BlockTileRenderer.RenderInfo;
-using static STRINGS.DUPLICANTS.ATTRIBUTES;
 
 namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 {

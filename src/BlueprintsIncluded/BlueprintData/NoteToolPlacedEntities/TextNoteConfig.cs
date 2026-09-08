@@ -1,6 +1,4 @@
-﻿using BlueprintsV2.BlueprintData.PlannedElements;
-using System.Text;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities
 {

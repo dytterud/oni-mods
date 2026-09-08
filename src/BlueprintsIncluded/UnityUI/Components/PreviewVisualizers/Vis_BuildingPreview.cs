@@ -1,13 +1,8 @@
 ﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.Visualizers.ReplacementVisualizers;
-using BlueprintsV2.UnityUI;
-using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 using UtilLibs;
 using UtilLibs.UIcmp;
-using static BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS;
-using static Grid.Restriction;
 
 namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 {

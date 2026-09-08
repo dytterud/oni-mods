@@ -1,9 +1,6 @@
 ﻿
 using BlueprintsV2.BlueprintData;
 using UnityEngine;
-using UtilLibs;
-using static LogicGateVisualizer;
-using static STRINGS.UI.SPACEARTIFACTS;
 
 namespace BlueprintsV2.Visualizers
 {

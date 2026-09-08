@@ -1,21 +1,8 @@
-﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
+﻿using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 using BlueprintsV2.Tools;
-using BlueprintsV2.UnityUI.Components;
-using BlueprintsV2.UnityUI;
-using STRINGS;
-using System.Collections;
-using System.Reflection;
-using System.Text;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UtilLibs;
 using UtilLibs.UI.FUI;
 using UtilLibs.UIcmp;
-using static BlueprintsV2.STRINGS.UI;
-using static BlueprintsV2.STRINGS.UI.TOOLS;
-using static BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER;
-using static KTabMenuHeader;
 
 namespace BlueprintsV2.UnityUI
 {

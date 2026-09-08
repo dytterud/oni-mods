@@ -2,7 +2,6 @@
 using BlueprintsV2.BlueprintData.OniTogether_Integration.Packets;
 using ONI_Together_API;
 using ONI_Together_API.Networking;
-using System.Text;
 using UnityEngine;
 
 namespace BlueprintsV2.BlueprintData.OniTogether_Integration

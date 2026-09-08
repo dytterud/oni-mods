@@ -1,6 +1,4 @@
 ﻿using BlueprintsV2.BlueprintData;
-using System.Text;
-using UtilLibs;
 
 namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 {

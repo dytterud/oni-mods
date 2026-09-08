@@ -2,7 +2,6 @@
 using BlueprintsV2.BlueprintData.PlanningToolMod_Integration;
 using BlueprintsV2.Tools;
 using HarmonyLib;
-using System.Text;
 using static BlueprintsV2.ModAssets;
 using static UtilLibs.UIUtils;
 

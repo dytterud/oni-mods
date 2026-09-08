@@ -1,6 +1,4 @@
-﻿using System;
-using System.Text;
-using static BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE;
+﻿using static BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE;
 
 namespace BlueprintsV2.BlueprintData.PlannedElements
 {

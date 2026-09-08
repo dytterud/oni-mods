@@ -1,10 +1,6 @@
-﻿
-using BlueprintsV2.BlueprintData;
+﻿using BlueprintsV2.BlueprintData;
 using HarmonyLib;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UtilLibs;
 using static BlueprintsV2.BlueprintData.DataTransferHelpers;

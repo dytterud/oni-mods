@@ -1,8 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
-using System.Text;
-using UnityEngine;
-using static Rendering.BlockTileRenderer;
+﻿using System.Runtime.InteropServices;
 
 namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 {

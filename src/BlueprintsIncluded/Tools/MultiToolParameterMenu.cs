@@ -1,9 +1,7 @@
 ﻿
 using BlueprintsV2.BlueprintData;
-using BlueprintsV2.Tools;
 using PeterHan.PLib.UI;
 using UnityEngine;
-using UnityEngine.UI;
 using UtilLibs;
 
 namespace BlueprintsV2.Tools

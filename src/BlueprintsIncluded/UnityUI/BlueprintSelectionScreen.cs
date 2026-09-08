@@ -1,11 +1,6 @@
-﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.UnityUI;
+﻿using System.Diagnostics;
+using BlueprintsV2.BlueprintData;
 using BlueprintsV2.UnityUI.Components;
-using BlueprintsV2.Tools;
-using rail;
-using STRINGS;
-using System.Collections;
-using System.Diagnostics;
 using UnityEngine;
 using UnityEngine.UI;
 using UtilLibs;

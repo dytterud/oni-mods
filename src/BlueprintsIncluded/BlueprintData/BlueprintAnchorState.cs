@@ -1,5 +1,4 @@
 ﻿using PeterHan.PLib.Options;
-using System.Text;
 
 namespace BlueprintsV2.BlueprintData
 {

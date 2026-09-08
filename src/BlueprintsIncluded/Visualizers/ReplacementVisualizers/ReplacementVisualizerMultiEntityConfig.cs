@@ -1,8 +1,4 @@
-﻿using System;
-using System.Text;
-using TemplateClasses;
-using UnityEngine;
-using UnityEngine.UI;
+﻿using UnityEngine;
 
 namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 {

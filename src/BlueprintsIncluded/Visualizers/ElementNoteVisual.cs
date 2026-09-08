@@ -1,8 +1,5 @@
 ﻿using BlueprintsV2.BlueprintData;
 using BlueprintsV2.BlueprintData.PlannedElements;
-using BlueprintsV2.Visualizers;
-using Klei.AI;
-using System.Text;
 using UnityEngine;
 using static BlueprintsV2.BlueprintData.BlueprintState;
 

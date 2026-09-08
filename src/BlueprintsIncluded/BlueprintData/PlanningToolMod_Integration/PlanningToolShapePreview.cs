@@ -1,10 +1,6 @@
 ﻿using BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
-using KSerialization;
-using PeterHan.PLib.Core;
-using System.Text;
 using UnityEngine;
 using UtilLibs;
-using static STRINGS.UI.TOOLS;
 
 namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration
 {

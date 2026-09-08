@@ -1,8 +1,5 @@
-﻿using BlueprintsV2.Visualizers;
-using Rendering;
-using System.Text;
+﻿using Rendering;
 using UnityEngine;
-using UnityEngine.UI;
 using UtilLibs;
 
 namespace BlueprintsV2.Visualizers.ReplacementVisualizers

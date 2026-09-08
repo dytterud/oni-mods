@@ -1,9 +1,4 @@
-﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.UnityUI;
-using BlueprintsV2.UnityUI.Components;
-
-using UnityEngine;
-using UnityEngine.EventSystems;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using UtilLibs;
 using UtilLibs.UIcmp;

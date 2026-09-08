@@ -1,14 +1,8 @@
 ﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.BlueprintData.PlannedElements;
 using BlueprintsV2.BlueprintData.PlanningToolMod_Integration;
 using BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
-using BlueprintsV2.Visualizers;
-using Klei.AI;
-using System.Text;
 using UnityEngine;
 using static BlueprintsV2.BlueprintData.BlueprintState;
-using static ResearchTypes;
-using static STRINGS.UI;
 
 namespace BlueprintsV2.Visualizers
 {

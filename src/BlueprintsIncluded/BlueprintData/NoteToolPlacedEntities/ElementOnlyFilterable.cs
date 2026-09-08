@@ -1,7 +1,4 @@
-﻿using System;
-using System.Text;
-
-namespace BlueprintsV2.BlueprintData.PlannedElements
+﻿namespace BlueprintsV2.BlueprintData.PlannedElements
 {
     internal class ElementOnlyFilterable : Filterable
     {

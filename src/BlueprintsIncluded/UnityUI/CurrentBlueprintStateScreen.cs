@@ -1,11 +1,8 @@
-﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.UnityUI.Components;
+﻿using System.Collections;
+using BlueprintsV2.BlueprintData;
 using BlueprintsV2.Tools;
-using BlueprintsV2.UnityUI;
+using BlueprintsV2.UnityUI.Components;
 using STRINGS;
-using System.Collections;
-using System.Reflection;
-using System.Text;
 using UnityEngine;
 using UtilLibs;
 using UtilLibs.UIcmp;

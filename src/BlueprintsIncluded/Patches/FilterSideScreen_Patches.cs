@@ -1,11 +1,6 @@
 ﻿using BlueprintsV2.BlueprintData.PlannedElements;
 using HarmonyLib;
-using System.Text;
 using UnityEngine;
-using UtilLibs;
-using static STRINGS.WORLD_TRAITS;
-using static UIMinionOrMannequin;
-using static UnityEngine.GraphicsBuffer;
 
 namespace BlueprintsV2.Patches
 {

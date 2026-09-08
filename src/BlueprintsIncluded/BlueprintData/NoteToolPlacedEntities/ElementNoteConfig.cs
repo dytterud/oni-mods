@@ -1,6 +1,4 @@
-﻿using System;
-using System.Text;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BlueprintsV2.BlueprintData.PlannedElements
 {

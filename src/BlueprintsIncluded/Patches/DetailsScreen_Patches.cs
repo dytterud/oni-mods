@@ -1,6 +1,5 @@
 ﻿using BlueprintsV2.UnityUI;
 using HarmonyLib;
-using System.Text;
 using UtilLibs;
 
 namespace BlueprintsV2.Patches

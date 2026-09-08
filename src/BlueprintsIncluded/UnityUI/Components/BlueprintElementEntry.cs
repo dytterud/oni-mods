@@ -1,10 +1,9 @@
-﻿using BlueprintsV2.BlueprintData;
-using System.Text;
+﻿using System.Text;
+using BlueprintsV2.BlueprintData;
 using UnityEngine;
 using UnityEngine.UI;
 using UtilLibs;
 using UtilLibs.UI.FUI;
-using UtilLibs.UIcmp;
 using static BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALSWITCH.SCROLLAREA.CONTENT;
 
 namespace BlueprintsV2.UnityUI.Components

@@ -1,14 +1,9 @@
 ﻿using BlueprintsV2.BlueprintData;
 using BlueprintsV2.BlueprintData.OniTogether_Integration;
-using BlueprintsV2.Visualizers;
 using HarmonyLib;
-using PeterHan.PLib;
 using Rendering;
-using System.Runtime.CompilerServices;
-using System.Text;
 using UnityEngine;
 using UtilLibs;
-using static HarmonyLib.Code;
 
 namespace BlueprintsV2.Visualizers
 {

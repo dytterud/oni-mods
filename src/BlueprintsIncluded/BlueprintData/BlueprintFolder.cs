@@ -1,9 +1,4 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using UtilLibs;
+﻿using UtilLibs;
 using static BlueprintsV2.ModAssets;
 
 namespace BlueprintsV2.BlueprintData

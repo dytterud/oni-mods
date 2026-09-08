@@ -1,14 +1,7 @@
-﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.BlueprintData.OniTogether_Integration;
+﻿using BlueprintsV2.BlueprintData.OniTogether_Integration;
 using KSerialization;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Text;
 using UnityEngine;
-using UnityEngine.UI;
 using static BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE;
-using static STRINGS.MISC.STATUSITEMS;
-using static STRINGS.UI.CLUSTERMAP.ASTEROIDS;
 
 namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities
 {

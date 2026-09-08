@@ -1,12 +1,7 @@
-﻿using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
-using BlueprintsV2.Tools;
+﻿using System.Collections;
 using BlueprintsV2.UnityUI.Components;
-using HarmonyLib;
-using System.Collections;
-using System.Text;
 using UnityEngine;
 using UtilLibs;
-using UtilLibs.UI.FUI;
 using UtilLibs.UIcmp;
 
 namespace BlueprintsV2.UnityUI

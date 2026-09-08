@@ -1,6 +1,5 @@
 ﻿using BlueprintsV2.BlueprintData;
 using PeterHan.PLib.Options;
-using static BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG;
 
 namespace BlueprintsV2
 {

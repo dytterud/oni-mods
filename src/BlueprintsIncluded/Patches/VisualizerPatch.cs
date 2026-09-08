@@ -1,5 +1,4 @@
-﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.Visualizers;
+﻿using BlueprintsV2.Visualizers;
 using HarmonyLib;
 using Rendering;
 using UnityEngine;

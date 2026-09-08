@@ -1,20 +1,11 @@
-﻿using BlueprintsV2.BlueprintData;
-using HarmonyLib;
+﻿using System.Collections;
+using BlueprintsV2.BlueprintData;
 using KSerialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Rendering;
-using System.Collections;
-using System.Runtime.InteropServices;
-using System.Text;
 using UnityEngine;
 using UtilLibs;
-using static BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE;
-using static Grid.Restriction;
-using static LogicGateVisualizer;
 using static Rendering.BlockTileRenderer;
-using static STRINGS.UI.SANDBOXTOOLS.SETTINGS;
-using static STRINGS.UI.TOOLS;
 
 namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 {

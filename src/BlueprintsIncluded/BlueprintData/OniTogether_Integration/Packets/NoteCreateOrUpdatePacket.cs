@@ -1,11 +1,9 @@
-﻿using BlueprintsV2.BlueprintData;
+﻿using System.Text;
 using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 using BlueprintsV2.BlueprintData.PlannedElements;
-using BlueprintsV2.UnityUI;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ONI_Together.Networking.Packets.Architecture;
-using System.Text;
 using UtilLibs;
 
 namespace BlueprintsV2.BlueprintData.OniTogether_Integration.Packets

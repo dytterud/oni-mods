@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Text;
-using UnityEngine;
-using static STRINGS.UI.SPACEARTIFACTS;
+﻿using UnityEngine;
 
 namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 {

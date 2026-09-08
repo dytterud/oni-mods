@@ -1,13 +1,11 @@
-﻿using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
+﻿using System.Text;
+using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 using BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Bson;
 using Newtonsoft.Json.Linq;
-using System.Text;
 using UnityEngine;
 using UtilLibs;
 using static BlueprintsV2.ModAssets;
-using static MathUtil;
 
 namespace BlueprintsV2.BlueprintData
 {
