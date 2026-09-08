@@ -15,17 +15,17 @@ namespace BlueprintsV2.UnityUI.Components
 {
 	public class FileHierarchyEntry : KMonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 	{
-		public Blueprint blueprint = null!;
+		public Blueprint? blueprint;
 
-		public System.Action<bool> OnDialogueToggled = null!;
-		public System.Action OnEntryClicked = null!;
-		public System.Action<string> OnRenamed = null!, OnMoved = null!;
+		public System.Action<bool>? OnDialogueToggled;
+		public System.Action? OnEntryClicked;
+		public System.Action<string>? OnRenamed, OnMoved;
 		FButton deleteButton = null!, renameButton = null!, moveButton = null!, exportButton = null!, retakeButton = null!
 			//, infoButton
 			;
 		FToggleButton button = null!;
 		LocText Label = null!;
-		public System.Action<Blueprint> OnSelectBlueprint = null!, OnDeleted = null!
+		public System.Action<Blueprint>? OnSelectBlueprint, OnDeleted
 			//, OnInfoClicked
 			;
 		public ToolTip Description = null!;
@@ -112,25 +112,28 @@ namespace BlueprintsV2.UnityUI.Components
 		}
 		private void SelectBlueprint()
 		{
-			if (OnSelectBlueprint != null)
+			if (OnSelectBlueprint != null && blueprint != null)
 				OnSelectBlueprint(blueprint);
 			//ModAssets.SelectedBlueprint = blueprint;
 		}
 
 		void OpenFolderChangeDialogue()
 		{
+			var bp = blueprint;
+			if (bp == null)
+				return;
 			SetDialogueState(true);
 			var ChangeFolderAction = (string result) =>
 			{
 				SetDialogueState(false);
-				if (result == blueprint.Folder)
+				if (result == bp.Folder)
 					return;
 
-				blueprint.SetFolder(result);
+				bp.SetFolder(result);
 				if (OnMoved != null)
 					OnMoved(result);
 			};
-			BlueprintRenamingScreen.OpenNamingDialogue(STRINGS.UI.DIALOGUE.MOVETOFOLDER_TITLE, ChangeFolderAction, () => SetDialogueState(false), blueprint.Folder ?? "", true, ModAssets.GetAllFolderNames());
+			BlueprintRenamingScreen.OpenNamingDialogue(STRINGS.UI.DIALOGUE.MOVETOFOLDER_TITLE, ChangeFolderAction, () => SetDialogueState(false), bp.Folder ?? "", true, ModAssets.GetAllFolderNames());
 
 			//DialogUtil.CreateTextInputDialog(MOVETOFOLDER_TITLE, blueprint.Folder, null, true, ChangeFolderAction, () => SetDialogueState(false), ModAssets.ParentScreen, true, false);
 		}
@@ -143,19 +146,22 @@ namespace BlueprintsV2.UnityUI.Components
 
 		void OpenRenameDialogue()
 		{
+			var bp = blueprint;
+			if (bp == null)
+				return;
 			SetDialogueState(true);
 			var RenameAction = (string result) =>
 			{
 				SetDialogueState(false);
-				if (result == blueprint.FriendlyName)
+				if (result == bp.FriendlyName)
 					return;
 
-				blueprint.Rename(result);
-				Label.SetText(blueprint.FriendlyName);
+				bp.Rename(result);
+				Label.SetText(bp.FriendlyName);
 				if (OnRenamed != null)
 					OnRenamed(result);
 			};
-			BlueprintRenamingScreen.OpenNamingDialogue(STRINGS.UI.DIALOGUE.RENAMEBLUEPRINT_TITLE, RenameAction, () => SetDialogueState(false), blueprint.FriendlyName);
+			BlueprintRenamingScreen.OpenNamingDialogue(STRINGS.UI.DIALOGUE.RENAMEBLUEPRINT_TITLE, RenameAction, () => SetDialogueState(false), bp.FriendlyName);
 			//DialogUtil.CreateTextInputDialog(RENAMEBLUEPRINT_TITLE, blueprint.FriendlyName, null, false, RenameAction, () => SetDialogueState(false), ModAssets.ParentScreen, true, false);
 		}
 		void ConfirmDelete()
@@ -171,7 +177,7 @@ namespace BlueprintsV2.UnityUI.Components
 
 		void DeleteBlueprint()
 		{
-			if (OnDeleted != null)
+			if (OnDeleted != null && blueprint != null)
 				OnDeleted(blueprint);
 		}
 		public void OnPointerExit(PointerEventData eventData)

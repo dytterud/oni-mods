@@ -10,7 +10,7 @@ namespace BlueprintsV2.UnityUI.Components
 	internal class ReplaceElementEntry : KMonoBehaviour
 	{
 		public Tag targetTag;
-		public System.Action<Tag> OnSelectElement = null!;
+		public System.Action<Tag>? OnSelectElement;
 		LocText ElementName = null!;
 		Image ElementIcon = null!;
 		Image buttonBg = null!;

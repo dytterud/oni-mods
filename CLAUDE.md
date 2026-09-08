@@ -47,6 +47,9 @@ Sub-namespaces mirror folders: `Patches/`, `Tools/`, `BlueprintData/`, `UnityUI/
   Klei-injected / FUI-builder-wired fields use `= null!;` (assigned before any use, never
   actually null in-game); genuinely-optional values use `T?`. Test projects clear
   `WarningsAsErrors`, so nullable stays advisory there.
+  `ScreenReferenceBindingTests` (game-gated) reflects over every `KMonoBehaviour` and fails
+  if a non-nullable `Component`/`GameObject` field is only ever `= null!` and never bound in
+  code — catches "declared a widget, forgot to wire it in `Init()`".
 - `EnforceCodeStyleInBuild=true`: IDExxxx style violations **fail the build** for production
   projects. `WarningsAsErrors=CS0618;CS0612;nullable`: calling an `[Obsolete]` game API or
   introducing a nullable warning breaks the build. `CS0649` is suppressed (Klei injects

@@ -11,8 +11,8 @@ namespace BlueprintsV2.UnityUI.Components
 {
 	internal class BlueprintElementEntry : KMonoBehaviour
 	{
-		public BlueprintSelectedMaterial SelectedAndCategory = null!;
-		public System.Action<BlueprintSelectedMaterial, float> OnEntryClicked = null!;
+		public BlueprintSelectedMaterial? SelectedAndCategory;
+		public System.Action<BlueprintSelectedMaterial, float>? OnEntryClicked;
 		LocText ElementName = null!;
 		LocText ElementAmount = null!;
 		float amount;
@@ -31,7 +31,8 @@ namespace BlueprintsV2.UnityUI.Components
 		}
 		void OnClick()
 		{
-			OnEntryClicked?.Invoke(SelectedAndCategory, amount);
+			if (SelectedAndCategory != null)
+				OnEntryClicked?.Invoke(SelectedAndCategory, amount);
 			SetSelected(true);
 		}
 		static bool init = false;
@@ -131,6 +132,8 @@ namespace BlueprintsV2.UnityUI.Components
 
 		void SetElementNameText(string elementName)
 		{
+			if (SelectedAndCategory == null)
+				return;
 			if (BlueprintState.CurrentStateInfo().AdvancedMaterialReplacement && SelectedAndCategory.BuildingIdTag != null)
 			{
 				var prefab = Assets.TryGetPrefab(SelectedAndCategory.BuildingIdTag);
@@ -160,7 +163,7 @@ namespace BlueprintsV2.UnityUI.Components
 		{
 			Init();
 			currentBp = current;
-			if (current == null)
+			if (current == null || SelectedAndCategory == null)
 				return 0;
 
 			Tag targetTag = SelectedAndCategory.SelectedTag;
