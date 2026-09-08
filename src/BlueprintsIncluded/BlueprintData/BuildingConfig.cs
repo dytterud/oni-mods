@@ -11,460 +11,460 @@ using UtilLibs;
 namespace BlueprintsV2.BlueprintData
 {
 
-	/// <summary>
-	/// Describes an individual building inside of a blueprint.
-	/// </summary>
-	public sealed class BuildingConfig : IEquatable<BuildingConfig>
-	{
-		/// <summary>
-		/// JSON keys used by <see cref="WriteJson"/> / <see cref="ReadJson"/>. These are part of
-		/// the on-disk <c>.blueprint</c> format (shared lineage with upstream BlueprintsV2) and
-		/// must never change value.
-		/// </summary>
-		static class JsonKeys
-		{
-			public const string Offset = "offset";
-			public const string OffsetX = "x";
-			public const string OffsetY = "y";
-			public const string BuildingDef = "buildingdef";
-			public const string SelectedElements = "selected_elements";
-			public const string Orientation = "orientation";
-			public const string Flags = "flags";
-			public const string BuildingData = "buildingData";
-			public const string BuildingDataKey = "Key";
-			public const string BuildingDataValue = "Value";
-			public const string TempDisabled = "tempDisabled";
-		}
+    /// <summary>
+    /// Describes an individual building inside of a blueprint.
+    /// </summary>
+    public sealed class BuildingConfig : IEquatable<BuildingConfig>
+    {
+        /// <summary>
+        /// JSON keys used by <see cref="WriteJson"/> / <see cref="ReadJson"/>. These are part of
+        /// the on-disk <c>.blueprint</c> format (shared lineage with upstream BlueprintsV2) and
+        /// must never change value.
+        /// </summary>
+        static class JsonKeys
+        {
+            public const string Offset = "offset";
+            public const string OffsetX = "x";
+            public const string OffsetY = "y";
+            public const string BuildingDef = "buildingdef";
+            public const string SelectedElements = "selected_elements";
+            public const string Orientation = "orientation";
+            public const string Flags = "flags";
+            public const string BuildingData = "buildingData";
+            public const string BuildingDataKey = "Key";
+            public const string BuildingDataValue = "Value";
+            public const string TempDisabled = "tempDisabled";
+        }
 
-		/// <summary>
-		/// The offset from the bottom left of a blueprint.
-		/// </summary>
-		public Vector2I Offset { get; set; } = new Vector2I(0, 0);
+        /// <summary>
+        /// The offset from the bottom left of a blueprint.
+        /// </summary>
+        public Vector2I Offset { get; set; } = new Vector2I(0, 0);
 
-		/// <summary>
-		/// The <see cref="BuildingDef"/> of the blueprint this represents.
-		/// </summary>
-		public BuildingDef? BuildingDef { get; set; }
-		public string? BuildingDefId { get; set; }
+        /// <summary>
+        /// The <see cref="BuildingDef"/> of the blueprint this represents.
+        /// </summary>
+        public BuildingDef? BuildingDef { get; set; }
+        public string? BuildingDefId { get; set; }
 
-		/// <summary>
-		/// The elements the building is to be constructed from.
-		/// </summary>
-		public List<Tag> SelectedElements { get; } = new List<Tag>();
+        /// <summary>
+        /// The elements the building is to be constructed from.
+        /// </summary>
+        public List<Tag> SelectedElements { get; } = new List<Tag>();
 
-		/// <summary>
-		/// The orientation of the building.
-		/// </summary>
-		public Orientation Orientation { get; set; } = 0;
-
-
-		/// <summary>
-		/// any custom data stored for that building, inluding conduit directions
-		/// </summary>
-		public Dictionary<string, JObject>? AdditionalBuildingData = null;
-
-		/// <summary>
-		/// ConduitFlag stores the bitflagged UtilityConnections value of conduit buildings (wires,rails,pipes,logicwires)
-		/// </summary>
-		private int ConduitFlags = -1;
-		/// <summary>
-		/// if active, the building will be skipped if the blueprint gets placed
-		/// it will also be skipped when creating a blueprint with overrides applied
-		/// </summary>
-		public bool BuildingDisabled { get; set; } = false;
-
-		public bool HasAnyBuildingData => AdditionalBuildingData != null && AdditionalBuildingData.Any();
-
-		public bool TryGetDataValue(string id, [NotNullWhen(true)] out JObject? data)
-		{
-			data = null;
-			return AdditionalBuildingData != null && AdditionalBuildingData.TryGetValue(id, out data);
-		}
+        /// <summary>
+        /// The orientation of the building.
+        /// </summary>
+        public Orientation Orientation { get; set; } = 0;
 
 
-		//old binary method, not compatible with new data format
-		///// <summary>
-		///// Appends the building config to the given binary writer.
-		///// </summary>
-		///// <param name="binaryWriter">The <see cref="BinaryWriter"/> encsapsulating the stream to write to</param>
-		//[Obsolete]
-		//public void WriteBinary(BinaryWriter binaryWriter)
-		//{
-		//    //To prevent crashes. Should never actually happen, though,
-		//    if (BuildingDef == null)
-		//    {
-		//        Debug.Log("Error when writing building config: No building definition.");
-		//        return;
-		//    }
+        /// <summary>
+        /// any custom data stored for that building, inluding conduit directions
+        /// </summary>
+        public Dictionary<string, JObject>? AdditionalBuildingData = null;
 
-		//    binaryWriter.Write(Offset.X);
-		//    binaryWriter.Write(Offset.y);
-		//    binaryWriter.Write(BuildingDef.PrefabID);
-		//    binaryWriter.Write(SelectedElements.Count);
-		//    SelectedElements.ForEach(selectedElement => binaryWriter.Write(selectedElement.GetHash()));
-		//    binaryWriter.Write((int)Orientation);
-		//    binaryWriter.Write(-1);
-		//    binaryWriter.Write(AdditionalBuildingData.Count);
-		//    AdditionalBuildingData.ToList().ForEach(entry =>
-		//    {
-		//        binaryWriter.Write(entry.Key);
-		//        binaryWriter.Write(entry.Value.ToString());
-		//    });
-		//}
+        /// <summary>
+        /// ConduitFlag stores the bitflagged UtilityConnections value of conduit buildings (wires,rails,pipes,logicwires)
+        /// </summary>
+        private int ConduitFlags = -1;
+        /// <summary>
+        /// if active, the building will be skipped if the blueprint gets placed
+        /// it will also be skipped when creating a blueprint with overrides applied
+        /// </summary>
+        public bool BuildingDisabled { get; set; } = false;
 
-		public void ApplyGlobalMaterialOverrides()
-		{
-			if (BuildingDef == null)
-				return;
-			var ingredients = BuildingDef.CraftRecipe.Ingredients;
-			var elements = new List<Tag>(SelectedElements.Count);
-			for (int i = 0; i < ingredients.Count; ++i)
-			{
-				var ingredient = ingredients[i];
-				Tag selectedElement;
-				if (i < SelectedElements.Count)
-				{
-					selectedElement = SelectedElements[i];
-				}
-				else
-				{
-					//should never happen in vanilla, just in case to prevent crash. (can potentially happen if another mod adds a new ingredient to the recipe or alters it)
-					selectedElement = ModAssets.GetFirstAvailableMaterial(ingredient.tag, ingredient.amount);
-				}
-				var key = BlueprintSelectedMaterial.GetBlueprintSelectedMaterial(selectedElement, ingredient.tag, BuildingDef.PrefabID);
+        public bool HasAnyBuildingData => AdditionalBuildingData != null && AdditionalBuildingData.Any();
 
-				if (ModAssets.TryGetReplacementTag(key, out var replacement))
-				{
-					selectedElement = replacement;
-				}
-				elements.Add(selectedElement);
-			}
-			SelectedElements.Clear();
-			SelectedElements.AddRange(elements);
-		}
+        public bool TryGetDataValue(string id, [NotNullWhen(true)] out JObject? data)
+        {
+            data = null;
+            return AdditionalBuildingData != null && AdditionalBuildingData.TryGetValue(id, out data);
+        }
 
-		public BuildingConfig() { }
-		public BuildingConfig(StringBuilder sourceSerialized)
-		{
-			ReadJson(JObject.Parse(sourceSerialized.ToString()));
-		}
-		public BuildingConfig GetClone()
-		{
-			var sb = new StringBuilder();
-			StringWriter sw = new StringWriter(sb);
-			var jsonWriter = new JsonTextWriter(sw);
-			WriteJson(jsonWriter);
-			var copy = new BuildingConfig(sb);
-			return copy;
-		}
 
-		[MemberNotNullWhen(true, nameof(BuildingDef))]
-		public bool IsValid()
-		{
-			return BuildingDef != null;
-		}
+        //old binary method, not compatible with new data format
+        ///// <summary>
+        ///// Appends the building config to the given binary writer.
+        ///// </summary>
+        ///// <param name="binaryWriter">The <see cref="BinaryWriter"/> encsapsulating the stream to write to</param>
+        //[Obsolete]
+        //public void WriteBinary(BinaryWriter binaryWriter)
+        //{
+        //    //To prevent crashes. Should never actually happen, though,
+        //    if (BuildingDef == null)
+        //    {
+        //        Debug.Log("Error when writing building config: No building definition.");
+        //        return;
+        //    }
 
-		/// <summary>
-		/// Writes the building config to the given JSON writer.
-		/// Doesn't write unnecessary information to save space.
-		/// </summary>
-		/// <param name="jsonWriter">The <see cref="JsonWriter"/> encsapsulating the stream to write to</param>
-		public void WriteJson(JsonWriter jsonWriter)
-		{
-			if (BuildingDef == null)
-			{
-				Debug.Log("Error when writing building config: No building definition.");
-				return;
-			}
+        //    binaryWriter.Write(Offset.X);
+        //    binaryWriter.Write(Offset.y);
+        //    binaryWriter.Write(BuildingDef.PrefabID);
+        //    binaryWriter.Write(SelectedElements.Count);
+        //    SelectedElements.ForEach(selectedElement => binaryWriter.Write(selectedElement.GetHash()));
+        //    binaryWriter.Write((int)Orientation);
+        //    binaryWriter.Write(-1);
+        //    binaryWriter.Write(AdditionalBuildingData.Count);
+        //    AdditionalBuildingData.ToList().ForEach(entry =>
+        //    {
+        //        binaryWriter.Write(entry.Key);
+        //        binaryWriter.Write(entry.Value.ToString());
+        //    });
+        //}
 
-			jsonWriter.WriteStartObject();
+        public void ApplyGlobalMaterialOverrides()
+        {
+            if (BuildingDef == null)
+                return;
+            var ingredients = BuildingDef.CraftRecipe.Ingredients;
+            var elements = new List<Tag>(SelectedElements.Count);
+            for (int i = 0; i < ingredients.Count; ++i)
+            {
+                var ingredient = ingredients[i];
+                Tag selectedElement;
+                if (i < SelectedElements.Count)
+                {
+                    selectedElement = SelectedElements[i];
+                }
+                else
+                {
+                    //should never happen in vanilla, just in case to prevent crash. (can potentially happen if another mod adds a new ingredient to the recipe or alters it)
+                    selectedElement = ModAssets.GetFirstAvailableMaterial(ingredient.tag, ingredient.amount);
+                }
+                var key = BlueprintSelectedMaterial.GetBlueprintSelectedMaterial(selectedElement, ingredient.tag, BuildingDef.PrefabID);
 
-			if (Offset.x != 0 || Offset.y != 0)
-			{
-				jsonWriter.WritePropertyName(JsonKeys.Offset);
-				jsonWriter.WriteStartObject();
+                if (ModAssets.TryGetReplacementTag(key, out var replacement))
+                {
+                    selectedElement = replacement;
+                }
+                elements.Add(selectedElement);
+            }
+            SelectedElements.Clear();
+            SelectedElements.AddRange(elements);
+        }
 
-				if (Offset.x != 0)
-				{
-					jsonWriter.WritePropertyName(JsonKeys.OffsetX);
-					jsonWriter.WriteValue(Offset.x);
-				}
+        public BuildingConfig() { }
+        public BuildingConfig(StringBuilder sourceSerialized)
+        {
+            ReadJson(JObject.Parse(sourceSerialized.ToString()));
+        }
+        public BuildingConfig GetClone()
+        {
+            var sb = new StringBuilder();
+            StringWriter sw = new StringWriter(sb);
+            var jsonWriter = new JsonTextWriter(sw);
+            WriteJson(jsonWriter);
+            var copy = new BuildingConfig(sb);
+            return copy;
+        }
 
-				if (Offset.y != 0)
-				{
-					jsonWriter.WritePropertyName(JsonKeys.OffsetY);
-					jsonWriter.WriteValue(Offset.y);
-				}
+        [MemberNotNullWhen(true, nameof(BuildingDef))]
+        public bool IsValid()
+        {
+            return BuildingDef != null;
+        }
 
-				jsonWriter.WriteEndObject();
-			}
+        /// <summary>
+        /// Writes the building config to the given JSON writer.
+        /// Doesn't write unnecessary information to save space.
+        /// </summary>
+        /// <param name="jsonWriter">The <see cref="JsonWriter"/> encsapsulating the stream to write to</param>
+        public void WriteJson(JsonWriter jsonWriter)
+        {
+            if (BuildingDef == null)
+            {
+                Debug.Log("Error when writing building config: No building definition.");
+                return;
+            }
 
-			jsonWriter.WritePropertyName(JsonKeys.BuildingDef);
-			jsonWriter.WriteValue(BuildingDef.PrefabID);
+            jsonWriter.WriteStartObject();
 
-			jsonWriter.WritePropertyName(JsonKeys.SelectedElements);
-			jsonWriter.WriteStartArray();
-			SelectedElements.ForEach(elementTag => jsonWriter.WriteValue(elementTag.GetHash()));
-			jsonWriter.WriteEndArray();
+            if (Offset.x != 0 || Offset.y != 0)
+            {
+                jsonWriter.WritePropertyName(JsonKeys.Offset);
+                jsonWriter.WriteStartObject();
 
-			if (Orientation != 0)
-			{
-				jsonWriter.WritePropertyName(JsonKeys.Orientation);
-				jsonWriter.WriteValue((int)Orientation);
-			}
-			//compatibility for old bp mod
-			if (GetConduitFlags(out int flags))
-			{
-				jsonWriter.WritePropertyName(JsonKeys.Flags);
-				jsonWriter.WriteValue(flags);
-			}
-			if (AdditionalBuildingData != null)
-			{
-				jsonWriter.WritePropertyName(JsonKeys.BuildingData);
-				jsonWriter.WriteStartArray();
-				AdditionalBuildingData.ToList().ForEach(dataEntry =>
-				{
-					if (dataEntry.Key == null || dataEntry.Value == null)
-						return;
-					JObject data = new JObject()
-					{
-					new JProperty(JsonKeys.BuildingDataKey, dataEntry.Key),
-					new JProperty(JsonKeys.BuildingDataValue, dataEntry.Value)
-					};
-					data.WriteTo(jsonWriter);
-				}
-				);
-				jsonWriter.WriteEndArray();
-			}
-			if (BuildingDisabled == true)
-			{
-				jsonWriter.WritePropertyName(JsonKeys.TempDisabled);
-				jsonWriter.WriteValue(BuildingDisabled);
-			}
+                if (Offset.x != 0)
+                {
+                    jsonWriter.WritePropertyName(JsonKeys.OffsetX);
+                    jsonWriter.WriteValue(Offset.x);
+                }
 
-			jsonWriter.WriteEndObject();
-		}
+                if (Offset.y != 0)
+                {
+                    jsonWriter.WritePropertyName(JsonKeys.OffsetY);
+                    jsonWriter.WriteValue(Offset.y);
+                }
 
-		/// <summary>
-		/// Reads a portion of a binary stream to populate this building config.
-		/// OBSOLETE!, kept in for compatibility with old binary blueprints
-		/// </summary>
-		/// <param name="binaryReader">The <see cref="BinaryReader"/> encapsulating the binary information to read</param>
-		/// <returns>True if the read succeeded, false otherwise</returns>
+                jsonWriter.WriteEndObject();
+            }
 
-		public bool ReadBinary(BinaryReader binaryReader)
-		{
-			try
-			{
-				Offset = new Vector2I(binaryReader.ReadInt32(), binaryReader.ReadInt32());
-				string defId = binaryReader.ReadString();
-				BuildingDefId = defId;
-				BuildingDef = Assets.GetBuildingDef(defId);
+            jsonWriter.WritePropertyName(JsonKeys.BuildingDef);
+            jsonWriter.WriteValue(BuildingDef.PrefabID);
 
-				int selectedElementCount = binaryReader.ReadInt32();
-				for (int i = 0; i < selectedElementCount; ++i)
-				{
-					SelectedElements.Add(new Tag(binaryReader.ReadInt32()));
-				}
-				SanitizeSelectedTags();
+            jsonWriter.WritePropertyName(JsonKeys.SelectedElements);
+            jsonWriter.WriteStartArray();
+            SelectedElements.ForEach(elementTag => jsonWriter.WriteValue(elementTag.GetHash()));
+            jsonWriter.WriteEndArray();
 
-				Orientation = (Orientation)binaryReader.ReadInt32();
-				int oldFlagSystemValue = binaryReader.ReadInt32();
-				if (oldFlagSystemValue != -1)
-				{
-					SetConduitFlags(oldFlagSystemValue);
-				}
-				return true;
-			}
+            if (Orientation != 0)
+            {
+                jsonWriter.WritePropertyName(JsonKeys.Orientation);
+                jsonWriter.WriteValue((int)Orientation);
+            }
+            //compatibility for old bp mod
+            if (GetConduitFlags(out int flags))
+            {
+                jsonWriter.WritePropertyName(JsonKeys.Flags);
+                jsonWriter.WriteValue(flags);
+            }
+            if (AdditionalBuildingData != null)
+            {
+                jsonWriter.WritePropertyName(JsonKeys.BuildingData);
+                jsonWriter.WriteStartArray();
+                AdditionalBuildingData.ToList().ForEach(dataEntry =>
+                {
+                    if (dataEntry.Key == null || dataEntry.Value == null)
+                        return;
+                    JObject data = new JObject()
+                    {
+                    new JProperty(JsonKeys.BuildingDataKey, dataEntry.Key),
+                    new JProperty(JsonKeys.BuildingDataValue, dataEntry.Value)
+                    };
+                    data.WriteTo(jsonWriter);
+                }
+                );
+                jsonWriter.WriteEndArray();
+            }
+            if (BuildingDisabled == true)
+            {
+                jsonWriter.WritePropertyName(JsonKeys.TempDisabled);
+                jsonWriter.WriteValue(BuildingDisabled);
+            }
 
-			catch (System.Exception)
-			{
-				return false;
-			}
-		}
+            jsonWriter.WriteEndObject();
+        }
 
-		/// <summary>
-		/// Reads a JSON object to populate this building config.
-		/// </summary>
-		/// <param name="rootObject">The <see cref="JObject"/> to use to read from</param>
-		public void ReadJson(JObject rootObject)
-		{
-			JToken offsetToken = rootObject.SelectToken(JsonKeys.Offset);
-			JToken buildingDefToken = rootObject.SelectToken(JsonKeys.BuildingDef);
-			JToken selectedElementsToken = rootObject.SelectToken(JsonKeys.SelectedElements);
-			JToken orientationToken = rootObject.SelectToken(JsonKeys.Orientation);
-			JToken flagsToken = rootObject.SelectToken(JsonKeys.Flags);
-			JToken buildingDataToken = rootObject.SelectToken(JsonKeys.BuildingData);
+        /// <summary>
+        /// Reads a portion of a binary stream to populate this building config.
+        /// OBSOLETE!, kept in for compatibility with old binary blueprints
+        /// </summary>
+        /// <param name="binaryReader">The <see cref="BinaryReader"/> encapsulating the binary information to read</param>
+        /// <returns>True if the read succeeded, false otherwise</returns>
 
-			if (offsetToken != null && offsetToken.Type == JTokenType.Object)
-			{
-				JToken xToken = offsetToken.SelectToken(JsonKeys.OffsetX);
-				JToken yToken = offsetToken.SelectToken(JsonKeys.OffsetY);
-				int x = 0, y = 0;
-				if (xToken != null && xToken.Type == JTokenType.Integer)
-					x = xToken.Value<int>();
-				if (yToken != null && yToken.Type == JTokenType.Integer)
-					y = yToken.Value<int>();
+        public bool ReadBinary(BinaryReader binaryReader)
+        {
+            try
+            {
+                Offset = new Vector2I(binaryReader.ReadInt32(), binaryReader.ReadInt32());
+                string defId = binaryReader.ReadString();
+                BuildingDefId = defId;
+                BuildingDef = Assets.GetBuildingDef(defId);
 
-				Offset = new(x, y);
-			}
-			else
-				Offset = new Vector2I(0, 0);
+                int selectedElementCount = binaryReader.ReadInt32();
+                for (int i = 0; i < selectedElementCount; ++i)
+                {
+                    SelectedElements.Add(new Tag(binaryReader.ReadInt32()));
+                }
+                SanitizeSelectedTags();
 
-			if (buildingDefToken != null && buildingDefToken.Type == JTokenType.String)
-			{
-				string? defId = buildingDefToken.Value<string>();
-				if (defId != null)
-				{
-					BuildingDefId = defId;
-					BuildingDef = Assets.GetBuildingDef(defId);
-				}
-			}
+                Orientation = (Orientation)binaryReader.ReadInt32();
+                int oldFlagSystemValue = binaryReader.ReadInt32();
+                if (oldFlagSystemValue != -1)
+                {
+                    SetConduitFlags(oldFlagSystemValue);
+                }
+                return true;
+            }
 
-			if (selectedElementsToken != null && selectedElementsToken.Type == JTokenType.Array)
-			{
-				JArray selectedElementTokens = selectedElementsToken.Value<JArray>();
+            catch (System.Exception)
+            {
+                return false;
+            }
+        }
 
-				if (selectedElementTokens != null)
-				{
-					foreach (JToken selectedElement in selectedElementTokens)
-					{
-						if (selectedElement.Type == JTokenType.Integer)
-						{
-							Tag selectedTag = new Tag(selectedElement.Value<int>());
-							//if (ElementLoader.GetElement(selectedTag) != null || Assets.TryGetPrefab(selectedTag) != null)
-							SelectedElements.Add(selectedTag);
-						}
-					}
-					SanitizeSelectedTags();
-				}
-			}
+        /// <summary>
+        /// Reads a JSON object to populate this building config.
+        /// </summary>
+        /// <param name="rootObject">The <see cref="JObject"/> to use to read from</param>
+        public void ReadJson(JObject rootObject)
+        {
+            JToken offsetToken = rootObject.SelectToken(JsonKeys.Offset);
+            JToken buildingDefToken = rootObject.SelectToken(JsonKeys.BuildingDef);
+            JToken selectedElementsToken = rootObject.SelectToken(JsonKeys.SelectedElements);
+            JToken orientationToken = rootObject.SelectToken(JsonKeys.Orientation);
+            JToken flagsToken = rootObject.SelectToken(JsonKeys.Flags);
+            JToken buildingDataToken = rootObject.SelectToken(JsonKeys.BuildingData);
 
-			if (orientationToken != null && orientationToken.Type == JTokenType.Integer)
-			{
-				Orientation = (Orientation)orientationToken.Value<int>();
-			}
+            if (offsetToken != null && offsetToken.Type == JTokenType.Object)
+            {
+                JToken xToken = offsetToken.SelectToken(JsonKeys.OffsetX);
+                JToken yToken = offsetToken.SelectToken(JsonKeys.OffsetY);
+                int x = 0, y = 0;
+                if (xToken != null && xToken.Type == JTokenType.Integer)
+                    x = xToken.Value<int>();
+                if (yToken != null && yToken.Type == JTokenType.Integer)
+                    y = yToken.Value<int>();
 
-			if (flagsToken != null && flagsToken.Type == JTokenType.Integer)
-			{
-				var value = flagsToken.Value<int>();
-				if (value != -1)
-				{
-					SetConduitFlags(value);
-				}
-			}
-			if (buildingDataToken != null)
-			{
-				JArray additionalDataTokens = buildingDataToken.Value<JArray>();
+                Offset = new(x, y);
+            }
+            else
+                Offset = new Vector2I(0, 0);
 
-				if (additionalDataTokens != null)
-				{
-					foreach (JObject dataToken in additionalDataTokens)
-					{
-						string key = dataToken.GetValue(JsonKeys.BuildingDataKey).Value<string>();
-						JObject value = dataToken.GetValue(JsonKeys.BuildingDataValue).Value<JObject>();
-						if (key == null || key.Length == 0 || value == null)
-							continue;
+            if (buildingDefToken != null && buildingDefToken.Type == JTokenType.String)
+            {
+                string? defId = buildingDefToken.Value<string>();
+                if (defId != null)
+                {
+                    BuildingDefId = defId;
+                    BuildingDef = Assets.GetBuildingDef(defId);
+                }
+            }
 
-						SetBuildingData(key, value);
-					}
-				}
-			}
-			JToken temporarilyDisabledToken = rootObject.SelectToken(JsonKeys.TempDisabled);
-			if (temporarilyDisabledToken != null && temporarilyDisabledToken.Type == JTokenType.Boolean)
-			{
-				BuildingDisabled = temporarilyDisabledToken.Value<bool>();
-			}
-		}
+            if (selectedElementsToken != null && selectedElementsToken.Type == JTokenType.Array)
+            {
+                JArray selectedElementTokens = selectedElementsToken.Value<JArray>();
 
-		void SanitizeSelectedTags()
-		{
-			bool logd = false;
-			if (BuildingDef == null)
-				return;
+                if (selectedElementTokens != null)
+                {
+                    foreach (JToken selectedElement in selectedElementTokens)
+                    {
+                        if (selectedElement.Type == JTokenType.Integer)
+                        {
+                            Tag selectedTag = new Tag(selectedElement.Value<int>());
+                            //if (ElementLoader.GetElement(selectedTag) != null || Assets.TryGetPrefab(selectedTag) != null)
+                            SelectedElements.Add(selectedTag);
+                        }
+                    }
+                    SanitizeSelectedTags();
+                }
+            }
 
-			if (SelectedElements.Count > BuildingDef.MaterialCategory.Length)
-			{
-				SgtLogger.l(BuildingDefId + " has more selected materials than ingredients. Trimming...");
-				while (SelectedElements.Count > BuildingDef.MaterialCategory.Length)
-				{
-					SelectedElements.RemoveAt(SelectedElements.Count - 1);
-				}
-			}
+            if (orientationToken != null && orientationToken.Type == JTokenType.Integer)
+            {
+                Orientation = (Orientation)orientationToken.Value<int>();
+            }
 
-			for (int i = 0; i < BuildingDef.MaterialCategory.Length; i++)
-			{
-				var ingredientStep = BuildingDef.MaterialCategory[i];
-				Tag selectedTag = SelectedElements.Count > i ? SelectedElements[i] : Tag.Invalid;
-				var validMaterials = ModAssets.GetValidMaterials(ingredientStep);
+            if (flagsToken != null && flagsToken.Type == JTokenType.Integer)
+            {
+                var value = flagsToken.Value<int>();
+                if (value != -1)
+                {
+                    SetConduitFlags(value);
+                }
+            }
+            if (buildingDataToken != null)
+            {
+                JArray additionalDataTokens = buildingDataToken.Value<JArray>();
 
-				if (!validMaterials.Contains(selectedTag))
-				{
-					if (!logd)
-					{
-						logd = true;
-					}
+                if (additionalDataTokens != null)
+                {
+                    foreach (JObject dataToken in additionalDataTokens)
+                    {
+                        string key = dataToken.GetValue(JsonKeys.BuildingDataKey).Value<string>();
+                        JObject value = dataToken.GetValue(JsonKeys.BuildingDataValue).Value<JObject>();
+                        if (key == null || key.Length == 0 || value == null)
+                            continue;
 
-					var element = ElementLoader.FindElementByHash((SimHashes)selectedTag.hash);
-					if (element != null)
-						selectedTag = element.tag;
-					var mat = validMaterials.FirstOrDefault();
+                        SetBuildingData(key, value);
+                    }
+                }
+            }
+            JToken temporarilyDisabledToken = rootObject.SelectToken(JsonKeys.TempDisabled);
+            if (temporarilyDisabledToken != null && temporarilyDisabledToken.Type == JTokenType.Boolean)
+            {
+                BuildingDisabled = temporarilyDisabledToken.Value<bool>();
+            }
+        }
 
-					SgtLogger.l(BuildingDefId + " has invalid material " + selectedTag + " for ingredient " + ingredientStep + ". replacing with default: " + mat);
+        void SanitizeSelectedTags()
+        {
+            bool logd = false;
+            if (BuildingDef == null)
+                return;
 
-					if (SelectedElements.Count > i)
-						SelectedElements[i] = mat;
-					else
-						SelectedElements.Add(mat);
+            if (SelectedElements.Count > BuildingDef.MaterialCategory.Length)
+            {
+                SgtLogger.l(BuildingDefId + " has more selected materials than ingredients. Trimming...");
+                while (SelectedElements.Count > BuildingDef.MaterialCategory.Length)
+                {
+                    SelectedElements.RemoveAt(SelectedElements.Count - 1);
+                }
+            }
 
-				}
-			}
-		}
+            for (int i = 0; i < BuildingDef.MaterialCategory.Length; i++)
+            {
+                var ingredientStep = BuildingDef.MaterialCategory[i];
+                Tag selectedTag = SelectedElements.Count > i ? SelectedElements[i] : Tag.Invalid;
+                var validMaterials = ModAssets.GetValidMaterials(ingredientStep);
 
-		/// <summary>
-		/// Tests two <see cref="BuildingConfig"/> for equality.
-		/// </summary>
-		/// <param name="otherBuildingConfig">The other <see cref="BuildingConfig"/> to test for equality</param>
-		/// <returns>True if the two objects are equal, false otherwise</returns>
-		public bool Equals(BuildingConfig? otherBuildingConfig)
-		{
-			return otherBuildingConfig != null && Offset == otherBuildingConfig.Offset && BuildingDef == otherBuildingConfig.BuildingDef && Orientation == otherBuildingConfig.Orientation;
-		}
-		internal void SetBuildingData(string Id, JObject data)
-		{
-			if (Id.IsNullOrWhiteSpace())
-				return;
+                if (!validMaterials.Contains(selectedTag))
+                {
+                    if (!logd)
+                    {
+                        logd = true;
+                    }
 
-			AdditionalBuildingData ??= new();
-			AdditionalBuildingData[Id] = data;
-		}
-		internal void SetConduitFlags(int flag)
-		{
-			ConduitFlags = flag;
-			//SetBuildingData(API_Consts.ConduitFlagID,
-			//	new JObject()
-			//	{
-			//		{ API_Consts.ConduitFlagID, flag }
-			//	});
-		}
-		internal bool GetConduitFlags(out int flags)
-		{
-			flags = ConduitFlags;
+                    var element = ElementLoader.FindElementByHash((SimHashes)selectedTag.hash);
+                    if (element != null)
+                        selectedTag = element.tag;
+                    var mat = validMaterials.FirstOrDefault();
 
-			///Obsolete, kept for compatibility
-			if (ConduitFlags == -1
-				&& AdditionalBuildingData != null
-				&& AdditionalBuildingData.TryGetValue(API_Consts.ConduitFlagID, out var value)
-				&& value.SelectToken(API_Consts.ConduitFlagID) != null)
-			{
-				JToken token = value.SelectToken(API_Consts.ConduitFlagID);
-				if (token != null && token.Type == JTokenType.Integer)
-				{
-					flags = token.Value<int>();
-					return true;
-				}
-			}
-			return flags != -1;
-		}
-	}
+                    SgtLogger.l(BuildingDefId + " has invalid material " + selectedTag + " for ingredient " + ingredientStep + ". replacing with default: " + mat);
+
+                    if (SelectedElements.Count > i)
+                        SelectedElements[i] = mat;
+                    else
+                        SelectedElements.Add(mat);
+
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests two <see cref="BuildingConfig"/> for equality.
+        /// </summary>
+        /// <param name="otherBuildingConfig">The other <see cref="BuildingConfig"/> to test for equality</param>
+        /// <returns>True if the two objects are equal, false otherwise</returns>
+        public bool Equals(BuildingConfig? otherBuildingConfig)
+        {
+            return otherBuildingConfig != null && Offset == otherBuildingConfig.Offset && BuildingDef == otherBuildingConfig.BuildingDef && Orientation == otherBuildingConfig.Orientation;
+        }
+        internal void SetBuildingData(string Id, JObject data)
+        {
+            if (Id.IsNullOrWhiteSpace())
+                return;
+
+            AdditionalBuildingData ??= new();
+            AdditionalBuildingData[Id] = data;
+        }
+        internal void SetConduitFlags(int flag)
+        {
+            ConduitFlags = flag;
+            //SetBuildingData(API_Consts.ConduitFlagID,
+            //	new JObject()
+            //	{
+            //		{ API_Consts.ConduitFlagID, flag }
+            //	});
+        }
+        internal bool GetConduitFlags(out int flags)
+        {
+            flags = ConduitFlags;
+
+            ///Obsolete, kept for compatibility
+            if (ConduitFlags == -1
+                && AdditionalBuildingData != null
+                && AdditionalBuildingData.TryGetValue(API_Consts.ConduitFlagID, out var value)
+                && value.SelectToken(API_Consts.ConduitFlagID) != null)
+            {
+                JToken token = value.SelectToken(API_Consts.ConduitFlagID);
+                if (token != null && token.Type == JTokenType.Integer)
+                {
+                    flags = token.Value<int>();
+                    return true;
+                }
+            }
+            return flags != -1;
+        }
+    }
 }

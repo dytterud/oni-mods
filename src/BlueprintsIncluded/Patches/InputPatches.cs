@@ -4,49 +4,49 @@ using UnityEngine;
 
 namespace BlueprintsV2.Patches
 {
-	internal class InputPatches
-	{
+    internal class InputPatches
+    {
 
 
-		[HarmonyPatch(typeof(PlayerController), "OnPrefabInit")]
-		public static class PlayerControllerOnPrefabInitPatch
-		{
-			public static void Postfix(PlayerController __instance)
-			{
-				var interfaceTools = new List<InterfaceTool>(__instance.tools);
+        [HarmonyPatch(typeof(PlayerController), "OnPrefabInit")]
+        public static class PlayerControllerOnPrefabInitPatch
+        {
+            public static void Postfix(PlayerController __instance)
+            {
+                var interfaceTools = new List<InterfaceTool>(__instance.tools);
 
-				var createBlueprintTool = new GameObject(nameof(CreateBlueprintTool), typeof(CreateBlueprintTool));
-				createBlueprintTool.transform.SetParent(__instance.gameObject.transform);
-				createBlueprintTool.gameObject.SetActive(true);
-				createBlueprintTool.gameObject.SetActive(false);
-				interfaceTools.Add(createBlueprintTool.GetComponent<CreateBlueprintTool>());
+                var createBlueprintTool = new GameObject(nameof(CreateBlueprintTool), typeof(CreateBlueprintTool));
+                createBlueprintTool.transform.SetParent(__instance.gameObject.transform);
+                createBlueprintTool.gameObject.SetActive(true);
+                createBlueprintTool.gameObject.SetActive(false);
+                interfaceTools.Add(createBlueprintTool.GetComponent<CreateBlueprintTool>());
 
-				var useBlueprintTool = new GameObject(typeof(UseBlueprintTool).Name, typeof(UseBlueprintTool));
-				useBlueprintTool.transform.SetParent(__instance.gameObject.transform);
-				useBlueprintTool.gameObject.SetActive(true);
-				useBlueprintTool.gameObject.SetActive(false);
-				interfaceTools.Add(useBlueprintTool.GetComponent<UseBlueprintTool>());
-
-
-				var snapshotTool = new GameObject(typeof(SnapshotTool).Name, typeof(SnapshotTool));
-				snapshotTool.transform.SetParent(__instance.gameObject.transform);
-				snapshotTool.gameObject.SetActive(true);
-				snapshotTool.gameObject.SetActive(false);
-				interfaceTools.Add(snapshotTool.GetComponent<SnapshotTool>());
-
-				var noteTool = new GameObject(typeof(CreateNoteTool).Name, typeof(CreateNoteTool));
-				noteTool.transform.SetParent(__instance.gameObject.transform);
-				noteTool.gameObject.SetActive(true);
-				noteTool.gameObject.SetActive(false);
-				interfaceTools.Add(noteTool.GetComponent<CreateNoteTool>());
+                var useBlueprintTool = new GameObject(typeof(UseBlueprintTool).Name, typeof(UseBlueprintTool));
+                useBlueprintTool.transform.SetParent(__instance.gameObject.transform);
+                useBlueprintTool.gameObject.SetActive(true);
+                useBlueprintTool.gameObject.SetActive(false);
+                interfaceTools.Add(useBlueprintTool.GetComponent<UseBlueprintTool>());
 
 
+                var snapshotTool = new GameObject(typeof(SnapshotTool).Name, typeof(SnapshotTool));
+                snapshotTool.transform.SetParent(__instance.gameObject.transform);
+                snapshotTool.gameObject.SetActive(true);
+                snapshotTool.gameObject.SetActive(false);
+                interfaceTools.Add(snapshotTool.GetComponent<SnapshotTool>());
 
-				__instance.tools = interfaceTools.ToArray();
+                var noteTool = new GameObject(typeof(CreateNoteTool).Name, typeof(CreateNoteTool));
+                noteTool.transform.SetParent(__instance.gameObject.transform);
+                noteTool.gameObject.SetActive(true);
+                noteTool.gameObject.SetActive(false);
+                interfaceTools.Add(noteTool.GetComponent<CreateNoteTool>());
 
-				CreateBlueprintTool.Instance.OverlaySynced = Config.Instance.CreateBlueprintToolSync;
-				SnapshotTool.Instance.OverlaySynced = Config.Instance.SnapshotToolSync;
-			}
-		}
-	}
+
+
+                __instance.tools = interfaceTools.ToArray();
+
+                CreateBlueprintTool.Instance.OverlaySynced = Config.Instance.CreateBlueprintToolSync;
+                SnapshotTool.Instance.OverlaySynced = Config.Instance.SnapshotToolSync;
+            }
+        }
+    }
 }

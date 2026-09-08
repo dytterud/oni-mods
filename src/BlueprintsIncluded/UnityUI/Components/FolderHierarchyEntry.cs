@@ -3,29 +3,29 @@ using UtilLibs.UIcmp;
 
 namespace BlueprintsV2.UnityUI.Components
 {
-	internal class FolderHierarchyEntry : KMonoBehaviour
-	{
-		public BlueprintFolder? folder;
+    internal class FolderHierarchyEntry : KMonoBehaviour
+    {
+        public BlueprintFolder? folder;
 
-		public System.Action? OnEntryClicked;
-		FButton button = null!;
-		LocText Label = null!;
+        public System.Action? OnEntryClicked;
+        FButton button = null!;
+        LocText Label = null!;
 
-		public override void OnPrefabInit()
-		{
-			base.OnPrefabInit();
-			Label = transform.Find("Label").gameObject.GetComponent<LocText>();
-			button = gameObject.AddComponent<FButton>();
-		}
-		public override void OnSpawn()
-		{
-			base.OnSpawn();
-			if (folder != null)
-			{
-				Label.SetText(folder.Name);
-				if (OnEntryClicked != null)
-					button.OnClick += OnEntryClicked;
-			}
-		}
-	}
+        public override void OnPrefabInit()
+        {
+            base.OnPrefabInit();
+            Label = transform.Find("Label").gameObject.GetComponent<LocText>();
+            button = gameObject.AddComponent<FButton>();
+        }
+        public override void OnSpawn()
+        {
+            base.OnSpawn();
+            if (folder != null)
+            {
+                Label.SetText(folder.Name);
+                if (OnEntryClicked != null)
+                    button.OnClick += OnEntryClicked;
+            }
+        }
+    }
 }

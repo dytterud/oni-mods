@@ -8,62 +8,62 @@ using static STRINGS.UI.TOOLS;
 
 namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration
 {
-	internal class PlanningToolShapePreview : KMonoBehaviour
-	{
-		static Material SquareMat = null!, CircleMat = null!, DiamondMat = null!;
+    internal class PlanningToolShapePreview : KMonoBehaviour
+    {
+        static Material SquareMat = null!, CircleMat = null!, DiamondMat = null!;
 
-		MeshRenderer renderer = null!;
+        MeshRenderer renderer = null!;
 
-		public PlanShape Shape;
-		public PlanColor Color;
+        public PlanShape Shape;
+        public PlanColor Color;
 
-		static bool init = false;
-		static void InitMaterials()
-		{
-			if (init)
-				return;
-			init = true;
+        static bool init = false;
+        static void InitMaterials()
+        {
+            if (init)
+                return;
+            init = true;
 
-			SquareMat = new Material(Assets.instance.mopPlacerAssets.material);
-			SquareMat.mainTexture = ModAssets.PlanningToolPreview_Square.texture;
-			CircleMat = new Material(Assets.instance.mopPlacerAssets.material);
-			CircleMat.mainTexture = ModAssets.PlanningToolPreview_Circle.texture;
-			DiamondMat = new Material(Assets.instance.mopPlacerAssets.material);
-			DiamondMat.mainTexture = ModAssets.PlanningToolPreview_Diamond.texture;
-		}
-		public void SetVisuals(PlanShape shape,PlanColor color)
-		{
-			Color = color;
-			Shape = shape;
-			RefreshVisuals();
-		}
-		void RefreshVisuals()
-		{
-			switch (Shape)
-			{
-				default:
-				case PlanShape.Rectangle:
-					renderer?.material = SquareMat;
-					break;
-				case PlanShape.Circle:
-					renderer?.material = CircleMat;
-					break;
-				case PlanShape.Diamond:
-					renderer?.material = DiamondMat;
-					break;
-			}
-			Color32 color = PlanningTool_EnumMapping.AsColor(Color);
-			SgtLogger.l(Shape + " color: " + color.ToString());
+            SquareMat = new Material(Assets.instance.mopPlacerAssets.material);
+            SquareMat.mainTexture = ModAssets.PlanningToolPreview_Square.texture;
+            CircleMat = new Material(Assets.instance.mopPlacerAssets.material);
+            CircleMat.mainTexture = ModAssets.PlanningToolPreview_Circle.texture;
+            DiamondMat = new Material(Assets.instance.mopPlacerAssets.material);
+            DiamondMat.mainTexture = ModAssets.PlanningToolPreview_Diamond.texture;
+        }
+        public void SetVisuals(PlanShape shape, PlanColor color)
+        {
+            Color = color;
+            Shape = shape;
+            RefreshVisuals();
+        }
+        void RefreshVisuals()
+        {
+            switch (Shape)
+            {
+                default:
+                case PlanShape.Rectangle:
+                    renderer?.material = SquareMat;
+                    break;
+                case PlanShape.Circle:
+                    renderer?.material = CircleMat;
+                    break;
+                case PlanShape.Diamond:
+                    renderer?.material = DiamondMat;
+                    break;
+            }
+            Color32 color = PlanningTool_EnumMapping.AsColor(Color);
+            SgtLogger.l(Shape + " color: " + color.ToString());
 
-			renderer?.material?.color = color;
-		}
+            renderer?.material?.color = color;
+        }
 
-		public override void OnSpawn()
-		{
-			InitMaterials();
-			renderer = GetComponentInChildren<MeshRenderer>();
-			base.OnSpawn();
-			RefreshVisuals();
-		}
-	}
+        public override void OnSpawn()
+        {
+            InitMaterials();
+            renderer = GetComponentInChildren<MeshRenderer>();
+            base.OnSpawn();
+            RefreshVisuals();
+        }
+    }
 }

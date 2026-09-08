@@ -11,28 +11,28 @@ using static BlueprintsV2.ModAssets;
 
 namespace BlueprintsV2
 {
-	public class Mod : UserMod2
-	{
-		public override void OnLoad(Harmony harmony)
-		{
-			SgtLogger.LogVersion(this, harmony);
-			ModAssets.LoadAssets();
-			PUtil.InitLibrary();
-			new POptions().RegisterOptions(this, typeof(Config));
-			base.OnLoad(harmony);
+    public class Mod : UserMod2
+    {
+        public override void OnLoad(Harmony harmony)
+        {
+            SgtLogger.LogVersion(this, harmony);
+            ModAssets.LoadAssets();
+            PUtil.InitLibrary();
+            new POptions().RegisterOptions(this, typeof(Config));
+            base.OnLoad(harmony);
 
-			ModAssets.RegisterActions();
-			SgtLogger.l("Loading Mod Assets...");
+            ModAssets.RegisterActions();
+            SgtLogger.l("Loading Mod Assets...");
 
-			BlueprintFileHandling.AttachFileWatcher();
+            BlueprintFileHandling.AttachFileWatcher();
 
-		}
-		public override void OnAllModsLoaded(Harmony harmony, IReadOnlyList<KMod.Mod> mods)
-		{
-			base.OnAllModsLoaded(harmony, mods);
-			API_Methods.RegisterExtraData();
-			PlanningTool_Integration.Initialize();
-			PacketRegistryAPI.AutoRegisterAll();
-		}
-	}
+        }
+        public override void OnAllModsLoaded(Harmony harmony, IReadOnlyList<KMod.Mod> mods)
+        {
+            base.OnAllModsLoaded(harmony, mods);
+            API_Methods.RegisterExtraData();
+            PlanningTool_Integration.Initialize();
+            PacketRegistryAPI.AutoRegisterAll();
+        }
+    }
 }

@@ -3,8 +3,8 @@ using System.Text;
 
 namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors
 {
-	public enum PlanColor
-	{
-		Gray, Blue, Green, Red, Cyan, Magenta, Violet, Orange, Yellow, White, Black
-	}
+    public enum PlanColor
+    {
+        Gray, Blue, Green, Red, Cyan, Magenta, Violet, Orange, Yellow, White, Black
+    }
 }
