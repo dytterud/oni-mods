@@ -1,49 +1,45 @@
-﻿using System;
-using System.Text;
+﻿namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 
-namespace BlueprintsV2.BlueprintData.PlannedElements
+internal class ElementOnlyFilterable : Filterable
 {
-    internal class ElementOnlyFilterable : Filterable
+    static Dictionary<Tag, HashSet<Tag>>? elementFilterableCategories = null;
+
+    public static Dictionary<Tag, HashSet<Tag>> GetElementFilters()
     {
-        static Dictionary<Tag, HashSet<Tag>>? elementFilterableCategories = null;
-
-        public static Dictionary<Tag, HashSet<Tag>> GetElementFilters()
+        if (elementFilterableCategories == null)
         {
-            if (elementFilterableCategories == null)
+            elementFilterableCategories = [];
+            foreach (var element in ElementLoader.elements)
             {
-                elementFilterableCategories = [];
-                foreach (var element in ElementLoader.elements)
+                if (element.disabled)
+                    continue;
+
+
+                Tag elementState;
+                switch (element.state & Element.State.Solid)
                 {
-                    if (element.disabled)
+                    case Element.State.Gas:
+                        elementState = GameTags.Gas;
+                        break;
+                    case Element.State.Liquid:
+                        elementState = GameTags.Liquid;
+                        break;
+                    case Element.State.Solid:
+                        elementState = GameTags.Solid;
+                        break;
+                    default:
+                    case Element.State.Vacuum:
                         continue;
-
-
-                    Tag elementState;
-                    switch (element.state & Element.State.Solid)
-                    {
-                        case Element.State.Gas:
-                            elementState = GameTags.Gas;
-                            break;
-                        case Element.State.Liquid:
-                            elementState = GameTags.Liquid;
-                            break;
-                        case Element.State.Solid:
-                            elementState = GameTags.Solid;
-                            break;
-                        default:
-                        case Element.State.Vacuum:
-                            continue;
-                    }
-                    if (!elementFilterableCategories.ContainsKey(elementState))
-                    {
-                        elementFilterableCategories[elementState] = new HashSet<Tag>();
-                    }
-                    elementFilterableCategories[elementState].Add(element.id.CreateTag());
                 }
-
-                elementFilterableCategories.Add(SimHashes.Vacuum.CreateTag(), [SimHashes.Vacuum.CreateTag()]);
+                if (!elementFilterableCategories.ContainsKey(elementState))
+                {
+                    elementFilterableCategories[elementState] = new HashSet<Tag>();
+                }
+                elementFilterableCategories[elementState].Add(element.id.CreateTag());
             }
-            return elementFilterableCategories;
+
+            elementFilterableCategories.Add(SimHashes.Vacuum.CreateTag(), [SimHashes.Vacuum.CreateTag()]);
         }
+        return elementFilterableCategories;
     }
 }

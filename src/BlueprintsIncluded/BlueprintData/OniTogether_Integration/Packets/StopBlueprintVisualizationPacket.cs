@@ -1,31 +1,27 @@
-﻿using BlueprintsV2.BlueprintData;
-using ONI_Together.Networking.Packets.Architecture;
+﻿using ONI_Together.Networking.Packets.Architecture;
 using ONI_Together_API;
-using System.Text;
-using UtilLibs;
 
-namespace BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
+namespace BlueprintsV2.BlueprintData.OniTogether_Integration.Packets;
+
+internal class StopBlueprintVisualizationPacket : IPacket
 {
-    internal class StopBlueprintVisualizationPacket : IPacket
+    public StopBlueprintVisualizationPacket()
     {
-        public StopBlueprintVisualizationPacket()
-        {
-            SenderId = SessionInfoAPI.LocalUserID;
-        }
-        ulong SenderId;
+        SenderId = SessionInfoAPI.LocalUserID;
+    }
+    ulong SenderId;
 
 
-        public void Deserialize(BinaryReader reader)
-        {
-            SenderId = reader.ReadUInt64();
-        }
-        public void Serialize(BinaryWriter writer)
-        {
-            writer.Write(SenderId);
-        }
-        public void OnDispatched()
-        {
-            BlueprintState.ClearDisplayBlueprintForPlayer(SenderId);
-        }
+    public void Deserialize(BinaryReader reader)
+    {
+        SenderId = reader.ReadUInt64();
+    }
+    public void Serialize(BinaryWriter writer)
+    {
+        writer.Write(SenderId);
+    }
+    public void OnDispatched()
+    {
+        BlueprintState.ClearDisplayBlueprintForPlayer(SenderId);
     }
 }

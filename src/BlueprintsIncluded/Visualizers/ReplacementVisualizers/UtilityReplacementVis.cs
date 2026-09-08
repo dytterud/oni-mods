@@ -1,30 +1,25 @@
-﻿using System;
-using System.Collections;
-using System.Text;
-using UnityEngine;
-using static STRINGS.UI.SPACEARTIFACTS;
+﻿using UnityEngine;
 
-namespace BlueprintsV2.Visualizers.ReplacementVisualizers
+namespace BlueprintsV2.Visualizers.ReplacementVisualizers;
+
+internal class UtilityReplacementVis : ReplacementVis
 {
-    internal class UtilityReplacementVis : ReplacementVis
+    protected override void ApplyExtraDataToBuilt(GameObject built)
     {
-        protected override void ApplyExtraDataToBuilt(GameObject built)
+        base.ApplyExtraDataToBuilt(built);
+        if (built.TryGetComponent<KBatchedAnimController>(out var targetKbac))
         {
-            base.ApplyExtraDataToBuilt(built);
-            if (built.TryGetComponent<KBatchedAnimController>(out var targetKbac))
+            PlayUtilityAnim(targetKbac, true);
+        }
+        if (built.TryGetComponent<KAnimGraphTileVisualizer>(out var vis))
+        {
+            var newConnections = (UtilityConnections)conduitFlags;
+            if (vis.Connections != newConnections)
             {
-                PlayUtilityAnim(targetKbac, true);
-            }
-            if (built.TryGetComponent<KAnimGraphTileVisualizer>(out var vis))
-            {
-                var newConnections = (UtilityConnections)conduitFlags;
-                if (vis.Connections != newConnections)
-                {
-                    UtilityConnections neew = vis.Connections | newConnections;
+                UtilityConnections neew = vis.Connections | newConnections;
 
-                    vis.UpdateConnections(neew);
-                    vis.Refresh();
-                }
+                vis.UpdateConnections(neew);
+                vis.Refresh();
             }
         }
     }

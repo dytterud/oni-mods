@@ -1,223 +1,221 @@
 ﻿using HarmonyLib;
 using Newtonsoft.Json.Linq;
-using System.Linq;
 using UnityEngine;
 using UtilLibs;
 
-namespace BlueprintsV2.BlueprintData
+namespace BlueprintsV2.BlueprintData;
+
+internal class SkinHelper
 {
-    internal class SkinHelper
+    //Akis Backwalls
+    internal static void TryApplyBackwall(GameObject arg1, JObject arg2)
     {
-        //Akis Backwalls
-        internal static void TryApplyBackwall(GameObject arg1, JObject arg2)
+        var backwallCmp = arg1.GetComponent("Backwall");
+
+        if (backwallCmp != null)
         {
-            var backwallCmp = arg1.GetComponent("Backwall");
+            string colorHex = arg2.GetValue("colorHex").Value<string>();
+            string pattern = arg2.GetValue("pattern").Value<string>();
 
-            if (backwallCmp != null)
-            {
-                string colorHex = arg2.GetValue("colorHex").Value<string>();
-                string pattern = arg2.GetValue("pattern").Value<string>();
+            //GameScheduler.Instance.ScheduleNextFrame("backwall pattern",(_)=>
+            Traverse.Create(backwallCmp).Method("TrySetPattern", new[] { typeof(string) }).GetValue(pattern);
+            //GameScheduler.Instance.ScheduleNextFrame("backwall color",(_)=>
+            Traverse.Create(backwallCmp).Method("SetColor", new[] { typeof(string) }).GetValue(colorHex);
+            Traverse.Create(backwallCmp).Field("copiedColor").SetValue(true);
+            //GameScheduler.Instance.ScheduleNextFrame("backwall" ,(_)=> Traverse.Create(backwallCmp).Method("TrySetPattern", new[] { typeof(string) }).GetValue(arg2));
 
-                //GameScheduler.Instance.ScheduleNextFrame("backwall pattern",(_)=>
-                Traverse.Create(backwallCmp).Method("TrySetPattern", new[] { typeof(string) }).GetValue(pattern);
-                //GameScheduler.Instance.ScheduleNextFrame("backwall color",(_)=>
-                Traverse.Create(backwallCmp).Method("SetColor", new[] { typeof(string) }).GetValue(colorHex);
-                Traverse.Create(backwallCmp).Field("copiedColor").SetValue(true);
-                //GameScheduler.Instance.ScheduleNextFrame("backwall" ,(_)=> Traverse.Create(backwallCmp).Method("TrySetPattern", new[] { typeof(string) }).GetValue(arg2));
-
-            }
         }
+    }
 
-        internal static JObject? TryStoreBackwall(GameObject arg)
+    internal static JObject? TryStoreBackwall(GameObject arg)
+    {
+        JObject? data = null;
+        var backwallCmp = arg.GetComponent("Backwall");
+        if (backwallCmp != null)
         {
-            JObject? data = null;
-            var backwallCmp = arg.GetComponent("Backwall");
-            if (backwallCmp != null)
-            {
-                var settingsStruct = Traverse.Create(backwallCmp).Field("settings").GetValue();
-                var colorHex = Traverse.Create(settingsStruct).Field("colorHex").GetValue() as string;
-                var pattern = Traverse.Create(settingsStruct).Field("pattern").GetValue() as string;
+            var settingsStruct = Traverse.Create(backwallCmp).Field("settings").GetValue();
+            var colorHex = Traverse.Create(settingsStruct).Field("colorHex").GetValue() as string;
+            var pattern = Traverse.Create(settingsStruct).Field("pattern").GetValue() as string;
 
-                //SgtLogger.l($"Pattern: {pattern}, colorHex: {colorHex}");
-                data = new JObject()
-                {
-                    {"colorHex", colorHex},
-                    {"pattern", pattern}
-                };
-            }
-            return data;
+            //SgtLogger.l($"Pattern: {pattern}, colorHex: {colorHex}");
+            data = new JObject()
+            {
+                {"colorHex", colorHex},
+                {"pattern", pattern}
+            };
         }
+        return data;
+    }
 
-        //Akis DecorPackI moodlamp
-        internal static void TryApplyMoodLamp(GameObject arg1, JObject arg2)
+    //Akis DecorPackI moodlamp
+    internal static void TryApplyMoodLamp(GameObject arg1, JObject arg2)
+    {
+        var moodLampCmp = arg1.GetComponent("MoodLamp");
+
+        if (moodLampCmp != null)
         {
-            var moodLampCmp = arg1.GetComponent("MoodLamp");
-
-            if (moodLampCmp != null)
-            {
-                string? currentVariantID = arg2.GetValue("currentVariantID")?.Value<string>();
-
-                if (currentVariantID != null)
-                    Traverse.Create(moodLampCmp).Method("SetVariant", new[] { typeof(string) }).GetValue(currentVariantID);
-            }
-            if (arg2.TryGetValue("colorHex", out var colorHexToken))
-            {
-                var tintableLampCmp = arg1.GetComponent("TintableLamp");
-                if (tintableLampCmp != null)
-                {
-
-                    string colorHex = colorHexToken.Value<string>();
-                    var color = Util.ColorFromHex(colorHex);
-                    Traverse.Create(tintableLampCmp).Method("SetColor", new[] { typeof(Color) }).GetValue(color);
-                }
-
-            }
-        }
-
-        internal static JObject? TryStoreMoodLamp(GameObject arg)
-        {
-            JObject? data = null;
-            string? currentVariantID = null;
-            string? colorHex = null;
-
-            var moodLampCmp = arg.GetComponent("MoodLamp");
-            if (moodLampCmp != null)
-            {
-                currentVariantID = Traverse.Create(moodLampCmp).Field("currentVariantID").GetValue() as string;
-            }
-            var tintableLampCmp = arg.GetComponent("TintableLamp");
-            if (tintableLampCmp != null)
-            {
-                colorHex = Traverse.Create(tintableLampCmp).Field("colorHex").GetValue() as string;
-            }
+            string? currentVariantID = arg2.GetValue("currentVariantID")?.Value<string>();
 
             if (currentVariantID != null)
+                Traverse.Create(moodLampCmp).Method("SetVariant", new[] { typeof(string) }).GetValue(currentVariantID);
+        }
+        if (arg2.TryGetValue("colorHex", out var colorHexToken))
+        {
+            var tintableLampCmp = arg1.GetComponent("TintableLamp");
+            if (tintableLampCmp != null)
             {
-                data = new JObject()
-                {
-                    {"currentVariantID", currentVariantID}
-                };
 
-                if (colorHex != null)
-                    data.Add("colorHex", colorHex);
+                string colorHex = colorHexToken.Value<string>();
+                var color = Util.ColorFromHex(colorHex);
+                Traverse.Create(tintableLampCmp).Method("SetColor", new[] { typeof(Color) }).GetValue(color);
             }
 
+        }
+    }
 
-            return data;
+    internal static JObject? TryStoreMoodLamp(GameObject arg)
+    {
+        JObject? data = null;
+        string? currentVariantID = null;
+        string? colorHex = null;
+
+        var moodLampCmp = arg.GetComponent("MoodLamp");
+        if (moodLampCmp != null)
+        {
+            currentVariantID = Traverse.Create(moodLampCmp).Field("currentVariantID").GetValue() as string;
+        }
+        var tintableLampCmp = arg.GetComponent("TintableLamp");
+        if (tintableLampCmp != null)
+        {
+            colorHex = Traverse.Create(tintableLampCmp).Field("colorHex").GetValue() as string;
         }
 
-        //Artable (painting, statue)
-        internal static JObject? TryStoreArtableSkin(GameObject arg)
+        if (currentVariantID != null)
         {
-            string skinId = string.Empty;
-            if (arg.TryGetComponent<Artable>(out var artable))
+            data = new JObject()
             {
-                if (!string.IsNullOrEmpty(artable.userChosenTargetStage))
+                {"currentVariantID", currentVariantID}
+            };
+
+            if (colorHex != null)
+                data.Add("colorHex", colorHex);
+        }
+
+
+        return data;
+    }
+
+    //Artable (painting, statue)
+    internal static JObject? TryStoreArtableSkin(GameObject arg)
+    {
+        string skinId = string.Empty;
+        if (arg.TryGetComponent<Artable>(out var artable))
+        {
+            if (!string.IsNullOrEmpty(artable.userChosenTargetStage))
+            {
+                skinId = artable.userChosenTargetStage;
+            }
+            else if (!string.IsNullOrEmpty(artable.CurrentStage))
+            {
+                skinId = artable.CurrentStage;
+            }
+            else
+                skinId = "Default";
+        }
+        if (!ValidArtableId(skinId, arg))
+        {
+            return null;
+        }
+        return new JObject()
+        {
+            { "CurrentStage", skinId }
+        };
+    }
+    public static void TryApplyArtableSkin(GameObject building, JObject facadeObj)
+    {
+        var token = facadeObj.SelectToken("CurrentStage");
+        if (token == null)
+            return;
+
+        string facadeID = token.Value<string>();
+
+        if (building.TryGetComponent<Artable>(out var sculpture))
+        {
+            if (ValidArtableId(facadeID, building))
+            {
+                if (BlueprintState.InstantBuild)
                 {
-                    skinId = artable.userChosenTargetStage;
-                }
-                else if (!string.IsNullOrEmpty(artable.CurrentStage))
-                {
-                    skinId = artable.CurrentStage;
+                    sculpture.SetStage(facadeID, true);
+                    sculpture.userChosenTargetStage = null;
                 }
                 else
-                    skinId = "Default";
-            }
-            if (!ValidArtableId(skinId, arg))
-            {
-                return null;
-            }
-            return new JObject()
-            {
-                { "CurrentStage", skinId }
-            };
-        }
-        public static void TryApplyArtableSkin(GameObject building, JObject facadeObj)
-        {
-            var token = facadeObj.SelectToken("CurrentStage");
-            if (token == null)
-                return;
-
-            string facadeID = token.Value<string>();
-
-            if (building.TryGetComponent<Artable>(out var sculpture))
-            {
-                if (ValidArtableId(facadeID, building))
                 {
-                    if (BlueprintState.InstantBuild)
-                    {
-                        sculpture.SetStage(facadeID, true);
-                        sculpture.userChosenTargetStage = null;
-                    }
-                    else
-                    {
-                        sculpture.chore?.Cancel("blueprint applied");
-                        sculpture.SetUserChosenTargetState(facadeID);
-                    }
+                    sculpture.chore?.Cancel("blueprint applied");
+                    sculpture.SetUserChosenTargetState(facadeID);
                 }
             }
         }
-        //Facade (building skin)
-        internal static JObject? TryStoreBuildingSkin(GameObject arg)
+    }
+    //Facade (building skin)
+    internal static JObject? TryStoreBuildingSkin(GameObject arg)
+    {
+        string skinId = string.Empty;
+        if (arg.TryGetComponent<BuildingFacade>(out var buildingFacade) && !buildingFacade.IsOriginal)
         {
-            string skinId = string.Empty;
-            if (arg.TryGetComponent<BuildingFacade>(out var buildingFacade) && !buildingFacade.IsOriginal)
-            {
-                skinId = buildingFacade.CurrentFacade;
-            }
-            if (!ValidFacadeId(skinId, arg))
-            {
-                return null;
-            }
-            return new JObject()
-            {
-                { "CurrentFacade", skinId }
-            };
+            skinId = buildingFacade.CurrentFacade;
         }
-        public static void TryApplyBuildingSkin(GameObject building, JObject facadeObj)
+        if (!ValidFacadeId(skinId, arg))
         {
-            var token = facadeObj.SelectToken("CurrentFacade");
-            if (token == null)
-                return;
+            return null;
+        }
+        return new JObject()
+        {
+            { "CurrentFacade", skinId }
+        };
+    }
+    public static void TryApplyBuildingSkin(GameObject building, JObject facadeObj)
+    {
+        var token = facadeObj.SelectToken("CurrentFacade");
+        if (token == null)
+            return;
 
-            string facadeID = token.Value<string>();
+        string facadeID = token.Value<string>();
 
-            if (building.TryGetComponent<BuildingFacade>(out var buildingFacade))
+        if (building.TryGetComponent<BuildingFacade>(out var buildingFacade))
+        {
+            if (ValidFacadeId(facadeID, building))
             {
-                if (ValidFacadeId(facadeID, building))
+                buildingFacade.ApplyBuildingFacade(Db.GetBuildingFacades().Get(facadeID));
+                if (building.GetComponent("FacadeRestorer") != null && building.TryGetComponent<KBatchedAnimController>(out var kbac)
+                    )
                 {
-                    buildingFacade.ApplyBuildingFacade(Db.GetBuildingFacades().Get(facadeID));
-                    if (building.GetComponent("FacadeRestorer") != null && building.TryGetComponent<KBatchedAnimController>(out var kbac)
-                        )
-                    {
-                        //refresh the anim on akis facade restorer aero pods
-                        SgtLogger.l("fixing decor pack aero pod");
-                        kbac.Play("off");
-                    }
+                    //refresh the anim on akis facade restorer aero pods
+                    SgtLogger.l("fixing decor pack aero pod");
+                    kbac.Play("off");
                 }
             }
         }
-        static bool ValidFacadeId(string facadeID, GameObject buildingGO)
-        {
-            if (!buildingGO.TryGetComponent<Building>(out var building)) return false;
+    }
+    static bool ValidFacadeId(string facadeID, GameObject buildingGO)
+    {
+        if (!buildingGO.TryGetComponent<Building>(out var building)) return false;
 
-            return !facadeID.IsNullOrWhiteSpace() && facadeID != "DEFAULT_FACADE"
-                && Db.GetBuildingFacades().TryGet(facadeID) != null
-                && Db.GetBuildingFacades().TryGet(facadeID).PrefabID == building.Def.PrefabID
-                && Db.GetBuildingFacades().Get(facadeID).IsUnlocked();
-        }
-        static bool ValidArtableId(string artableID, GameObject buildingGO)
-        {
-            if (!buildingGO.TryGetComponent<Building>(out var building)) return false;
+        return !facadeID.IsNullOrWhiteSpace() && facadeID != "DEFAULT_FACADE"
+            && Db.GetBuildingFacades().TryGet(facadeID) != null
+            && Db.GetBuildingFacades().TryGet(facadeID).PrefabID == building.Def.PrefabID
+            && Db.GetBuildingFacades().Get(facadeID).IsUnlocked();
+    }
+    static bool ValidArtableId(string artableID, GameObject buildingGO)
+    {
+        if (!buildingGO.TryGetComponent<Building>(out var building)) return false;
 
-            var validStagesForBuilding = Db.GetArtableStages().GetPrefabStages(building.Def.PrefabID);
+        var validStagesForBuilding = Db.GetArtableStages().GetPrefabStages(building.Def.PrefabID);
 
-            return
-                !artableID.IsNullOrWhiteSpace()
-                && artableID != "Default"
-                && Db.GetArtableStages().TryGet(artableID) != null
-                && Db.GetArtableStages().Get(artableID).IsUnlocked()
-                && validStagesForBuilding.Any(skin => skin.Id == artableID);
-        }
+        return
+            !artableID.IsNullOrWhiteSpace()
+            && artableID != "Default"
+            && Db.GetArtableStages().TryGet(artableID) != null
+            && Db.GetArtableStages().Get(artableID).IsUnlocked()
+            && validStagesForBuilding.Any(skin => skin.Id == artableID);
     }
 }

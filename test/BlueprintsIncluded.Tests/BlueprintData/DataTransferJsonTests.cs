@@ -1,12 +1,10 @@
-using System;
-using System.Collections.Generic;
 using BlueprintsV2.BlueprintData;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
 
-namespace BlueprintsIncluded.Tests.BlueprintData
-{
+namespace BlueprintsIncluded.Tests.BlueprintData;
+
 	/// <summary>
 	/// Locks the behaviour of <see cref="EmbeddedJson"/>: values embedded in the per-building
 	/// <see cref="JObject"/> must round-trip as real nested nodes, and the reader must still
@@ -97,4 +95,3 @@ namespace BlueprintsIncluded.Tests.BlueprintData
 			Assert.Null(EmbeddedJson.To<List<int>>(JValue.CreateNull()));
 		}
 	}
-}

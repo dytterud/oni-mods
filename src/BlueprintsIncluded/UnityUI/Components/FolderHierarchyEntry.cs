@@ -1,31 +1,30 @@
 ﻿using BlueprintsV2.BlueprintData;
 using UtilLibs.UIcmp;
 
-namespace BlueprintsV2.UnityUI.Components
+namespace BlueprintsV2.UnityUI.Components;
+
+internal class FolderHierarchyEntry : KMonoBehaviour
 {
-    internal class FolderHierarchyEntry : KMonoBehaviour
+    public BlueprintFolder? folder;
+
+    public System.Action? OnEntryClicked;
+    FButton button = null!;
+    LocText Label = null!;
+
+    public override void OnPrefabInit()
     {
-        public BlueprintFolder? folder;
-
-        public System.Action? OnEntryClicked;
-        FButton button = null!;
-        LocText Label = null!;
-
-        public override void OnPrefabInit()
+        base.OnPrefabInit();
+        Label = transform.Find("Label").gameObject.GetComponent<LocText>();
+        button = gameObject.AddComponent<FButton>();
+    }
+    public override void OnSpawn()
+    {
+        base.OnSpawn();
+        if (folder != null)
         {
-            base.OnPrefabInit();
-            Label = transform.Find("Label").gameObject.GetComponent<LocText>();
-            button = gameObject.AddComponent<FButton>();
-        }
-        public override void OnSpawn()
-        {
-            base.OnSpawn();
-            if (folder != null)
-            {
-                Label.SetText(folder.Name);
-                if (OnEntryClicked != null)
-                    button.OnClick += OnEntryClicked;
-            }
+            Label.SetText(folder.Name);
+            if (OnEntryClicked != null)
+                button.OnClick += OnEntryClicked;
         }
     }
 }

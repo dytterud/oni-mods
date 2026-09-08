@@ -1,55 +1,51 @@
 ﻿using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
-using BlueprintsV2.BlueprintData.PlannedElements;
 using BlueprintsV2.Visualizers.ReplacementVisualizers;
 using HarmonyLib;
-using System.Text;
 using UnityEngine;
-using UtilLibs;
 
-namespace BlueprintsV2.Patches
+namespace BlueprintsV2.Patches;
+
+internal class CancelTool_Patches
 {
-    internal class CancelTool_Patches
+
+
+    [HarmonyPatch(typeof(CancelTool), nameof(CancelTool.GetDefaultFilters))]
+    public class CancelTool_GetDefaultFilters_Patch
     {
-
-
-        [HarmonyPatch(typeof(CancelTool), nameof(CancelTool.GetDefaultFilters))]
-        public class CancelTool_GetDefaultFilters_Patch
+        public static void Postfix(CancelTool __instance, ref ToolParameterMenu.ToggleData[] filters)
         {
-            public static void Postfix(CancelTool __instance, ref ToolParameterMenu.ToggleData[] filters)
-            {
-                filters = filters.Append(new ToolParameterMenu.ToggleData(ElementNote.FILTERLAYER, ToolParameterMenu.ToggleState.Off));
-            }
+            filters = filters.Append(new ToolParameterMenu.ToggleData(ElementNote.FILTERLAYER, ToolParameterMenu.ToggleState.Off));
         }
+    }
 
-        [HarmonyPatch(typeof(CancelTool), nameof(CancelTool.OnDragTool))]
-        public class CancelTool_OnDragTool_Patch
+    [HarmonyPatch(typeof(CancelTool), nameof(CancelTool.OnDragTool))]
+    public class CancelTool_OnDragTool_Patch
+    {
+        public static void Postfix(int cell, int distFromOrigin)
         {
-            public static void Postfix(int cell, int distFromOrigin)
-            {
-                ReplacementVis.CancelToolTriggered(cell);
-            }
+            ReplacementVis.CancelToolTriggered(cell);
         }
+    }
 
-        //[HarmonyPatch(typeof(CancelTool), nameof(CancelTool.OnPrefabInit))]
-        //public class CancelTool_OnPrefabInit_Patch
-        //{
-        //	public static void Postfix(CancelTool __instance)
-        //	{
-        //		var pos = __instance.transform.position;
-        //		pos.y += 40f;
-        //		__instance.transform.SetPosition(pos);
-        //	}
-        //}
+    //[HarmonyPatch(typeof(CancelTool), nameof(CancelTool.OnPrefabInit))]
+    //public class CancelTool_OnPrefabInit_Patch
+    //{
+    //	public static void Postfix(CancelTool __instance)
+    //	{
+    //		var pos = __instance.transform.position;
+    //		pos.y += 40f;
+    //		__instance.transform.SetPosition(pos);
+    //	}
+    //}
 
-        [HarmonyPatch(typeof(FilteredDragTool), nameof(FilteredDragTool.GetFilterLayerFromGameObject))]
-        public class FilteredDragTool_GetFilterLayerFromGameObject_Patch
+    [HarmonyPatch(typeof(FilteredDragTool), nameof(FilteredDragTool.GetFilterLayerFromGameObject))]
+    public class FilteredDragTool_GetFilterLayerFromGameObject_Patch
+    {
+        public static void Postfix(FilteredDragTool __instance, GameObject input, ref string __result)
         {
-            public static void Postfix(FilteredDragTool __instance, GameObject input, ref string __result)
+            if (input.TryGetComponent<BlueprintNote>(out _))
             {
-                if (input.TryGetComponent<BlueprintNote>(out _))
-                {
-                    __result = BlueprintNote.FILTERLAYER;
-                }
+                __result = BlueprintNote.FILTERLAYER;
             }
         }
     }

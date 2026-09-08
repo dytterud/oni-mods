@@ -1,69 +1,67 @@
-﻿using BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
+﻿using System.Collections;
+using BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
 using HarmonyLib;
-using System.Collections;
-using System.Text;
 using UnityEngine;
 using UtilLibs;
 
-namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration
+namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration;
+
+public static class PlanningTool_EnumMapping
 {
-    public static class PlanningTool_EnumMapping
+    static Dictionary<int, Color>? ColorMap;
+
+    public static Color FallbackColor(PlanColor color)
     {
-        static Dictionary<int, Color>? ColorMap;
-
-        public static Color FallbackColor(PlanColor color)
+        return color switch
         {
-            return color switch
+            PlanColor.Violet => Color.violet,
+            PlanColor.Gray => Color.gray,
+            PlanColor.Blue => Color.blue,
+            PlanColor.Green => Color.green,
+            PlanColor.Red => Color.red,
+            PlanColor.Yellow => Color.yellow,
+            PlanColor.Cyan => Color.cyan,
+            PlanColor.White => Color.white,
+            PlanColor.Magenta => Color.magenta,
+            PlanColor.Orange => Color.orange,
+            PlanColor.Black => Color.black,
+            _ => Color.darkGray
+        };
+    }
+
+    public static Color AsColor(PlanColor planColor)
+    {
+        if (ColorMap == null)
+        {
+            if (!PlanningTool_Integration.ModActive)
+                return FallbackColor(planColor);
+
+            ///Initialize color dictionary
+            try
             {
-                PlanColor.Violet => Color.violet,
-                PlanColor.Gray => Color.gray,
-                PlanColor.Blue => Color.blue,
-                PlanColor.Green => Color.green,
-                PlanColor.Red => Color.red,
-                PlanColor.Yellow => Color.yellow,
-                PlanColor.Cyan => Color.cyan,
-                PlanColor.White => Color.white,
-                PlanColor.Magenta => Color.magenta,
-                PlanColor.Orange => Color.orange,
-                PlanColor.Black => Color.black,
-                _ => Color.darkGray
-            };
+                AccessTools.Method(PlanningTool_Integration.t_PlanColorExtension, "AsColor").Invoke(null, [0]);
+            }
+            catch { }
+            var map = (IDictionary)AccessTools.Field(PlanningTool_Integration.t_PlanColorExtension, "ColorMap").GetValue(null);
+            if (map == null)
+                return Color.gray;
+            ColorMap = map.CastDict().ToDictionary(entry => (int)entry.Key, entry => (Color)entry.Value);
+            SgtLogger.l("PlanningTool Color map copy initialized with " + ColorMap.Count + " entries");
         }
 
-        public static Color AsColor(PlanColor planColor)
+        if (ColorMap.ContainsKey((int)planColor))
         {
-            if (ColorMap == null)
-            {
-                if (!PlanningTool_Integration.ModActive)
-                    return FallbackColor(planColor);
-
-                ///Initialize color dictionary
-                try
-                {
-                    AccessTools.Method(PlanningTool_Integration.t_PlanColorExtension, "AsColor").Invoke(null, [0]);
-                }
-                catch { }
-                var map = (IDictionary)AccessTools.Field(PlanningTool_Integration.t_PlanColorExtension, "ColorMap").GetValue(null);
-                if (map == null)
-                    return Color.gray;
-                ColorMap = map.CastDict().ToDictionary(entry => (int)entry.Key, entry => (Color)entry.Value);
-                SgtLogger.l("PlanningTool Color map copy initialized with " + ColorMap.Count + " entries");
-            }
-
-            if (ColorMap.ContainsKey((int)planColor))
-            {
-                return ColorMap[(int)planColor];
-            }
-
-            Debug.LogWarning("[BlueprintsV2/PlanningTool] Color with enum value " + planColor + " not recognized, returning default color");
-            return Color.gray;
+            return ColorMap[(int)planColor];
         }
-        private static IEnumerable<DictionaryEntry> CastDict(this IDictionary dictionary)
+
+        Debug.LogWarning("[BlueprintsV2/PlanningTool] Color with enum value " + planColor + " not recognized, returning default color");
+        return Color.gray;
+    }
+    private static IEnumerable<DictionaryEntry> CastDict(this IDictionary dictionary)
+    {
+        foreach (DictionaryEntry entry in dictionary)
         {
-            foreach (DictionaryEntry entry in dictionary)
-            {
-                yield return entry;
-            }
+            yield return entry;
         }
     }
 }

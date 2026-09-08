@@ -1,11 +1,10 @@
-using System.Collections.Generic;
 using BlueprintsV2.BlueprintData;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
 
-namespace BlueprintsIncluded.Tests.BlueprintData
-{
+namespace BlueprintsIncluded.Tests.BlueprintData;
+
 	/// <summary>
 	/// Locks the behaviour of <see cref="JObjectExtensions"/>: the read helpers must be a 1:1
 	/// replacement for the <c>GetValue</c> / null-check / <c>Value&lt;T&gt;()</c> pattern that
@@ -119,4 +118,3 @@ namespace BlueprintsIncluded.Tests.BlueprintData
 			Assert.Null(result);
 		}
 	}
-}

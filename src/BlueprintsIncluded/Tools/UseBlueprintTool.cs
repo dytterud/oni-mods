@@ -2,254 +2,252 @@
 using BlueprintsV2.BlueprintData;
 using BlueprintsV2.UnityUI;
 using UnityEngine;
-using UtilLibs;
 
-namespace BlueprintsV2.Tools
+namespace BlueprintsV2.Tools;
+
+public class UseBlueprintTool : InterfaceTool
 {
-    public class UseBlueprintTool : InterfaceTool
+    public static UseBlueprintTool Instance { get; private set; } = null!;
+
+    public UseBlueprintTool()
     {
-        public static UseBlueprintTool Instance { get; private set; } = null!;
+        Instance = this;
+        BlueprintState.CurrentStateInfo().ForceBuild = false;
+    }
 
-        public UseBlueprintTool()
+    public UseBlueprintToolHoverCard HoverCard = null!;
+    public bool ToolActive { get; private set; }
+
+
+    public static void DestroyInstance()
+    {
+        Instance = null!;
+    }
+
+    public void CreateVisualizer()
+    {
+        if (visualizer != null)
         {
-            Instance = this;
-            BlueprintState.CurrentStateInfo().ForceBuild = false;
+            Destroy(visualizer);
         }
 
-        public UseBlueprintToolHoverCard HoverCard = null!;
-        public bool ToolActive { get; private set; }
+        visualizer = new GameObject("UseBlueprintVisualizer");
+        visualizer.SetActive(false);
+
+        GameObject offsetObject = new GameObject();
+        SpriteRenderer spriteRenderer = offsetObject.AddComponent<SpriteRenderer>();
+        spriteRenderer.color = ModAssets.BLUEPRINTS_COLOR_BLUEPRINT_DRAG;
+        spriteRenderer.sprite = ModAssets.BLUEPRINTS_USE_VISUALIZER_SPRITE;
+
+        offsetObject.transform.SetParent(visualizer.transform);
+        //offsetObject.transform.localPosition = new Vector3(0, Grid.HalfCellSizeInMeters);
+        offsetObject.transform.localPosition = new Vector3(-Grid.HalfCellSizeInMeters, 0);
+        var sprite = spriteRenderer.sprite;
+        offsetObject.transform.localScale = new Vector3(
+            Grid.CellSizeInMeters / (sprite.texture.width / sprite.pixelsPerUnit),
+            Grid.CellSizeInMeters / (sprite.texture.height / sprite.pixelsPerUnit)
+        );
+
+        offsetObject.SetLayerRecursively(LayerMask.NameToLayer("Overlay"));
+        visualizer.transform.SetParent(transform);
+
+        OnMouseMove(PlayerController.GetCursorPos(KInputManager.GetMousePos()));
+    }
+
+    public override void OnPrefabInit()
+    {
+        base.OnPrefabInit();
+        HoverCard = gameObject.AddComponent<UseBlueprintToolHoverCard>();
+    }
+
+    public override void OnActivateTool()
+    {
+        base.OnActivateTool();
+        BlueprintState.CurrentStateInfo().IsPlacingSnapshot = false;
+
+        ToolMenu.Instance.PriorityScreen.Show();
+        ShowBlueprintsWindow();
+        ToolActive = true;
+    }
 
 
-        public static void DestroyInstance()
+    void ShowBlueprintsWindow()
+    {
+        BlueprintSelectionScreen.ShowWindow(OnBlueprintSelected, ModAssets.SelectedBlueprint, true);
+    }
+
+    public void OnBlueprintSelected(Blueprint? selected)
+    {
+        ModAssets.SelectedBlueprint = selected;
+        //SgtLogger.l("OnBlueprintSelected, selected ? " + (ModAssets.SelectedBlueprint != null));
+        if (ModAssets.SelectedBlueprint != null)
         {
-            Instance = null!;
+            GridCompositor.Instance.ToggleMajor(true);
+            VisualizeSelectedBlueprint();
+            CurrentBlueprintStateScreen.ShowScreen(true);
+            CurrentBlueprintStateScreen.Instance.SetSelectedBlueprint(ModAssets.SelectedBlueprint);
         }
-
-        public void CreateVisualizer()
+        else
         {
+            CurrentBlueprintStateScreen.ShowScreen(false);
             if (visualizer != null)
             {
                 Destroy(visualizer);
             }
-
-            visualizer = new GameObject("UseBlueprintVisualizer");
-            visualizer.SetActive(false);
-
-            GameObject offsetObject = new GameObject();
-            SpriteRenderer spriteRenderer = offsetObject.AddComponent<SpriteRenderer>();
-            spriteRenderer.color = ModAssets.BLUEPRINTS_COLOR_BLUEPRINT_DRAG;
-            spriteRenderer.sprite = ModAssets.BLUEPRINTS_USE_VISUALIZER_SPRITE;
-
-            offsetObject.transform.SetParent(visualizer.transform);
-            //offsetObject.transform.localPosition = new Vector3(0, Grid.HalfCellSizeInMeters);
-            offsetObject.transform.localPosition = new Vector3(-Grid.HalfCellSizeInMeters, 0);
-            var sprite = spriteRenderer.sprite;
-            offsetObject.transform.localScale = new Vector3(
-                Grid.CellSizeInMeters / (sprite.texture.width / sprite.pixelsPerUnit),
-                Grid.CellSizeInMeters / (sprite.texture.height / sprite.pixelsPerUnit)
-            );
-
-            offsetObject.SetLayerRecursively(LayerMask.NameToLayer("Overlay"));
-            visualizer.transform.SetParent(transform);
-
-            OnMouseMove(PlayerController.GetCursorPos(KInputManager.GetMousePos()));
+            //deactivate tool if no bp selected:
+            //SgtLogger.l("Deactivating UseBPTool");
+            ToolMenu.Instance.ClearSelection();
+            string sound = GlobalAssets.GetSound(PlayerController.Instance.ActiveTool.GetDeactivateSound());
+            if (sound != null)
+                KMonoBehaviour.PlaySound(sound);
+            this.DeactivateTool();
         }
+    }
 
-        public override void OnPrefabInit()
+    void VisualizeSelectedBlueprint()
+    {
+        BlueprintState.VisualizeBlueprint(Grid.PosToXY(PlayerController.GetCursorPos(KInputManager.GetMousePos())), ModAssets.SelectedBlueprint);
+    }
+
+    public override void OnDeactivateTool(InterfaceTool newTool)
+    {
+        base.OnDeactivateTool(newTool);
+        BlueprintState.CurrentStateInfo().ForceBuild = false;
+
+        BlueprintState.ClearVisuals();
+        ToolMenu.Instance.PriorityScreen.Show(false);
+        GridCompositor.Instance.ToggleMajor(false);
+        CurrentBlueprintStateScreen.ShowScreen(false);
+        ToolActive = false;
+
+    }
+
+    public override void OnLeftClickDown(Vector3 cursorPos)
+    {
+        base.OnLeftClickDown(cursorPos);
+
+        if (hasFocus)
         {
-            base.OnPrefabInit();
-            HoverCard = gameObject.AddComponent<UseBlueprintToolHoverCard>();
+            BlueprintState.UseBlueprint(BlueprintState.PlayerId_DefaultTilePreviews, Grid.PosToXY(cursorPos));
         }
+    }
 
-        public override void OnActivateTool()
+    public override void OnMouseMove(Vector3 cursorPos)
+    {
+        base.OnMouseMove(cursorPos);
+
+        if (hasFocus)
         {
-            base.OnActivateTool();
-            BlueprintState.CurrentStateInfo().IsPlacingSnapshot = false;
-
-            ToolMenu.Instance.PriorityScreen.Show();
-            ShowBlueprintsWindow();
-            ToolActive = true;
+            BlueprintState.UpdateVisual(BlueprintState.PlayerId_DefaultTilePreviews, Grid.PosToXY(cursorPos));
         }
+    }
+    void SetForceMaterialChange(bool enabled)
+    {
+        BlueprintState.CurrentStateInfo().ForceBuild = enabled;
+        BlueprintState.RefreshBlueprintVisualizers();
+        CurrentBlueprintStateScreen.Instance.SetForceMaterialChange(enabled);
+    }
 
+    public override void OnKeyDown(KButtonEvent buttonEvent)
+    {
+        if (DetailsScreen.Instance?.isEditing ?? false)
+            return;
 
-        void ShowBlueprintsWindow()
+        if (ModAssets.BlueprintFileHandling.HasBlueprints())
         {
-            BlueprintSelectionScreen.ShowWindow(OnBlueprintSelected, ModAssets.SelectedBlueprint, true);
-        }
-
-        public void OnBlueprintSelected(Blueprint? selected)
-        {
-            ModAssets.SelectedBlueprint = selected;
-            //SgtLogger.l("OnBlueprintSelected, selected ? " + (ModAssets.SelectedBlueprint != null));
-            if (ModAssets.SelectedBlueprint != null)
+            if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsToggleHotkeyToolTips.GetKAction()))
             {
-                GridCompositor.Instance.ToggleMajor(true);
-                VisualizeSelectedBlueprint();
-                CurrentBlueprintStateScreen.ShowScreen(true);
-                CurrentBlueprintStateScreen.Instance.SetSelectedBlueprint(ModAssets.SelectedBlueprint);
+                BlueprintState.ToggleHotkeyTooltips();
             }
             else
-            {
-                CurrentBlueprintStateScreen.ShowScreen(false);
-                if (visualizer != null)
+                if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsToggleForce.GetKAction()))
                 {
-                    Destroy(visualizer);
+                    SetForceMaterialChange(true);
                 }
-                //deactivate tool if no bp selected:
-                //SgtLogger.l("Deactivating UseBPTool");
-                ToolMenu.Instance.ClearSelection();
-                string sound = GlobalAssets.GetSound(PlayerController.Instance.ActiveTool.GetDeactivateSound());
-                if (sound != null)
-                    KMonoBehaviour.PlaySound(sound);
-                this.DeactivateTool();
+            if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsReopenSelectionAction.GetKAction()))
+            {
+                ShowBlueprintsWindow();
+            }
+
+            if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsSwapAnchorAction.GetKAction()))
+            {
+                BlueprintState.CurrentStateInfo().NextAnchorState();
+                BlueprintState.RefreshBlueprintVisualizers();
+            }
+            else if (buttonEvent.TryConsume(Action.RotateBuilding) || buttonEvent.TryConsume(ModAssets.Actions.BlueprintsRotate.GetKAction()))
+            {
+                BlueprintState.CurrentStateInfo().TryRotateBlueprint();
+                BlueprintState.RefreshBlueprintVisualizers();
+            }
+            else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsRotateInverse.GetKAction()))
+            {
+                BlueprintState.CurrentStateInfo().TryRotateBlueprint(true);
+                BlueprintState.RefreshBlueprintVisualizers();
+            }
+            else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsFlipHorizontal.GetKAction()))
+            {
+                BlueprintState.CurrentStateInfo().FlipHorizontal();
+                BlueprintState.RefreshBlueprintVisualizers();
+            }
+            else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsFlipVertical.GetKAction()))
+            {
+                BlueprintState.CurrentStateInfo().FlipVertical();
+                BlueprintState.RefreshBlueprintVisualizers();
+            }
+            else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsSelectPrevious.GetKAction()))
+            {
+                SelectPrevBlueprint();
+            }
+            else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsSelectNext.GetKAction()))
+            {
+                SelectNextBlueprint();
+            }
+            else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsSelectPreviousFolder.GetKAction()))
+            {
+                SelectPrevFolder();
+            }
+            else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsSelectNextFolder.GetKAction()))
+            {
+                SelectNextFolder();
             }
         }
 
-        void VisualizeSelectedBlueprint()
+        base.OnKeyDown(buttonEvent);
+    }
+
+    public void SelectNextFolder()
+    {
+        ModAssets.SelectNextFolder();
+        VisualizeSelectedBlueprint();
+        CurrentBlueprintStateScreen.Instance.SetSelectedBlueprint(ModAssets.SelectedBlueprint);
+    }
+    public void SelectPrevFolder()
+    {
+        ModAssets.SelectPreviousFolder();
+        VisualizeSelectedBlueprint();
+        CurrentBlueprintStateScreen.Instance.SetSelectedBlueprint(ModAssets.SelectedBlueprint);
+    }
+    public void SelectNextBlueprint()
+    {
+        ModAssets.GetCurrentFolder().SelectNext();
+        VisualizeSelectedBlueprint();
+        CurrentBlueprintStateScreen.Instance.SetSelectedBlueprint(ModAssets.SelectedBlueprint);
+    }
+    public void SelectPrevBlueprint()
+    {
+        ModAssets.GetCurrentFolder().SelectPrev();
+        VisualizeSelectedBlueprint();
+        CurrentBlueprintStateScreen.Instance.SetSelectedBlueprint(ModAssets.SelectedBlueprint);
+    }
+
+    public override void OnKeyUp(KButtonEvent buttonEvent)
+    {
+        if (DetailsScreen.Instance?.isEditing ?? false)
+            return;
+        if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsToggleForce.GetKAction()))
         {
-            BlueprintState.VisualizeBlueprint(Grid.PosToXY(PlayerController.GetCursorPos(KInputManager.GetMousePos())), ModAssets.SelectedBlueprint);
+            SetForceMaterialChange(false);
         }
-
-        public override void OnDeactivateTool(InterfaceTool newTool)
-        {
-            base.OnDeactivateTool(newTool);
-            BlueprintState.CurrentStateInfo().ForceBuild = false;
-
-            BlueprintState.ClearVisuals();
-            ToolMenu.Instance.PriorityScreen.Show(false);
-            GridCompositor.Instance.ToggleMajor(false);
-            CurrentBlueprintStateScreen.ShowScreen(false);
-            ToolActive = false;
-
-        }
-
-        public override void OnLeftClickDown(Vector3 cursorPos)
-        {
-            base.OnLeftClickDown(cursorPos);
-
-            if (hasFocus)
-            {
-                BlueprintState.UseBlueprint(BlueprintState.PlayerId_DefaultTilePreviews, Grid.PosToXY(cursorPos));
-            }
-        }
-
-        public override void OnMouseMove(Vector3 cursorPos)
-        {
-            base.OnMouseMove(cursorPos);
-
-            if (hasFocus)
-            {
-                BlueprintState.UpdateVisual(BlueprintState.PlayerId_DefaultTilePreviews, Grid.PosToXY(cursorPos));
-            }
-        }
-        void SetForceMaterialChange(bool enabled)
-        {
-            BlueprintState.CurrentStateInfo().ForceBuild = enabled;
-            BlueprintState.RefreshBlueprintVisualizers();
-            CurrentBlueprintStateScreen.Instance.SetForceMaterialChange(enabled);
-        }
-
-        public override void OnKeyDown(KButtonEvent buttonEvent)
-        {
-            if (DetailsScreen.Instance?.isEditing ?? false)
-                return;
-
-            if (ModAssets.BlueprintFileHandling.HasBlueprints())
-            {
-                if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsToggleHotkeyToolTips.GetKAction()))
-                {
-                    BlueprintState.ToggleHotkeyTooltips();
-                }
-                else
-                    if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsToggleForce.GetKAction()))
-                    {
-                        SetForceMaterialChange(true);
-                    }
-                if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsReopenSelectionAction.GetKAction()))
-                {
-                    ShowBlueprintsWindow();
-                }
-
-                if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsSwapAnchorAction.GetKAction()))
-                {
-                    BlueprintState.CurrentStateInfo().NextAnchorState();
-                    BlueprintState.RefreshBlueprintVisualizers();
-                }
-                else if (buttonEvent.TryConsume(Action.RotateBuilding) || buttonEvent.TryConsume(ModAssets.Actions.BlueprintsRotate.GetKAction()))
-                {
-                    BlueprintState.CurrentStateInfo().TryRotateBlueprint();
-                    BlueprintState.RefreshBlueprintVisualizers();
-                }
-                else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsRotateInverse.GetKAction()))
-                {
-                    BlueprintState.CurrentStateInfo().TryRotateBlueprint(true);
-                    BlueprintState.RefreshBlueprintVisualizers();
-                }
-                else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsFlipHorizontal.GetKAction()))
-                {
-                    BlueprintState.CurrentStateInfo().FlipHorizontal();
-                    BlueprintState.RefreshBlueprintVisualizers();
-                }
-                else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsFlipVertical.GetKAction()))
-                {
-                    BlueprintState.CurrentStateInfo().FlipVertical();
-                    BlueprintState.RefreshBlueprintVisualizers();
-                }
-                else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsSelectPrevious.GetKAction()))
-                {
-                    SelectPrevBlueprint();
-                }
-                else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsSelectNext.GetKAction()))
-                {
-                    SelectNextBlueprint();
-                }
-                else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsSelectPreviousFolder.GetKAction()))
-                {
-                    SelectPrevFolder();
-                }
-                else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsSelectNextFolder.GetKAction()))
-                {
-                    SelectNextFolder();
-                }
-            }
-
-            base.OnKeyDown(buttonEvent);
-        }
-
-        public void SelectNextFolder()
-        {
-            ModAssets.SelectNextFolder();
-            VisualizeSelectedBlueprint();
-            CurrentBlueprintStateScreen.Instance.SetSelectedBlueprint(ModAssets.SelectedBlueprint);
-        }
-        public void SelectPrevFolder()
-        {
-            ModAssets.SelectPreviousFolder();
-            VisualizeSelectedBlueprint();
-            CurrentBlueprintStateScreen.Instance.SetSelectedBlueprint(ModAssets.SelectedBlueprint);
-        }
-        public void SelectNextBlueprint()
-        {
-            ModAssets.GetCurrentFolder().SelectNext();
-            VisualizeSelectedBlueprint();
-            CurrentBlueprintStateScreen.Instance.SetSelectedBlueprint(ModAssets.SelectedBlueprint);
-        }
-        public void SelectPrevBlueprint()
-        {
-            ModAssets.GetCurrentFolder().SelectPrev();
-            VisualizeSelectedBlueprint();
-            CurrentBlueprintStateScreen.Instance.SetSelectedBlueprint(ModAssets.SelectedBlueprint);
-        }
-
-        public override void OnKeyUp(KButtonEvent buttonEvent)
-        {
-            if (DetailsScreen.Instance?.isEditing ?? false)
-                return;
-            if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsToggleForce.GetKAction()))
-            {
-                SetForceMaterialChange(false);
-            }
-            BlueprintState.OnStateChanged();
-        }
+        BlueprintState.OnStateChanged();
     }
 }

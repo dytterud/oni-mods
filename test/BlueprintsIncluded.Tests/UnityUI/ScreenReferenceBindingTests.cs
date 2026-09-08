@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
 using Xunit;
 
-namespace BlueprintsIncluded.Tests.UnityUI
-{
+namespace BlueprintsIncluded.Tests.UnityUI;
+
 	/// <summary>
 	/// The FUI screens and list-entry components declare their child-widget references as
 	/// non-nullable fields with a <c>= null!;</c> initializer and wire them up by hand in an
@@ -176,4 +173,3 @@ namespace BlueprintsIncluded.Tests.UnityUI
 			_ => 4,
 		};
 	}
-}

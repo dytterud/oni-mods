@@ -2,29 +2,28 @@
 using BlueprintsV2.UnityUI;
 using HarmonyLib;
 
-namespace BlueprintsV2.Patches
+namespace BlueprintsV2.Patches;
+
+internal class CleanupPatch
 {
-    internal class CleanupPatch
+    [HarmonyPatch(typeof(Game), "DestroyInstances")]
+    public static class GameDestroyInstances
     {
-        [HarmonyPatch(typeof(Game), "DestroyInstances")]
-        public static class GameDestroyInstances
+        public static void Postfix()
         {
-            public static void Postfix()
-            {
-                CreateBlueprintTool.DestroyInstance();
-                CreateNoteTool.DestroyInstance();
-                UseBlueprintTool.DestroyInstance();
-                SnapshotTool.DestroyInstance();
-                MultiToolParameterMenu.DestroyInstance();
-                ModAssets.SelectedBlueprint = null;
-                ModAssets.SelectedFolder = null;
-                ModAssets.BLUEPRINTS_AUTOFILE_WATCHER.Dispose();
-                CurrentBlueprintStateScreen.DestroyInstance();
-                NoteToolScreen.DestroyInstance();
-                SpriteSelectorScreen.DestroyInstance();
-                BlueprintSelectionScreen.DestroyInstance();
-                BlueprintRenamingScreen.DestroyInstance();
-            }
+            CreateBlueprintTool.DestroyInstance();
+            CreateNoteTool.DestroyInstance();
+            UseBlueprintTool.DestroyInstance();
+            SnapshotTool.DestroyInstance();
+            MultiToolParameterMenu.DestroyInstance();
+            ModAssets.SelectedBlueprint = null;
+            ModAssets.SelectedFolder = null;
+            ModAssets.BLUEPRINTS_AUTOFILE_WATCHER.Dispose();
+            CurrentBlueprintStateScreen.DestroyInstance();
+            NoteToolScreen.DestroyInstance();
+            SpriteSelectorScreen.DestroyInstance();
+            BlueprintSelectionScreen.DestroyInstance();
+            BlueprintRenamingScreen.DestroyInstance();
         }
     }
 }
