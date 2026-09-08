@@ -23,8 +23,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<UserNameable>(out var targetComponent))
 				{
 					if (!jObject.TryGet<string>("savedName", out var savedName))
@@ -52,8 +50,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<BuildingEnabledButton>(out var targetComponent))
 				{
 					if (!jObject.TryGet<bool>("IsEnabled", out var IsEnabled))
@@ -92,8 +88,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<Repairable>(out var targetComponent))
 				{
 					if (!jObject.TryGet<bool>("ForbiddenRepair", out var RepairForbidden))
@@ -127,9 +121,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
-
 				var smi = building.GetSMI<StorageTile.Instance>();
 
 				if (smi != null)
@@ -190,8 +181,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<SingleEntityReceptacle>(out var targetComponent))
 				{
 					if (!jObject.TryGet<string>("requestedEntityTag", out var requestedEntityTag))
@@ -229,8 +218,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<LogicClusterLocationSensor>(out var targetComponent))
 				{
 					if (!jObject.TryGet<bool>("activeInSpace", out var activeInSpace))
@@ -269,8 +256,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<LogicCounter>(out var targetComponent))
 				{
 					if (!jObject.TryGet<int>("maxCount", out var maxCount))
@@ -342,8 +327,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<PixelPack>(out var targetComponent))
 				{
 					if (!jObject.TryGetEmbedded<PixelPackColorData[]>("colorSettings", out var colorSettings))
@@ -392,8 +375,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<IUserControlledCapacity>(out var targetComponent))
 				{
 					if (!jObject.TryGet<float>("UserMaxCapacity", out var UserMaxCapacity))
@@ -420,8 +401,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<Automatable>(out var targetComponent))
 				{
 					if (!jObject.TryGet<bool>("automationOnly", out var automationOnly))
@@ -446,8 +425,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<LogicTimeOfDaySensor>(out var targetComponent))
 				{
 					if (!jObject.TryGet<float>("startTime", out var startTime))
@@ -477,8 +454,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<IActivationRangeTarget>(out var targetComponent))
 				{
 					if (!jObject.TryGet<int>("DeactivateValue", out var DeactivateValue))
@@ -509,8 +484,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<SpaceHeater>(out var targetComponent))
 				{
 					if (!targetComponent.produceHeat)
@@ -537,8 +510,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<Clinic>(out var targetComponent))
 				{
 					if (!jObject.TryGet<float>("sicknessSliderValue", out var sicknessSliderValue))
@@ -566,8 +537,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<EnergyGenerator>(out var targetComponent))
 				{
 					if (targetComponent.ignoreBatteryRefillPercent)
@@ -594,8 +563,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<FoodStorage>(out var targetComponent))
 				{
 					if (jObject.TryGet<bool>("SpicedFoodOnly", out var spicedFoodOnly))
@@ -618,8 +585,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<AutoDisinfectable>(out var targetComponent))
 				{
 					if (jObject.TryGet<bool>("enableAutoDisinfect", out var enableAutoDisinfect))
@@ -650,8 +615,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<Door>(out var targetComponent))
 				{
 					if (jObject.TryGet<int>("requestedState", out var requestedStateRaw))
@@ -683,8 +646,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<DirectionControl>(out var targetComponent))
 				{
 					if (jObject.TryGet<int>("allowedDirection", out var allowedDirectionRaw))
@@ -713,8 +674,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<Prioritizable>(out var targetComponent))
 				{
 					if (jObject.TryGetEmbedded<PrioritySetting>("masterPrioritySetting", out var masterPrioritySetting))
@@ -748,8 +707,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<TreeFilterable>(out var targetComponent))
 				{
 					if (!targetComponent.copySettingsEnabled)
@@ -787,8 +744,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<FlatTagFilterable>(out var targetComponent))
 				{
 					if (!targetComponent.currentlyUserAssignable)
@@ -823,8 +778,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<Filterable>(out var targetComponent))
 				{
 					if (!jObject.TryGet<string>("SelectedTag", out var selectedTagString))
@@ -855,8 +808,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<AccessControl>(out var targetComponent) && targetComponent.controlEnabled)
 				{
 					if (!jObject.TryGetEmbedded<List<KeyValuePair<Tag, Permission>>>("defaultPermissionByTag", out var defaultPermissionByTag))
@@ -892,8 +843,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<LimitValve>(out var targetComponent))
 				{
 					if (!jObject.TryGet<float>("Limit", out var Limit))
@@ -919,8 +868,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<Valve>(out var targetComponent))
 				{
 					if (!jObject.TryGet<float>("DesiredFlow", out var DesiredFlow))
@@ -950,8 +897,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<LogicTimerSensor>(out var targetComponent))
 				{
 					if (!jObject.TryGet<float>("onDuration", out var onDuration))
@@ -991,8 +936,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<LogicAlarm>(out var targetComponent))
 				{
 					if (jObject.TryGet<string>("notificationName", out var notificationName))
@@ -1030,8 +973,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<Switch>(out var targetComponent))
 				{
 					if (!jObject.TryGet<bool>("switchedOn", out var switchedOn))
@@ -1061,8 +1002,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<LogicCritterCountSensor>(out var targetComponent))
 				{
 					if (!jObject.TryGet<int>("countThreshold", out var countThreshold))
@@ -1099,8 +1038,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<IThresholdSwitch>(out var targetComponent))
 				{
 					if (!jObject.TryGet<float>("Threshold", out var Threshold))
@@ -1127,8 +1064,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<T>(out var targetComponent))
 				{
 					if (!jObject.TryGet<float>("DelayAmount", out var DelayAmount))
@@ -1155,8 +1090,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<LogicRibbonWriter>(out var targetComponent))
 				{
 					if (!jObject.TryGet<int>("selectedBit", out var selectedBit))
@@ -1182,8 +1115,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<LogicRibbonReader>(out var targetComponent))
 				{
 					if (!jObject.TryGet<int>("selectedBit", out var selectedBit))
@@ -1212,8 +1143,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<HighEnergyParticleSpawner>(out var targetComponent))
 				{
 					if (!jObject.TryGet<int>("Direction", out var Direction))
@@ -1242,8 +1171,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
 				if (building.TryGetComponent<HighEnergyParticleRedirector>(out var targetComponent))
 				{
 					if (!jObject.TryGet<int>("Direction", out var Direction))
@@ -1270,9 +1197,6 @@ namespace BlueprintsV2.BlueprintData
 			}
 			public static void TryApplyData(GameObject building, JObject jObject)
 			{
-				if (jObject == null)
-					return;
-
 				var targetComponent = building.GetSMI<HEPBattery.Instance>();
 				if (targetComponent != null)
 				{

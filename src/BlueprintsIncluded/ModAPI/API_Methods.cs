@@ -329,6 +329,9 @@ namespace BlueprintsV2.ModAPI
 
 
 		public delegate JObject GetBlueprintDataDelegate(GameObject go);
+		/// <summary><paramref name="data"/> is never null: both dispatch paths
+		/// (<see cref="ApplyAdditionalBuildingData"/>, <see cref="TryApplyingStoredData"/>)
+		/// null-check before invoking, so handlers do not need to.</summary>
 		public delegate void SetBlueprintDataDelegate(GameObject go, JObject data);
 
 
