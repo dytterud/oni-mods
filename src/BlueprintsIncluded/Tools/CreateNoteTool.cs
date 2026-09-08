@@ -1,6 +1,5 @@
 ﻿using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 using BlueprintsV2.BlueprintData.OniTogether_Integration;
-using BlueprintsV2.BlueprintData.PlannedElements;
 using BlueprintsV2.UnityUI;
 using FMOD.Studio;
 using HarmonyLib;

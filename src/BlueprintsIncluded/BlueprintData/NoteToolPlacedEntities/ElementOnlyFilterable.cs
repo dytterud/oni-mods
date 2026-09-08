@@ -1,4 +1,4 @@
-﻿namespace BlueprintsV2.BlueprintData.PlannedElements;
+﻿namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 
 internal class ElementOnlyFilterable : Filterable
 {

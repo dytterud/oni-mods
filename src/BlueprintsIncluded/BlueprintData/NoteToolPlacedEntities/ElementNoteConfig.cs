@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace BlueprintsV2.BlueprintData.PlannedElements;
+namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 
 internal class ElementNoteConfig : CommonPlacerConfig, IEntityConfig
 {

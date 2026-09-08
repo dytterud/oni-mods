@@ -1,5 +1,5 @@
 ﻿using BlueprintsV2.BlueprintData;
-using BlueprintsV2.BlueprintData.PlannedElements;
+using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 using UnityEngine;
 using static BlueprintsV2.BlueprintData.BlueprintState;
 

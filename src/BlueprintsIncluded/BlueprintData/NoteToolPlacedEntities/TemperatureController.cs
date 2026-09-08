@@ -1,7 +1,7 @@
 ﻿using UtilLibs;
 using static BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE;
 
-namespace BlueprintsV2.BlueprintData.PlannedElements;
+namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 
 public class TemperatureController : ISingleSliderControl
 {

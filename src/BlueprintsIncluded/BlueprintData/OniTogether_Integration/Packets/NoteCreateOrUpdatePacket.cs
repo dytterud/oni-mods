@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
-using BlueprintsV2.BlueprintData.PlannedElements;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ONI_Together.Networking.Packets.Architecture;

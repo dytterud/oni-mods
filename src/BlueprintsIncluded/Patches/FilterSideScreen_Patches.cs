@@ -1,4 +1,4 @@
-﻿using BlueprintsV2.BlueprintData.PlannedElements;
+﻿using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 using HarmonyLib;
 using UnityEngine;
 
