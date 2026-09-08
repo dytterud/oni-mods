@@ -16,11 +16,21 @@ namespace BlueprintsIncluded.Tests.UnityUI
 	/// up as a <see cref="NullReferenceException"/> the first time the widget is touched.
 	///
 	/// This test walks every <c>KMonoBehaviour</c> in the mod (screens derive from
-	/// <c>KScreen : KMonoBehaviour</c>; the list entries derive from it directly) and checks
-	/// that each non-nullable <see cref="Component"/> / <see cref="GameObject"/> field is
-	/// assigned somewhere in the type's own code — not only by the <c>= null!</c>
-	/// initializer. A field that fails this is "declared but never bound": wire it up, or
-	/// make it nullable.
+	/// <c>KScreen : KMonoBehaviour</c>; the list entries derive from it directly). For each,
+	/// it takes the <b>non-nullable</b> <see cref="Component"/> / <see cref="GameObject"/>
+	/// fields <b>declared on that class</b> and checks each one is assigned somewhere in the
+	/// class's own code — an <c>stfld</c>/<c>ldflda</c> scan over its methods, ignoring the
+	/// constructor so the <c>= null!</c> initializer does not count. A field that fails this
+	/// is "declared but never bound": wire it up, or make it nullable.
+	///
+	/// Two kinds of field are deliberately out of scope:
+	/// <list type="bullet">
+	///   <item><c>BindingFlags.DeclaredOnly</c> drops fields <i>inherited</i> from
+	///     <c>FScreen</c> / <c>KScreen</c> / <c>KMonoBehaviour</c>.</item>
+	///   <item>The <see cref="KleiInjected"/> attribute check drops fields declared on the
+	///     class but populated by Klei's reflection rather than by our code
+	///     (<c>[MyCmpGet]</c>, <c>[MyCmpReq]</c>, <c>[Serialize]</c>, …).</item>
+	/// </list>
 	///
 	/// Needs the real Klei assemblies loaded (to see the <c>KMonoBehaviour</c> base type),
 	/// so it is gated like the other game-coupled tests. It cannot catch a wrong
@@ -65,7 +75,10 @@ namespace BlueprintsIncluded.Tests.UnityUI
 
 		private static readonly NullabilityInfoContext Nullability = new();
 
-		// Klei's component-injection attributes (no "Attribute" suffix).
+		// Fields carrying one of these are populated by Klei's KMonoBehaviour manager / the
+		// save-load serializer, not by our own code, so the "must be assigned somewhere"
+		// rule does not apply. Klei's attribute classes are named without the "Attribute"
+		// suffix, so AttributeType.Name is e.g. "MyCmpGet", not "MyCmpGetAttribute".
 		private static readonly HashSet<string> KleiInjected = new(StringComparer.Ordinal)
 		{
 			"MyCmpGet", "MyCmpReq", "MyCmpAdd", "MyCmpSet", "Serialize", "SerializeField",
