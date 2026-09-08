@@ -41,23 +41,12 @@ class ToolMenu_Patches
         public static void Postfix()
         {
             MultiToolParameterMenu.CreateInstance();
-            ToolParameterMenu.ToggleState defaultSelection, buildingSelection;
-            switch (Config.Instance.DefaultMenuSelections)
+            var (defaultSelection, buildingSelection) = Config.Instance.DefaultMenuSelections switch
             {
-                case DefaultSelections.All:
-                    defaultSelection = ToolParameterMenu.ToggleState.On;
-                    buildingSelection = ToolParameterMenu.ToggleState.On;
-                    break;
-                case DefaultSelections.BuildingsOnly:
-                    defaultSelection = ToolParameterMenu.ToggleState.Off;
-                    buildingSelection = ToolParameterMenu.ToggleState.On;
-                    break;
-                default:
-                case DefaultSelections.None:
-                    defaultSelection = ToolParameterMenu.ToggleState.Off;
-                    buildingSelection = ToolParameterMenu.ToggleState.Off;
-                    break;
-            }
+                DefaultSelections.All => (ToolParameterMenu.ToggleState.On, ToolParameterMenu.ToggleState.On),
+                DefaultSelections.BuildingsOnly => (ToolParameterMenu.ToggleState.Off, ToolParameterMenu.ToggleState.On),
+                _ => (ToolParameterMenu.ToggleState.Off, ToolParameterMenu.ToggleState.Off),
+            };
 
             SnapshotTool.Instance.DefaultParameters =
             CreateBlueprintTool.Instance.DefaultParameters = new Dictionary<string, ToolParameterMenu.ToggleState> {

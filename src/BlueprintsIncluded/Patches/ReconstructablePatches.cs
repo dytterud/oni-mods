@@ -14,8 +14,7 @@ class ReconstructablePatches
         {
             //storing all the extra data
             var building = __instance.building;
-            BuildingConfig dataCarrier = new BuildingConfig();
-            dataCarrier.BuildingDef = building.Def;
+            BuildingConfig dataCarrier = new() { BuildingDef = building.Def };
             int cell = Grid.PosToCell(__instance);
             API_Methods.StoreAdditionalBuildingData(__instance.gameObject, dataCarrier);
 
