@@ -77,7 +77,7 @@ namespace BlueprintsV2.Tools
 			BlueprintSelectionScreen.ShowWindow(OnBlueprintSelected, ModAssets.SelectedBlueprint, true);
 		}
 
-		public void OnBlueprintSelected(Blueprint selected)
+		public void OnBlueprintSelected(Blueprint? selected)
 		{
 			ModAssets.SelectedBlueprint = selected;
 			//SgtLogger.l("OnBlueprintSelected, selected ? " + (ModAssets.SelectedBlueprint != null));

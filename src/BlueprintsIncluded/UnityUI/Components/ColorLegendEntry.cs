@@ -7,10 +7,10 @@ namespace BlueprintsV2.UnityUI.Components
 {
 	internal class ColorLegendEntry : KMonoBehaviour
 	{
-		LocText Label;
-		Image Tintable;
+		LocText Label = null!;
+		Image Tintable = null!;
 		public Color TargetColor;
-		public string TargetText;
+		public string TargetText = null!;
 
 		public override void OnSpawn()
 		{

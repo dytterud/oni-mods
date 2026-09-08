@@ -9,16 +9,16 @@ namespace BlueprintsV2.UnityUI.Components
 {
 	internal class BuildingInfoEntry : KMonoBehaviour
 	{
-		public string BuildingName;
-		public ToolTip BuildingNameText;
-		public Image BuildingIcon;
-		public LocText BuildingCount;
-		Image BGImage;
-		FButton Btn;
+		public string BuildingName = null!;
+		public ToolTip BuildingNameText = null!;
+		public Image BuildingIcon = null!;
+		public LocText BuildingCount = null!;
+		Image BGImage = null!;
+		FButton Btn = null!;
 		static Color allDisabled = UIUtils.rgb(154, 65, 65);
 		static Color regular = UIUtils.rgb(79, 79, 79);
 
-		public System.Action EnableAllBuildings = null, DisableAllBuildings = null;
+		public System.Action? EnableAllBuildings = null, DisableAllBuildings = null;
 
 		public void SetBuildingCount(int count)
 		{
@@ -47,7 +47,7 @@ namespace BlueprintsV2.UnityUI.Components
 			BuildingName = def.Name;
 		}
 
-		static Material OutLinedFontMAt = null;
+		static Material? OutLinedFontMAt = null;
 		void InitLabelMat()
 		{
 			if (OutLinedFontMAt == null)

@@ -11,19 +11,19 @@ namespace BlueprintsV2.UnityUI.Components
 {
 	internal class BlueprintElementEntry : KMonoBehaviour
 	{
-		public BlueprintSelectedMaterial SelectedAndCategory;
-		public System.Action<BlueprintSelectedMaterial, float> OnEntryClicked;
-		LocText ElementName;
-		LocText ElementAmount;
+		public BlueprintSelectedMaterial SelectedAndCategory = null!;
+		public System.Action<BlueprintSelectedMaterial, float> OnEntryClicked = null!;
+		LocText ElementName = null!;
+		LocText ElementAmount = null!;
 		float amount;
-		LocText ReplaceElementName;
-		GameObject warningIndicator, severeWarningIndicator;
-		FToggleButton button;
-		Image ElementIcon, ReplacementElementIcon, BuildingIcon;
-		ToolTip tooltip;
+		LocText ReplaceElementName = null!;
+		GameObject warningIndicator = null!, severeWarningIndicator = null!;
+		FToggleButton button = null!;
+		Image ElementIcon = null!, ReplacementElementIcon = null!, BuildingIcon = null!;
+		ToolTip tooltip = null!;
 		bool staticTag = false;
-		string staticTooltip;
-		Blueprint currentBp = null;
+		string staticTooltip = null!;
+		Blueprint? currentBp = null;
 
 		public void SetSelected(bool isSelected)
 		{
@@ -156,7 +156,7 @@ namespace BlueprintsV2.UnityUI.Components
 		}
 
 
-		public int Refresh(Blueprint current)
+		public int Refresh(Blueprint? current)
 		{
 			Init();
 			currentBp = current;

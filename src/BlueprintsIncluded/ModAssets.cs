@@ -587,7 +587,7 @@ namespace BlueprintsV2
 				STRINGS.UI.ACTIONS.TOGGLETOOLTIPS, new PKeyBinding(KKeyCode.Z));
 		}
 
-		public static Sprite GetBlueprintIconSprite(string id)
+		public static Sprite GetBlueprintIconSprite(string? id)
 		{
 			var sprite = Assets.GetSprite(id);
 			if (sprite == null)

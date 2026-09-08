@@ -11,8 +11,8 @@ namespace BlueprintsV2.UnityUI.Components
 	{
 		private bool showYes = false;
 
-		Image Yes, No;
-		GameObject YesGO, NoGO;
+		Image Yes = null!, No = null!;
+		GameObject YesGO = null!, NoGO = null!;
 
 		static Color? YesCol, NoCol;
 
@@ -37,8 +37,8 @@ namespace BlueprintsV2.UnityUI.Components
 			No = NoGO.GetComponent<Image>();
 
 			InitColors();
-			Yes.color = YesCol.Value;
-			No.color = NoCol.Value;		
+			Yes.color = YesCol ?? Color.white;
+			No.color = NoCol ?? Color.white;
 		}
 
 		void InitColors()

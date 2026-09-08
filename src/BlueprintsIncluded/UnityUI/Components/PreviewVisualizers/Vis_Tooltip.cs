@@ -9,10 +9,10 @@ namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 	internal class Vis_Tooltip : KMonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 	{
 		public bool spawned = false;
-		string cachedTitle = string.Empty;
-		string cachedTooltip = string.Empty;
-		LocText TitleText, LabelText;
-		GameObject TooltipContainer;
+		string? cachedTitle = string.Empty;
+		string? cachedTooltip = string.Empty;
+		LocText TitleText = null!, LabelText = null!;
+		GameObject TooltipContainer = null!;
 		bool anyTextToDisplay;
 
 		bool init = false;

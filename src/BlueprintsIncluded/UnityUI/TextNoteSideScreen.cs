@@ -14,12 +14,12 @@ namespace BlueprintsV2.UnityUI
 {
 	internal class TextNoteSideScreen : SideScreenContent
 	{
-		TextNote Target = null;
+		TextNote? Target = null;
 
-		FButton ClearTitle, ClearText;
-		FInputField2 TitleInput, TextInput;
-		FColorPickerArray ColorPicker;
-		FItemPickerArray SymbolPicker;
+		FButton ClearTitle = null!, ClearText = null!;
+		FInputField2 TitleInput = null!, TextInput = null!;
+		FColorPickerArray ColorPicker = null!;
+		FItemPickerArray SymbolPicker = null!;
 		public override bool IsValidForTarget(GameObject target) => !target.IsNullOrDestroyed() && target.TryGetComponent<TextNote>(out _);
 		public override void OnPrefabInit()
 		{
@@ -27,7 +27,7 @@ namespace BlueprintsV2.UnityUI
 			Init();
 		}
 		bool spawned = false;
-		string title, text;
+		string? title = null, text = null;
 
 		public override void OnSpawn()
 		{

@@ -30,18 +30,18 @@ namespace BlueprintsV2.UnityUI
 #pragma warning restore CS0414 // Remove unused private members
 #pragma warning restore IDE0051 // Remove unused private members
 
-		public static SpriteSelectorScreen Instance = null;
-		FButton ClearSearchBar, Close;
-		FInputField2 FilterInput;
+		public static SpriteSelectorScreen Instance = null!;
+		FButton ClearSearchBar = null!, Close = null!;
+		FInputField2 FilterInput = null!;
 		Dictionary<string, GameObject> SpriteIcons = [];
-		GameObject Container, PrefabGO;
-		IconSelectionEntry Prefab;
-		System.Action<string, Color> OnSelectEntry;
-		System.Action OnClose;
+		GameObject Container = null!, PrefabGO = null!;
+		IconSelectionEntry Prefab = null!;
+		System.Action<string, Color> OnSelectEntry = null!;
+		System.Action OnClose = null!;
 
 		bool populating = false;
 
-		public static void DestroyInstance() { Instance = null; }
+		public static void DestroyInstance() { Instance = null!; }
 
 		public static void ShowScreen(bool show, System.Action<string, Color> OnSelect, System.Action OnClose)
 		{

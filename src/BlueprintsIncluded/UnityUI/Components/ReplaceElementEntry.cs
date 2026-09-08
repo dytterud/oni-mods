@@ -10,12 +10,12 @@ namespace BlueprintsV2.UnityUI.Components
 	internal class ReplaceElementEntry : KMonoBehaviour
 	{
 		public Tag targetTag;
-		public System.Action<Tag> OnSelectElement;
-		LocText ElementName;
-		Image ElementIcon;
-		Image buttonBg;
-		FButton button;
-		ToolTip toolTip;
+		public System.Action<Tag> OnSelectElement = null!;
+		LocText ElementName = null!;
+		Image ElementIcon = null!;
+		Image buttonBg = null!;
+		FButton button = null!;
+		ToolTip toolTip = null!;
 		public string Name = string.Empty;
 
 		public override void OnPrefabInit()
@@ -70,8 +70,10 @@ namespace BlueprintsV2.UnityUI.Components
 		{
 			OnSelectElement?.Invoke(targetTag);
 		}
-		public void Refresh(Blueprint current, float requiredAmount, Tag original, Tag replacement = default)
+		public void Refresh(Blueprint? current, float requiredAmount, Tag original, Tag replacement = default)
 		{
+			if (current == null)
+				return;
 			float catrequirement = requiredAmount;
 			if (current.CachedAbsTagCost.TryGetValue(targetTag, out float totalCachedCosts))
 			{

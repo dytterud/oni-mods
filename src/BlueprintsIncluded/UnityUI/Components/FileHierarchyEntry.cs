@@ -15,21 +15,21 @@ namespace BlueprintsV2.UnityUI.Components
 {
 	public class FileHierarchyEntry : KMonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 	{
-		public Blueprint blueprint;
+		public Blueprint blueprint = null!;
 
-		public System.Action<bool> OnDialogueToggled;
-		public System.Action OnEntryClicked;
-		public System.Action<string> OnRenamed, OnMoved;
-		FButton deleteButton, renameButton, moveButton, exportButton, retakeButton
+		public System.Action<bool> OnDialogueToggled = null!;
+		public System.Action OnEntryClicked = null!;
+		public System.Action<string> OnRenamed = null!, OnMoved = null!;
+		FButton deleteButton = null!, renameButton = null!, moveButton = null!, exportButton = null!, retakeButton = null!
 			//, infoButton
 			;
-		FToggleButton button;
-		LocText Label;
-		public System.Action<Blueprint> OnSelectBlueprint, OnDeleted
+		FToggleButton button = null!;
+		LocText Label = null!;
+		public System.Action<Blueprint> OnSelectBlueprint = null!, OnDeleted = null!
 			//, OnInfoClicked
 			;
-		public ToolTip Description;
-		Image BlueprintIcon;
+		public ToolTip Description = null!;
+		Image BlueprintIcon = null!;
 
 		List<GameObject> HoverShowButtons = [];
 
@@ -53,7 +53,7 @@ namespace BlueprintsV2.UnityUI.Components
 			//infoButton = transform.Find("InfoButton").gameObject.AddComponent<FButton>();
 			BlueprintIcon = transform.Find("IconContainer/Icon").gameObject.GetComponent<Image>();
 
-			HoverShowButtons = [deleteButton.gameObject, renameButton?.gameObject, exportButton?.gameObject, moveButton?.gameObject, exportButton?.gameObject, retakeButton?.gameObject
+			HoverShowButtons = [deleteButton.gameObject, renameButton.gameObject, exportButton.gameObject, moveButton.gameObject, exportButton.gameObject, retakeButton.gameObject
 				//, infoButton?.gameObject
 				];
 
@@ -66,7 +66,7 @@ namespace BlueprintsV2.UnityUI.Components
 
 			
 			RefreshIcon();
-			OnPointerExit(null);
+			OnPointerExit(null!);
 		}
 
 		public override void OnSpawn()
@@ -130,7 +130,7 @@ namespace BlueprintsV2.UnityUI.Components
 				if (OnMoved != null)
 					OnMoved(result);
 			};
-			BlueprintRenamingScreen.OpenNamingDialogue(STRINGS.UI.DIALOGUE.MOVETOFOLDER_TITLE, ChangeFolderAction, () => SetDialogueState(false), blueprint.Folder, true, ModAssets.GetAllFolderNames());
+			BlueprintRenamingScreen.OpenNamingDialogue(STRINGS.UI.DIALOGUE.MOVETOFOLDER_TITLE, ChangeFolderAction, () => SetDialogueState(false), blueprint.Folder ?? "", true, ModAssets.GetAllFolderNames());
 
 			//DialogUtil.CreateTextInputDialog(MOVETOFOLDER_TITLE, blueprint.Folder, null, true, ChangeFolderAction, () => SetDialogueState(false), ModAssets.ParentScreen, true, false);
 		}

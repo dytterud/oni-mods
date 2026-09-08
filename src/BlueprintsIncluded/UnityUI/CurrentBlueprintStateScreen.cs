@@ -17,23 +17,23 @@ namespace BlueprintsV2.UnityUI
 {
 	internal class CurrentBlueprintStateScreen : KScreen
 	{
-		public static CurrentBlueprintStateScreen Instance = null;
+		public static CurrentBlueprintStateScreen Instance = null!;
 
-		LocText CurrentBPName;
-		FButton SelectPrevBP, SelectNextBP;
-		LocText FolderInfo;
-		GameObject FolderInfoGO;
+		LocText CurrentBPName = null!;
+		FButton SelectPrevBP = null!, SelectNextBP = null!;
+		LocText FolderInfo = null!;
+		GameObject FolderInfoGO = null!;
 
-		GameObject ColorPreviewPrefab;
+		GameObject ColorPreviewPrefab = null!;
 
-		FToggle ApplyBPSettings, ForceRebuildMismatchedBuildings, EnableSnapshotMaterialOverrides, UseToolPriority, ForceOverrideTransformations, ApplySettingsToExistingBuildings;
+		FToggle ApplyBPSettings = null!, ForceRebuildMismatchedBuildings = null!, EnableSnapshotMaterialOverrides = null!, UseToolPriority = null!, ForceOverrideTransformations = null!, ApplySettingsToExistingBuildings = null!;
 		//YesNoInfo CanRotate;
-		FButton RotateL, RotateR, ChangeMaterialOverrides;
+		FButton RotateL = null!, RotateR = null!, ChangeMaterialOverrides = null!;
 		//YesNoInfo CanFlipH, CanFlipV;
-		FButton FlipH, FlipV;
-		ToolTip CanRotateL_TT, CanRotateR_TT, CanFlipH_TT, CanFlipV_TT;
+		FButton FlipH = null!, FlipV = null!;
+		ToolTip CanRotateL_TT = null!, CanRotateR_TT = null!, CanFlipH_TT = null!, CanFlipV_TT = null!;
 
-		public static void DestroyInstance() { Instance = null; }
+		public static void DestroyInstance() { Instance = null!; }
 
 		public static void ShowScreen(bool show)
 		{
