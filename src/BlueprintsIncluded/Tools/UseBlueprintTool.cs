@@ -8,7 +8,7 @@ namespace BlueprintsV2.Tools
 {
 	public class UseBlueprintTool : InterfaceTool
 	{
-		public static UseBlueprintTool Instance { get; private set; }
+		public static UseBlueprintTool Instance { get; private set; } = null!;
 
 		public UseBlueprintTool()
 		{
@@ -16,13 +16,13 @@ namespace BlueprintsV2.Tools
 			BlueprintState.CurrentStateInfo().ForceBuild = false;
 		}
 
-		public UseBlueprintToolHoverCard HoverCard;
+		public UseBlueprintToolHoverCard HoverCard = null!;
 		public bool ToolActive { get; private set; }
 
 
 		public static void DestroyInstance()
 		{
-			Instance = null;
+			Instance = null!;
 		}
 
 		public void CreateVisualizer()

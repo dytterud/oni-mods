@@ -8,8 +8,8 @@ namespace BlueprintsV2.Tools
 		public virtual Dictionary<string, ToolParameterMenu.ToggleState> DefaultParameters { get; set; } = new Dictionary<string, ToolParameterMenu.ToggleState>();
 		public virtual bool OverlaySynced { get; set; }
 
-		private Dictionary<string, ToolParameterMenu.ToggleState> cachedParameters;
-		private Dictionary<string, ToolParameterMenu.ToggleState> persistentParameters;
+		private Dictionary<string, ToolParameterMenu.ToggleState>? cachedParameters;
+		private Dictionary<string, ToolParameterMenu.ToggleState>? persistentParameters;
 		private bool isSynced;
 
 		public override void OnActivateTool()
@@ -64,7 +64,7 @@ namespace BlueprintsV2.Tools
 
 				else
 				{
-					string filter = null;
+					string? filter = null;
 
 					if (overlay == OverlayModes.Power.ID)
 					{

@@ -14,17 +14,17 @@ namespace BlueprintsV2.Tools
 	public sealed class SnapshotTool : MultiFilteredDragTool
 	{
 		public static bool HasSnapshotsStored => Instance != null && Instance.SessionSnapshots.Any();// && !Instance.SessionSnapshots.First().IsEmpty();
-		private Blueprint snapshotBlueprint;
-		private SnapshotToolHoverCard hoverCard;
+		private Blueprint? snapshotBlueprint;
+		private SnapshotToolHoverCard hoverCard = null!;
 
-		public static SnapshotTool Instance { get; private set; }
+		public static SnapshotTool Instance { get; private set; } = null!;
 		float shiftX = 0, shiftY = 0;
 
 		List<Blueprint> SessionSnapshots = [];
 		int UsedSnapshotIndex = 0;
 		public static int SnapshotCount => Instance != null ? Instance.SessionSnapshots.Count : 0;
 		public static int SnapshotIndex => Instance != null ? Instance.UsedSnapshotIndex: 0;
-		public static Blueprint CurrentSnapshot => Instance != null ? Instance.snapshotBlueprint : null;
+		public static Blueprint? CurrentSnapshot => Instance != null ? Instance.snapshotBlueprint : null;
 
 
 		public SnapshotTool()
@@ -35,7 +35,7 @@ namespace BlueprintsV2.Tools
 
 		public static void DestroyInstance()
 		{
-			Instance = null;
+			Instance = null!;
 		}
 
 		public void CreateVisualizer()
@@ -75,7 +75,7 @@ namespace BlueprintsV2.Tools
 			visualizer = null;
 			CurrentBlueprintStateScreen.ShowScreen(false);
 		}
-		public void SetLastUsedBlueprint(Blueprint blueprint)
+		public void SetLastUsedBlueprint(Blueprint? blueprint)
 		{
 			SgtLogger.l("SessionSnapshots Count: " + SessionSnapshots.Count);
 			if (blueprint != null && !blueprint.IsEmpty())

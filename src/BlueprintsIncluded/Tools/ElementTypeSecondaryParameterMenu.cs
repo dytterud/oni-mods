@@ -8,12 +8,12 @@ namespace BlueprintsV2.Tools
 	internal class ElementTypeSecondaryParameterMenu : KMonoBehaviour
 	{
 
-		public static ElementTypeSecondaryParameterMenu Instance;
+		public static ElementTypeSecondaryParameterMenu Instance = null!;
 
 		private readonly Dictionary<Element.State, GameObject> widgets = [];
-		private GameObject content;
-		private GameObject widgetContainer;
-		private Dictionary<Element.State, ToolParameterMenu.ToggleState> parameters;
+		private GameObject content = null!;
+		private GameObject widgetContainer = null!;
+		private Dictionary<Element.State, ToolParameterMenu.ToggleState> parameters = null!;
 
 		public override void OnPrefabInit()
 		{
@@ -170,7 +170,7 @@ namespace BlueprintsV2.Tools
 
 		public static void DestroyInstance()
 		{
-			Instance = null;
+			Instance = null!;
 		}
 
 	}
