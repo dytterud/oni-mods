@@ -23,9 +23,9 @@ namespace BlueprintsV2.BlueprintData
 
 			];
 
-		static GameObject temporaryTargetBuilding;
-		static UnderConstructionDataTransfer lastSelected;
-		public static KSelectable TemporarySelectable { get; private set; }
+		static GameObject? temporaryTargetBuilding;
+		static UnderConstructionDataTransfer? lastSelected;
+		public static KSelectable? TemporarySelectable { get; private set; }
 
 		public static bool HasDataTransferComponents(BuildingUnderConstruction building)
 		{

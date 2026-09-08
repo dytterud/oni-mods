@@ -26,9 +26,9 @@ namespace BlueprintsV2.UnityUI
 {
 	internal class BlueprintPreviewScreen : FScreen
 	{
-		[MyCmpGet] new RectTransform _rectTransform;
+		[MyCmpGet] new RectTransform _rectTransform = null!;
 		bool _init = false;
-		GameObject BuildingEntry;
+		GameObject BuildingEntry = null!;
 		List<GameObject> BPVisualizers = new List<GameObject>();
 
 		Dictionary<string, List<Vis_BuildingPreview>> FilterLayerKbacs = [];
@@ -38,12 +38,12 @@ namespace BlueprintsV2.UnityUI
 		float currentZoomStep = 3;
 		float zoomStepMin = -2, zoomStepMax = 15;
 		float m_targetZoomScale = 0.25f, m_currentZoomScale = 0.25f;
-		BuildingFilterDropdown FilterDropDown;
+		BuildingFilterDropdown FilterDropDown = null!;
 
-		GameObject BuildingCountWarning;
-		FButton ConfirmShowOverride;
-		LocText WarningText;
-		Blueprint ScheduledToShow = null;
+		GameObject BuildingCountWarning = null!;
+		FButton ConfirmShowOverride = null!;
+		LocText WarningText = null!;
+		Blueprint? ScheduledToShow = null;
 
 		//take priority consuming the scroll
 		public override float GetSortKey()
@@ -52,7 +52,7 @@ namespace BlueprintsV2.UnityUI
 		}
 		readonly List<string> filterKeys = new List<string>();
 		readonly Dictionary<string, bool> PreviewFilters = [];
-		string _hoveredFilter = null;
+		string? _hoveredFilter = null;
 
 		void ResetPreviewFilters()
 		{
@@ -227,13 +227,13 @@ namespace BlueprintsV2.UnityUI
 				switch (visType)
 				{
 					case VisualizerType.TILE:
-						RegisterImageToLayer(building, entry.AddOrGet<Vis_TilePreview>().Init(building));
+						RegisterImageToLayer(building.BuildingDef.ObjectLayer, entry.AddOrGet<Vis_TilePreview>().Init(building));
 						break;
 					case VisualizerType.UTILITY:
-						RegisterBuildingToLayer(building, entry.AddOrGet<Vis_ConduitPreview>().Init(building));
+						RegisterBuildingToLayer(building.BuildingDef.ObjectLayer, entry.AddOrGet<Vis_ConduitPreview>().Init(building));
 						break;
 					default:
-						RegisterBuildingToLayer(building, entry.AddOrGet<Vis_BuildingPreview>().Init(building));
+						RegisterBuildingToLayer(building.BuildingDef.ObjectLayer, entry.AddOrGet<Vis_BuildingPreview>().Init(building));
 						break;
 				}
 				entry.SetActive(true);
@@ -242,7 +242,6 @@ namespace BlueprintsV2.UnityUI
 			Vis_TilePreview.ConnectAll();
 		}
 
-		void RegisterBuildingToLayer(BuildingConfig building, Vis_BuildingPreview buildVis) => RegisterBuildingToLayer(building.BuildingDef.ObjectLayer, buildVis);
 		void RegisterBuildingToLayer(ObjectLayer layer, Vis_BuildingPreview buildVis)
 		{
 			if (ModAssets.TryGetFilterLayerId(layer, out var layerId))
@@ -255,7 +254,6 @@ namespace BlueprintsV2.UnityUI
 				FilterLayerKbacs[ToolParameterMenu.FILTERLAYERS.BUILDINGS].Add(buildVis);
 			}
 		}
-		void RegisterImageToLayer(BuildingConfig building, Vis_SpritePreview spriteVis) => RegisterImageToLayer(building.BuildingDef.ObjectLayer, spriteVis);
 		void RegisterImageToLayer(ObjectLayer layer, Vis_SpritePreview spriteVis)
 		{
 			//if (spriteVis is Vis_TilePreview tilePreview)
@@ -378,11 +376,13 @@ namespace BlueprintsV2.UnityUI
 			base.OnEndDrag(eventData);
 		}
 
-		public void LoadBlueprintPreview(Blueprint blueprint)
+		public void LoadBlueprintPreview(Blueprint? blueprint)
 		{
 			Init();
 			BuildingCountWarning.SetActive(false);
 			ClearExisting();
+			if (blueprint == null)
+				return;
 			int buildingCount = blueprint.BuildingConfigurations.Count;
 			SgtLogger.l(blueprint.FriendlyName + " has " + buildingCount + " buildings");
 			if (buildingCount > Config.Instance.AutoPreviewCuttoff)

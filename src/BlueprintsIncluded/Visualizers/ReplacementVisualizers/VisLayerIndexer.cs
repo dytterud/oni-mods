@@ -19,8 +19,8 @@ namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 				VisObjectLayers[index] = new Dictionary<int, ReplacementVis>();
 		}
 
-		static Dictionary<int, ReplacementVis>[] VisObjectLayers;
-		public ReplacementVis this[int cell, int layer]
+		static Dictionary<int, ReplacementVis>[] VisObjectLayers = null!;
+		public ReplacementVis? this[int cell, int layer]
 		{
 			get
 			{

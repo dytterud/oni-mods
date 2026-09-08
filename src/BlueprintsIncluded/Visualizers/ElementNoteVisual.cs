@@ -17,7 +17,7 @@ namespace BlueprintsV2.Visualizers
 
 		public PlanScreen.RequirementsState RequirementsState => PlanScreen.RequirementsState.Complete;
 
-		public string BuildingID => null;
+		public string? BuildingID => null;
 
 		SimHashes ElementId;
 		float Amount, Temperature;

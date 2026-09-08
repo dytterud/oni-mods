@@ -12,7 +12,7 @@ namespace BlueprintsV2.UnityUI.Components
 	{
 		public float delayS = 0.20f;
 		float timeSincePointerEnter = 0;
-		public System.Action OnPointerEnterAction, OnPointerExitAction;
+		public System.Action? OnPointerEnterAction, OnPointerExitAction;
 
 		public override void OnCmpEnable()
 		{
@@ -24,7 +24,7 @@ namespace BlueprintsV2.UnityUI.Components
 			StopDelayedHoverCoroutine();
 		}
 
-		Coroutine HoverCoroutine = null;
+		Coroutine? HoverCoroutine = null;
 
 		public void OnPointerExit(PointerEventData eventData)
 		{
@@ -57,7 +57,7 @@ namespace BlueprintsV2.UnityUI.Components
 			HoverCoroutine = StartCoroutine(DelayedHoverTrigger());
 		}
 
-		internal void Init(System.Action onHoverEnter, System.Action onHoverExit)
+		internal void Init(System.Action? onHoverEnter, System.Action? onHoverExit)
 		{
 			OnPointerEnterAction = onHoverEnter;
 			OnPointerExitAction = onHoverExit;

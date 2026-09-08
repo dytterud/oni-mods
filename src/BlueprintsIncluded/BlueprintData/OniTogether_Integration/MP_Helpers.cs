@@ -14,8 +14,8 @@ namespace BlueprintsV2.BlueprintData.OniTogether_Integration
 			return MP_Mod_Info.MultiplayerModPresent && SessionInfoAPI.InSession;
 		}
 
-		internal static void HandleNoteUpdate(BlueprintNote blueprintNote) => HandleNoteCreation(blueprintNote);
-		internal static void HandleNoteCreation(BlueprintNote blueprintNote)
+		internal static void HandleNoteUpdate(BlueprintNote? blueprintNote) => HandleNoteCreation(blueprintNote);
+		internal static void HandleNoteCreation(BlueprintNote? blueprintNote)
 		{
 			if (!MPInstalledAndActive() || blueprintNote == null)
 				return;
@@ -23,7 +23,7 @@ namespace BlueprintsV2.BlueprintData.OniTogether_Integration
 			PacketSenderAPI.SendToAllOtherPeers(new NoteCreateOrUpdatePacket(blueprintNote));
 		}
 
-		internal static void HandleNoteDeletion(BlueprintNote blueprintNote)
+		internal static void HandleNoteDeletion(BlueprintNote? blueprintNote)
 		{
 			if(!MPInstalledAndActive() || blueprintNote == null)
 				return;

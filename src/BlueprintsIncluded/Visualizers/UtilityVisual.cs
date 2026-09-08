@@ -15,7 +15,7 @@ namespace BlueprintsV2.Visualizers
 		{
 			if (hasKbac)
 			{
-				IUtilityNetworkMgr utilityNetworkManager = buildingConfig.BuildingDef.BuildingComplete.GetComponent<IHaveUtilityNetworkMgr>().GetNetworkManager();
+				IUtilityNetworkMgr? utilityNetworkManager = BuildingDef.BuildingComplete.GetComponent<IHaveUtilityNetworkMgr>()?.GetNetworkManager();
 
 				if (utilityNetworkManager != null && buildingConfig.GetConduitFlags(out int flags))
 				{
@@ -37,7 +37,7 @@ namespace BlueprintsV2.Visualizers
 		}
 		void UpdateConnectionVis(GameObject go, bool built = false)
 		{
-			var mng = buildingConfig.BuildingDef.BuildingComplete.GetComponent<IHaveUtilityNetworkMgr>().GetNetworkManager();
+			var mng = BuildingDef.BuildingComplete.GetComponent<IHaveUtilityNetworkMgr>()?.GetNetworkManager();
 			if (mng != null && buildingConfig.GetConduitFlags(out var flags) && go.TryGetComponent<KBatchedAnimController>(out var kbac))
 			{
 				string animation = mng.GetVisualizerString((UtilityConnections)GetRotatedUtilityConnectionFlags(flags));

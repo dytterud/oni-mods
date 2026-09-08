@@ -93,38 +93,42 @@ namespace BlueprintsV2.BlueprintData
 			}
 		}
 
-		public int GetBlueprintIndex(Blueprint blueprint)
+		public int GetBlueprintIndex(Blueprint? blueprint)
 		{
-			if (!contentsList.Contains(blueprint))
+			if (blueprint == null || !contentsList.Contains(blueprint))
 				return -1;
 			return contentsList.IndexOf(blueprint);
 		}
 
 		public bool ContainsBlueprint(Blueprint blueprint) => contents.Contains(blueprint);
 
-		public bool Equals(BlueprintFolder other)
+		public bool Equals(BlueprintFolder? other)
 		{
-			return other.Name == Name;
+			return other != null && other.Name == Name;
 		}
-		public override bool Equals(object obj) => obj is BlueprintFolder other && Equals(other);
+		public override bool Equals(object? obj) => obj is BlueprintFolder other && Equals(other);
 
-		public static bool operator ==(BlueprintFolder a, BlueprintFolder b) => a?.Name == b?.Name;
-		public static bool operator !=(BlueprintFolder a, BlueprintFolder b) => !(a == b);
+		public static bool operator ==(BlueprintFolder? a, BlueprintFolder? b) => a?.Name == b?.Name;
+		public static bool operator !=(BlueprintFolder? a, BlueprintFolder? b) => !(a == b);
 		public override int GetHashCode()
 		{
 			return Name.GetHashCode();
 		}
 
-		internal bool HasNextBlueprint(Blueprint selectedBlueprint)
+		internal bool HasNextBlueprint(Blueprint? selectedBlueprint)
 		{
+			if (selectedBlueprint == null)
+				return false;
 			int index = GetBlueprintIndex(selectedBlueprint);
 			if(index == -1)
 				return false;
 			return index > 0;
 		}
 
-		internal bool HasPrevBlueprint(Blueprint selectedBlueprint)
+		internal bool HasPrevBlueprint(Blueprint? selectedBlueprint)
 		{
+			if (selectedBlueprint == null)
+				return false;
 			int index = GetBlueprintIndex(selectedBlueprint);
 			if (index == -1)
 				return false;

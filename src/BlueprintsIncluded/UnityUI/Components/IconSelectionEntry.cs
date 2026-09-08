@@ -8,10 +8,10 @@ namespace BlueprintsV2.UnityUI.Components
 {
 	internal class IconSelectionEntry : KMonoBehaviour
 	{
-		[SerializeField] public LocText IconName;
-		[SerializeField] public Image Icon;
-		[SerializeField] public FButton Button;
-		string _name;
+		[SerializeField] public LocText IconName = null!;
+		[SerializeField] public Image Icon = null!;
+		[SerializeField] public FButton Button = null!;
+		string _name = null!;
 
 		public void CollectReferences()
 		{

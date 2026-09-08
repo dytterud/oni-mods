@@ -28,17 +28,17 @@ namespace BlueprintsV2.UnityUI
 #pragma warning restore CS0414 // Remove unused private members
 #pragma warning restore IDE0051 // Remove unused private members
 
-		public static NoteToolScreen Instance = null;
-		FButton ClearTitle, ClearText;
-		FToggleButton TextMode, ElementMode;
-		FInputField2 TitleInput, TextInput;
-		FColorPickerArray ColorPicker;
-		FItemPickerArray SymbolPicker;
+		public static NoteToolScreen Instance = null!;
+		FButton ClearTitle = null!, ClearText = null!;
+		FToggleButton TextMode = null!, ElementMode = null!;
+		FInputField2 TitleInput = null!, TextInput = null!;
+		FColorPickerArray ColorPicker = null!;
+		FItemPickerArray SymbolPicker = null!;
 
 		List<GameObject> NoteModeGOs = [];
 		public bool IsTextMode = true;
 
-		public static void DestroyInstance() { Instance = null; }
+		public static void DestroyInstance() { Instance = null!; }
 
 		public static void ShowScreen(bool show)
 		{
@@ -120,7 +120,7 @@ namespace BlueprintsV2.UnityUI
 		}
 
 
-		void RefreshClearButtons(string _)
+		void RefreshClearButtons(string? _)
 		{
 			ClearTitle.SetInteractable(TitleInput.Text.Any());
 			ClearText.SetInteractable(TextInput.Text.Any());

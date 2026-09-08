@@ -14,17 +14,17 @@ namespace BlueprintsV2.Tools
 		public delegate void SyncChanged(bool synced);
 		public delegate void ParamsChanged(Dictionary<string, ToolParameterMenu.ToggleState> changed);
 
-		public static MultiToolParameterMenu Instance;
+		public static MultiToolParameterMenu Instance = null!;
 
-		public event SyncChanged OnSyncChanged;
-		public event ParamsChanged OnParamsChanged;
+		public event SyncChanged? OnSyncChanged;
+		public event ParamsChanged? OnParamsChanged;
 
 		private readonly Dictionary<string, GameObject> widgets = new Dictionary<string, GameObject>();
-		private GameObject content;
-		private GameObject widgetContainer;
-		private Dictionary<string, ToolParameterMenu.ToggleState> parameters;
+		private GameObject content = null!;
+		private GameObject widgetContainer = null!;
+		private Dictionary<string, ToolParameterMenu.ToggleState> parameters = null!;
 
-		private MultiToggle syncMultiToggle;
+		private MultiToggle syncMultiToggle = null!;
 
 		HashedString LastOverlay;
 
@@ -272,7 +272,7 @@ namespace BlueprintsV2.Tools
 		{
 			var currentParams = GetParameters();
 			ToolParameterMenu.ToggleState toggleState = default;
-			if(ModAssets.TryGetFilterLayerId(objectLayer, out string filterId))
+			if(ModAssets.TryGetFilterLayerId(objectLayer, out string? filterId))
 				return currentParams.TryGetValue(filterId, out toggleState) && toggleState == ToolParameterMenu.ToggleState.On;
 			return false;
 		}
@@ -359,7 +359,7 @@ namespace BlueprintsV2.Tools
 
 		public static void DestroyInstance()
 		{
-			Instance = null;
+			Instance = null!;
 			ElementTypeSecondaryParameterMenu.DestroyInstance();
 		}
 

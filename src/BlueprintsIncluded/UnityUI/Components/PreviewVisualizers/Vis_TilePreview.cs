@@ -17,18 +17,18 @@ namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 		static Dictionary<BuildingDef, Dictionary<int, Sprite>> _tileSprites = [];
 		static Dictionary<BuildingDef, Dictionary<int, Vector4>> _tileMasks = [];
 
-		static string[,] Tiles = null;
+		static string?[,] Tiles = null!;
 		static List<Vis_TilePreview> previews = new List<Vis_TilePreview>();
-		BuildingConfig _config;
-		RectMask2D _mask;
+		BuildingConfig _config = null!;
+		RectMask2D _mask = null!;
 
-		protected FButton _disableToggle;
-		protected Image _disableToggleHover;
-		protected RectTransform _disableToggleSize;
+		protected FButton _disableToggle = null!;
+		protected Image _disableToggleHover = null!;
+		protected RectTransform _disableToggleSize = null!;
 
 		protected Color _tempDisabled = UIUtils.rgba(2, 198, 246, 0.75);
 
-		protected BuildingConfig _building;
+		protected BuildingConfig _building = null!;
 
 		protected void InitClickable()
 		{
@@ -78,7 +78,7 @@ namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 			foreach (var preview in previews)
 			{
 				var offset = preview._config.Offset;
-				var def = preview._config.BuildingDef;
+				var def = preview._config.BuildingDef!;
 				preview.UpdateTileTexture(def, offset);
 			}
 		}
@@ -110,7 +110,7 @@ namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 				//SgtLogger.l("Trying to get tile variant for " + def.Name + " with variant " + GetConnectionBits(position.X, position.Y));
 				var tex = def.BlockTileAtlas.texture;
 
-				Vector4 uv = renderInfo.atlasInfo.First().uvBox; //do AddVertexInfo trimming for other tile variants
+				Vector4 uv = renderInfo!.atlasInfo.First().uvBox; //do AddVertexInfo trimming for other tile variants
 
 				for (int index = 0; index < renderInfo.atlasInfo.Length; index++)
 				{

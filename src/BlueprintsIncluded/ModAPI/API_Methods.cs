@@ -53,7 +53,7 @@ namespace BlueprintsV2.ModAPI
 		/// </summary>
 		/// <param name="source">the gameobject the blueprint is made from</param>
 		/// <returns>JObject of all the data to be stored in the blueprint</returns>
-		public static JObject Blueprints_GetData(GameObject source)
+		public static JObject? Blueprints_GetData(GameObject source)
 		{
 			if (source.TryGetComponent<IntegrationExample>(out var behavior))
 			{
@@ -194,7 +194,7 @@ namespace BlueprintsV2.ModAPI
 				RegisteredDataHandlerIDs = new HashSet<string>(AdditionalBuildingDataEntries.Keys);
 			return RegisteredDataHandlerIDs;
 		}
-		private static HashSet<string> RegisteredDataHandlerIDs = null;
+		private static HashSet<string>? RegisteredDataHandlerIDs = null;
 
 		public static bool HasDataHandler(string typeName) => AdditionalBuildingDataEntries.ContainsKey(typeName);
 
@@ -332,7 +332,7 @@ namespace BlueprintsV2.ModAPI
 		public delegate void SetBlueprintDataDelegate(GameObject go, JObject data);
 
 
-		static void RegisterInternally(string ID, System.Func<GameObject, JObject> GetDataToStore, System.Action<GameObject, JObject> ApplyStoredData, int OverridePriority = 0)
+		static void RegisterInternally(string ID, System.Func<GameObject, JObject?> GetDataToStore, System.Action<GameObject, JObject> ApplyStoredData, int OverridePriority = 0)
 		{
 			RegisterAdditionalStorableBuildingData(ID, (GetBlueprintDataDelegate)Delegate.CreateDelegate(typeof(GetBlueprintDataDelegate), GetDataToStore.Method), (SetBlueprintDataDelegate)Delegate.CreateDelegate(typeof(SetBlueprintDataDelegate), ApplyStoredData.Method), OverridePriority);
 		}

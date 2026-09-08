@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using System.Diagnostics.CodeAnalysis;
+using Newtonsoft.Json.Linq;
 
 namespace BlueprintsV2.BlueprintData
 {
@@ -16,13 +17,13 @@ namespace BlueprintsV2.BlueprintData
 		/// Returns <see langword="false"/> (and <paramref name="value"/> = <see langword="default"/>)
 		/// when the key is absent; otherwise converts the token with <c>token.Value&lt;T&gt;()</c>.
 		/// </summary>
-		public static bool TryGet<T>(this JObject obj, string key, out T value)
+		public static bool TryGet<T>(this JObject obj, string key, [MaybeNullWhen(false)] out T value)
 		{
-			value = default;
+			value = default!;
 			var token = obj?.GetValue(key);
 			if (token == null)
 				return false;
-			value = token.Value<T>();
+			value = token.Value<T>()!;
 			return true;
 		}
 
@@ -30,13 +31,13 @@ namespace BlueprintsV2.BlueprintData
 		/// <see cref="EmbeddedJson"/>-aware variant for nested payloads (lists, dictionaries,
 		/// POCOs) that also decodes the legacy "escaped JSON string" form.
 		/// </summary>
-		public static bool TryGetEmbedded<T>(this JObject obj, string key, out T value)
+		public static bool TryGetEmbedded<T>(this JObject obj, string key, [MaybeNullWhen(false)] out T value)
 		{
-			value = default;
+			value = default!;
 			var token = obj?.GetValue(key);
 			if (token == null)
 				return false;
-			value = EmbeddedJson.To<T>(token);
+			value = EmbeddedJson.To<T>(token)!;
 			return true;
 		}
 
@@ -44,7 +45,7 @@ namespace BlueprintsV2.BlueprintData
 		/// Returns the stored value for <paramref name="key"/>, or <paramref name="fallback"/>
 		/// when the key is absent.
 		/// </summary>
-		public static T GetOr<T>(this JObject obj, string key, T fallback = default)
+		public static T GetOr<T>(this JObject obj, string key, T fallback = default!)
 			=> obj.TryGet<T>(key, out var v) ? v : fallback;
 	}
 }

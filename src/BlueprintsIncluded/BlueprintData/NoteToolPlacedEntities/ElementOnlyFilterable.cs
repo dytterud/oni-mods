@@ -5,7 +5,7 @@ namespace BlueprintsV2.BlueprintData.PlannedElements
 {
 	internal class ElementOnlyFilterable : Filterable
 	{
-		static Dictionary<Tag, HashSet<Tag>> elementFilterableCategories = null;
+		static Dictionary<Tag, HashSet<Tag>>? elementFilterableCategories = null;
 
 		public static Dictionary<Tag, HashSet<Tag>> GetElementFilters()
 		{

@@ -10,7 +10,7 @@ namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 		{
 			base.Init(building);
 
-			var netWorkManagerGetter = building.BuildingDef.BuildingComplete.GetComponent<IHaveUtilityNetworkMgr>();
+			var netWorkManagerGetter = building.BuildingDef!.BuildingComplete.GetComponent<IHaveUtilityNetworkMgr>();
 			if (netWorkManagerGetter != null && building.GetConduitFlags(out var flags))
 			{
 				kbac.defaultAnim = defaultAnim = netWorkManagerGetter.GetNetworkManager().GetVisualizerString((UtilityConnections)flags);

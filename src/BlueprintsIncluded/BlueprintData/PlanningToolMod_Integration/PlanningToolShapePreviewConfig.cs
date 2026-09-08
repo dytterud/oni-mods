@@ -7,7 +7,7 @@ namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration
 	internal class PlanningToolShapePreviewConfig : CommonPlacerConfig, IEntityConfig
 	{
 		public static string ID = "BlueprintsV2_PlanningToolShapePreview_Placer";
-		static Material slurpPlacerMaterial;
+		static Material slurpPlacerMaterial = null!;
 		public GameObject CreatePrefab()
 		{
 			slurpPlacerMaterial = new Material(Assets.instance.mopPlacerAssets.material);
@@ -19,7 +19,7 @@ namespace BlueprintsV2.BlueprintData.PlanningToolMod_Integration
 			prefab.AddOrGet<PlanningToolShapePreview>();
 			return prefab;
 		}
-		public string[] GetDlcIds() => null;
+		public string[] GetDlcIds() => null!;
 		public void OnPrefabInit(GameObject go)
 		{
 		}

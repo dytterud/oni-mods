@@ -8,9 +8,9 @@ namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 	/// </summary>
 	public class VisualizerRotatable : KMonoBehaviour
 	{
-		public BuildingDef def;
-		[MyCmpGet] KBatchedAnimController kbac;
-		[MyCmpGet] KBoxCollider2D collider;
+		public BuildingDef def = null!;
+		[MyCmpGet] KBatchedAnimController? kbac;
+		[MyCmpGet] KBoxCollider2D? collider;
 
 		public void UpdateRotation()
 		{
@@ -30,6 +30,8 @@ namespace BlueprintsV2.Visualizers.ReplacementVisualizers
 
 		void OrientCollider()
 		{
+			if (collider == null)
+				return;
 			float x = 0.5f * (float)((this.width + 1) % 2);
 			float num1 = 0.0f;
 			switch (CurrentOrientation)

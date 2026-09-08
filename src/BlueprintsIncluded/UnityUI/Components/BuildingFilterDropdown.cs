@@ -9,8 +9,8 @@ namespace BlueprintsV2.UnityUI.Components
 	{
 		public class FHoverableDropDownEntry : FDropDownEntry
 		{
-			public System.Action OnHoverEnter, OnHoverExit;
-			public FHoverableDropDownEntry(string title, System.Action<bool> onToggled, bool enabled = true, string tooltip = "", System.Action onHoverEnter = null, System.Action onHoverExit = null) : base(title, onToggled, enabled, tooltip)
+			public System.Action? OnHoverEnter, OnHoverExit;
+			public FHoverableDropDownEntry(string title, System.Action<bool> onToggled, bool enabled = true, string tooltip = "", System.Action? onHoverEnter = null, System.Action? onHoverExit = null) : base(title, onToggled, enabled, tooltip)
 			{
 				OnHoverEnter = onHoverEnter;
 				OnHoverExit = onHoverExit;

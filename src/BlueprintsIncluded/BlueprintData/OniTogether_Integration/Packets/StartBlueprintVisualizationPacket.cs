@@ -18,13 +18,13 @@ namespace BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
 		}
 		ulong SenderId;
 		int x, y;
-		Blueprint blueprint;
+		Blueprint? blueprint;
 
 		string GetCompressed()
 		{
 			var sb = new StringBuilder();
 			StringWriter sw = new StringWriter(sb);
-			blueprint.WriteJsonString(sw);
+			blueprint!.WriteJsonString(sw);
 			return (sb.ToString().CompressString());
 		}
 
@@ -34,12 +34,13 @@ namespace BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
 			x = reader.ReadInt32();
 			y = reader.ReadInt32();
 			string uncompressedBp = reader.ReadString().DecompressString();
-			if (!ModAssets.TryImportBlueprintFromString(uncompressedBp, out blueprint, false))
+			if (!ModAssets.TryImportBlueprintFromString(uncompressedBp, out var importedBp, false))
 			{
 				SgtLogger.warning("[MP] could not visualize blueprint received from other player");
 				blueprint = null;
 				return;
 			}
+			blueprint = importedBp;
 		}
 		public void Serialize(BinaryWriter writer)
 		{

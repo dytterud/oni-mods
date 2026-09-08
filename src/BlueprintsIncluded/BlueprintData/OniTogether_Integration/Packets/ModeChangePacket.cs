@@ -23,7 +23,7 @@ namespace BlueprintsV2.BlueprintData.OniTogether_Integration.Packets
 		public float originShiftX = 0, originShiftY = 0;
 		public bool applySettings = true;
 		public bool UseToolPriority;
-		public List<string> BlockedPlacementFilterLayers;
+		public List<string> BlockedPlacementFilterLayers = [];
 		public bool ForceOverrideTransformations;
 		public bool ApplySettingsToExistingBuildings;
 

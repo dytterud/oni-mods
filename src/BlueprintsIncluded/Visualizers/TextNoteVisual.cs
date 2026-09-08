@@ -18,7 +18,7 @@ namespace BlueprintsV2.Visualizers
 
 		public PlanScreen.RequirementsState RequirementsState => PlanScreen.RequirementsState.Complete;
 
-		public string BuildingID => null;
+		public string? BuildingID => null;
 
 		string Title, Text, Symbol;
 		Color Tint;

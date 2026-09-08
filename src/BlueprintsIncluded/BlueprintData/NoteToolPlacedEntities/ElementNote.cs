@@ -15,8 +15,8 @@ namespace BlueprintsV2.BlueprintData.PlannedElements
 {
 	public class ElementNote : BlueprintNote, IMultiSliderControl
 	{
-		[MyCmpReq] protected Filterable filterable;
-		static Material SolidMat, LiquidMat, GasMat, VacuumMat;
+		[MyCmpReq] protected Filterable filterable = null!;
+		static Material SolidMat = null!, LiquidMat = null!, GasMat = null!, VacuumMat = null!;
 
 		static bool init = false;
 		static void InitMaterials()
@@ -158,7 +158,7 @@ namespace BlueprintsV2.BlueprintData.PlannedElements
 					break;
 			}
 			if (!vaccuum)
-				renderer.material.color = element.substance.colour;
+				renderer!.material.color = element.substance.colour;
 		}
 
 

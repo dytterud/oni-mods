@@ -15,13 +15,12 @@ namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities
 			Text,
 			Element,
 		}
-		[JsonIgnore]
-		//ignore in all data 
+		/// <summary>Not serialized inline; the owning blueprint keys notes by location.</summary>
 		public Vector2I Location;
 
 		public NoteType Type = NoteType.Invalid;
 		///Text Note Data
-		public string Text, Title, Symbol;
+		public string Text = "", Title = "", Symbol = "";
 		public Color SymbolTint;
 		///Element Note Data
 		public SimHashes ElementId;

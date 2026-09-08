@@ -7,7 +7,7 @@ namespace BlueprintsV2.BlueprintData.PlannedElements
 	internal class ElementNoteConfig : CommonPlacerConfig, IEntityConfig
 	{
 		public static string ID = "BlueprintsV2_Element_Note";
-		static Material slurpPlacerMaterial;
+		static Material slurpPlacerMaterial = null!;
 		public GameObject CreatePrefab()
 		{
 			slurpPlacerMaterial = new Material(Assets.instance.mopPlacerAssets.material);
@@ -21,7 +21,7 @@ namespace BlueprintsV2.BlueprintData.PlannedElements
 			prefab.AddOrGet<ElementNote>();
 			return prefab;
 		}
-		public string[] GetDlcIds() => null;
+		public string[] GetDlcIds() => null!;
 		public void OnPrefabInit(GameObject go)
 		{
 		}

@@ -19,6 +19,11 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<LangVersion>14.0</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<!--Nullable reference types: enabled and fully migrated. CS86xx are errors
+		    (see WarningsAsErrors below) so regressions fail the build. Vendored
+		    UtilLibs opts out (see UtilLibs.csproj); the test projects clear
+		    WarningsAsErrors so nullable stays advisory there.-->
+		<Nullable>enable</Nullable>
 		<TargetFramework>netstandard2.1</TargetFramework>
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 		<!--Run the .editorconfig code-style (IDExxxx) analyzers as part of the build,
@@ -29,8 +34,9 @@
 	<!--<UsingTask TaskName="RecursiveFolderHashing" AssemblyFile="HashService.dll"/>-->
 
 	<PropertyGroup>
-		<!--Marks Deprecated warnings as errors-->
-		<WarningsAsErrors>CS0618,CS0612</WarningsAsErrors>
+		<!--Deprecated-API calls (CS0618/CS0612) and any nullable-reference
+		    regression (the CS86xx family, via the "nullable" token) fail the build.-->
+		<WarningsAsErrors>CS0618,CS0612,nullable</WarningsAsErrors>
 		<!--MSB3277: System.Compression version conflict.
 		    CS0649: Klei injects [MyCmpGet]/[MyCmpReq]/serialized fields by reflection,
 		            so the compiler can't see the assignment. -->

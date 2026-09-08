@@ -18,13 +18,13 @@ namespace BlueprintsV2.Tools
 {
 	internal class CreateNoteTool : DragTool
 	{
-		public static CreateNoteTool Instance;
+		public static CreateNoteTool Instance = null!;
 		private EventInstance audioEvent;
-		SpriteRenderer visualizerIcon;
+		SpriteRenderer visualizerIcon = null!;
 
 		public static void DestroyInstance()
 		{
-			CreateNoteTool.Instance = null;
+			CreateNoteTool.Instance = null!;
 		}
 
 		public override void OnPrefabInit()
@@ -99,7 +99,7 @@ namespace BlueprintsV2.Tools
 			}
 
 		}
-		private void OnElementChanged(object _)
+		private void OnElementChanged(object? _)
 		{
 			return;
 			// Disabled: per-element visualizer icon swap. Left in place for reference.

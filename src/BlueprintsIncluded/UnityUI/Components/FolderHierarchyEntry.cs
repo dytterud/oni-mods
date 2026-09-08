@@ -5,11 +5,11 @@ namespace BlueprintsV2.UnityUI.Components
 {
 	internal class FolderHierarchyEntry : KMonoBehaviour
 	{
-		public BlueprintFolder folder;
+		public BlueprintFolder? folder;
 
-		public System.Action OnEntryClicked;
-		FButton button;
-		LocText Label;
+		public System.Action? OnEntryClicked;
+		FButton button = null!;
+		LocText Label = null!;
 
 		public override void OnPrefabInit()
 		{
@@ -23,7 +23,8 @@ namespace BlueprintsV2.UnityUI.Components
 			if (folder != null)
 			{
 				Label.SetText(folder.Name);
-				button.OnClick += OnEntryClicked;
+				if (OnEntryClicked != null)
+					button.OnClick += OnEntryClicked;
 			}
 		}
 	}

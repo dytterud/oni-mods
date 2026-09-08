@@ -13,20 +13,20 @@ namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 {
 	internal class Vis_BuildingPreview : KMonoBehaviour
 	{
-		protected RectTransform _rectTransform;
-		protected KBatchedAnimController kbac;
-		protected string defaultAnim;
+		protected RectTransform _rectTransform = null!;
+		protected KBatchedAnimController kbac = null!;
+		protected string defaultAnim = null!;
 
-		protected FButton _disableToggle;
-		protected Image _disableToggleHover;
-		protected RectTransform _disableToggleSize;
+		protected FButton _disableToggle = null!;
+		protected Image _disableToggleHover = null!;
+		protected RectTransform _disableToggleSize = null!;
 
 		private Color _color = Color.white;
 		private Color _desaturated = new(1, 1, 1, 0.25f);
 		private Color _disabledHighlighted = new(1, 1, 1, 0.50f);
 		protected Color _tempDisabled = UIUtils.rgba(2, 198, 246, 0.75);
 
-		protected BuildingConfig _building;
+		protected BuildingConfig _building = null!;
 
 		protected void InitClickable()
 		{
@@ -46,6 +46,8 @@ namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 
 		internal virtual Vis_BuildingPreview Init(BuildingConfig building)
 		{
+			// Callers only build a preview for a config whose BuildingDef resolved.
+			BuildingDef def = building.BuildingDef!;
 			_building = building;
 			InitClickable();
 			_rectTransform = GetComponent<RectTransform>();
@@ -56,10 +58,10 @@ namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 			//kbac.visibilityType = KAnimControllerBase.VisibilityType.Always;
 			kbac.setScaleFromAnim = false;
 			kbac.sceneLayer = Grid.SceneLayer.FXFront;
-			kbac.AnimFiles = building.BuildingDef.AnimFiles;
+			kbac.AnimFiles = def.AnimFiles;
 			kbac.isMovable = true;
 
-			kbac.defaultAnim = defaultAnim = building.BuildingDef.DefaultAnimState;
+			kbac.defaultAnim = defaultAnim = def.DefaultAnimState;
 			//SgtLogger.l("StartAnim " + def.name + ": " + defaultAnim);
 			UpdatePosition(building);
 			return this;
@@ -72,11 +74,11 @@ namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 		void UpdatePosition(BuildingConfig building)
 		{
 			Orientation orientation = building.Orientation;
-			var def = building.BuildingDef;
+			BuildingDef def = building.BuildingDef!;
 			kbac.flipX = orientation == Orientation.FlipH;
 			kbac.flipY = orientation == Orientation.FlipV;
 
-			bool correctX = building.BuildingDef.WidthInCells % 2 == 0;
+			bool correctX = def.WidthInCells % 2 == 0;
 
 			float width = def.WidthInCells;
 			float heigh = def.HeightInCells;

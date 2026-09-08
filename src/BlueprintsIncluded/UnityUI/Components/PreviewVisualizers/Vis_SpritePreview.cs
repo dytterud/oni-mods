@@ -9,7 +9,7 @@ namespace BlueprintsV2.UnityUI.Components.PreviewVisualizers
 {
 	internal class Vis_SpritePreview : KMonoBehaviour
 	{
-		protected Image SpriteRenderer;
+		protected Image SpriteRenderer = null!;
 		private Color _color = Color.white;
 		private Color _desaturated = new(1, 1, 1, 0.25f);
 		private Color _disabledHighlighted = new(1, 1, 1, 0.50f);

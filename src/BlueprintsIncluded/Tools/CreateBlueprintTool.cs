@@ -21,9 +21,9 @@ namespace BlueprintsV2.Tools
 
 		public bool IsRetakingBlueprint => RetakeBp != null;
 		public string RetakingBlueprintName => RetakeBp != null ? RetakeBp.FriendlyName : string.Empty;
-		private Blueprint RetakeBp = null;
-		public static CreateBlueprintTool Instance { get; private set; }
-		CreateBlueprintToolHoverCard card;
+		private Blueprint? RetakeBp = null;
+		public static CreateBlueprintTool Instance { get; private set; } = null!;
+		CreateBlueprintToolHoverCard card = null!;
 
 		public CreateBlueprintTool()
 		{
@@ -32,7 +32,7 @@ namespace BlueprintsV2.Tools
 
 		public static void DestroyInstance()
 		{
-			Instance = null;
+			Instance = null!;
 		}
 		bool toolActive = false;
 		public override void OnDeactivateTool(InterfaceTool newTool)
@@ -141,6 +141,8 @@ namespace BlueprintsV2.Tools
 
 		void TransferNewBuildingsToRetakenBlueprint(Blueprint newBuildings)
 		{
+			if (RetakeBp == null)
+				return;
 			RetakeBp.UpdateFrom(newBuildings);
 			this.DeactivateTool();
 			PlayerController.Instance.ActivateTool(UseBlueprintTool.Instance);

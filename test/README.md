@@ -27,6 +27,12 @@ everywhere. That is most of what is currently unit-testable — the production c
 seams between logic and game state. Widening coverage mostly means extracting plain
 functions / small interfaces, not more test infrastructure.
 
+## Manual smoke test
+
+The blueprint pipeline (create → save → reload → place, notes, folders, MP) needs a
+running colony, so it can't be unit-tested. Run [`docs/smoke-test-checklist.md`](../docs/smoke-test-checklist.md)
+in-game after any change to the blueprint data, tools, visualizers, or UI.
+
 ## Shared config
 
 `test/Directory.Build.props` chains the repo-root props (for the game `<Reference>` items and

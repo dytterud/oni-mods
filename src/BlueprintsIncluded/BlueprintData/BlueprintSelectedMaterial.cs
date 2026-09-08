@@ -52,14 +52,14 @@ namespace BlueprintsV2.BlueprintData
 			_buildingIdTag = buildingId;
 
 		}
-		public bool Equals(BlueprintSelectedMaterial other)
+		public bool Equals(BlueprintSelectedMaterial? other)
 		{
 			return other?.SelectedTag == this.SelectedTag && other?.CategoryTag == this.CategoryTag && other?.BuildingIdTag == this.BuildingIdTag;
 		}
-		public override bool Equals(object obj) => obj is BlueprintSelectedMaterial other && Equals(other);
+		public override bool Equals(object? obj) => obj is BlueprintSelectedMaterial other && Equals(other);
 
-		public static bool operator ==(BlueprintSelectedMaterial a, BlueprintSelectedMaterial b) => a?.CategoryTag == b?.CategoryTag && a?.SelectedTag == b?.SelectedTag && a?._buildingIdTag == b?._buildingIdTag;
-		public static bool operator !=(BlueprintSelectedMaterial a, BlueprintSelectedMaterial b) => !(a == b);
+		public static bool operator ==(BlueprintSelectedMaterial? a, BlueprintSelectedMaterial? b) => a?.CategoryTag == b?.CategoryTag && a?.SelectedTag == b?.SelectedTag && a?._buildingIdTag == b?._buildingIdTag;
+		public static bool operator !=(BlueprintSelectedMaterial? a, BlueprintSelectedMaterial? b) => !(a == b);
 		public override int GetHashCode()
 		{
 			var val = SelectedTag.GetHashCode() ^ CategoryTag.GetHashCode() ^ BuildingIdTag.GetHashCode();

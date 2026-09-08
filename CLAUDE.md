@@ -14,7 +14,9 @@ dotnet test                                                            # from re
 Offline build auto-activates when no ONI install is configured; it compiles against the
 committed reference assemblies in `lib/`. For in-game testing against a real install, see
 [README.md](README.md) (`Directory.Build.props.user` + `dotnet tool restore` + `-c Debug`).
-Test details: [test/README.md](test/README.md).
+Test details: [test/README.md](test/README.md). The blueprint pipeline needs a running
+colony, so it has a manual [smoke-test checklist](docs/smoke-test-checklist.md) — run it
+in-game after changes to blueprint data, tools, visualizers, or UI.
 
 ## Layout
 
@@ -39,9 +41,19 @@ Sub-namespaces mirror folders: `Patches/`, `Tools/`, `BlueprintData/`, `UnityUI/
 - `ImplicitUsings` is **enabled** for `BlueprintsIncluded` and its test project, **disabled**
   for `UtilLibs` / `UtilLibs.Tests` (vendored code relies on unqualified `UnityEngine`
   names) — add explicit `using`s when editing UtilLibs.
+- `Nullable` is **enabled** for `BlueprintsIncluded`, **disabled** for vendored `UtilLibs`
+  (same split as `ImplicitUsings`). Fully migrated: the CS86xx family is in
+  `WarningsAsErrors` (via the `nullable` token), so a regression fails the build.
+  Klei-injected / FUI-builder-wired fields use `= null!;` (assigned before any use, never
+  actually null in-game); genuinely-optional values use `T?`. Test projects clear
+  `WarningsAsErrors`, so nullable stays advisory there.
+  `ScreenReferenceBindingTests` (game-gated) reflects over every `KMonoBehaviour` and fails
+  if a non-nullable `Component`/`GameObject` field is only ever `= null!` and never bound in
+  code — catches "declared a widget, forgot to wire it in `Init()`".
 - `EnforceCodeStyleInBuild=true`: IDExxxx style violations **fail the build** for production
-  projects. `WarningsAsErrors=CS0618;CS0612`: calling an `[Obsolete]` game API breaks the
-  build. `CS0649` is suppressed (Klei injects fields by reflection).
+  projects. `WarningsAsErrors=CS0618;CS0612;nullable`: calling an `[Obsolete]` game API or
+  introducing a nullable warning breaks the build. `CS0649` is suppressed (Klei injects
+  fields by reflection).
 - `LangVersion=14.0` on `netstandard2.1` works via PolySharp compile-time polyfills.
 
 ## Harmony patching

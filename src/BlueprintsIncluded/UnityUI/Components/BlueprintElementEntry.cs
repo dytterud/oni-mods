@@ -11,19 +11,19 @@ namespace BlueprintsV2.UnityUI.Components
 {
 	internal class BlueprintElementEntry : KMonoBehaviour
 	{
-		public BlueprintSelectedMaterial SelectedAndCategory;
-		public System.Action<BlueprintSelectedMaterial, float> OnEntryClicked;
-		LocText ElementName;
-		LocText ElementAmount;
+		public BlueprintSelectedMaterial? SelectedAndCategory;
+		public System.Action<BlueprintSelectedMaterial, float>? OnEntryClicked;
+		LocText ElementName = null!;
+		LocText ElementAmount = null!;
 		float amount;
-		LocText ReplaceElementName;
-		GameObject warningIndicator, severeWarningIndicator;
-		FToggleButton button;
-		Image ElementIcon, ReplacementElementIcon, BuildingIcon;
-		ToolTip tooltip;
+		LocText ReplaceElementName = null!;
+		GameObject warningIndicator = null!, severeWarningIndicator = null!;
+		FToggleButton button = null!;
+		Image ElementIcon = null!, ReplacementElementIcon = null!, BuildingIcon = null!;
+		ToolTip tooltip = null!;
 		bool staticTag = false;
-		string staticTooltip;
-		Blueprint currentBp = null;
+		string staticTooltip = null!;
+		Blueprint? currentBp = null;
 
 		public void SetSelected(bool isSelected)
 		{
@@ -31,7 +31,8 @@ namespace BlueprintsV2.UnityUI.Components
 		}
 		void OnClick()
 		{
-			OnEntryClicked?.Invoke(SelectedAndCategory, amount);
+			if (SelectedAndCategory != null)
+				OnEntryClicked?.Invoke(SelectedAndCategory, amount);
 			SetSelected(true);
 		}
 		static bool init = false;
@@ -131,6 +132,8 @@ namespace BlueprintsV2.UnityUI.Components
 
 		void SetElementNameText(string elementName)
 		{
+			if (SelectedAndCategory == null)
+				return;
 			if (BlueprintState.CurrentStateInfo().AdvancedMaterialReplacement && SelectedAndCategory.BuildingIdTag != null)
 			{
 				var prefab = Assets.TryGetPrefab(SelectedAndCategory.BuildingIdTag);
@@ -156,11 +159,11 @@ namespace BlueprintsV2.UnityUI.Components
 		}
 
 
-		public int Refresh(Blueprint current)
+		public int Refresh(Blueprint? current)
 		{
 			Init();
 			currentBp = current;
-			if (current == null)
+			if (current == null || SelectedAndCategory == null)
 				return 0;
 
 			Tag targetTag = SelectedAndCategory.SelectedTag;

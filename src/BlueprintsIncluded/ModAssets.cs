@@ -4,6 +4,7 @@ using BlueprintsV2.Tools;
 using BlueprintsV2.Visualizers;
 using PeterHan.PLib.Actions;
 using STRINGS;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using UnityEngine;
 using UtilLibs;
@@ -13,19 +14,19 @@ namespace BlueprintsV2
 	internal class ModAssets
 	{
 		public static ObjectLayer BlueprintNotesLayer = ObjectLayer.FillPlacer;
-		public static Sprite Note_Placer_Sprite, NoteToolIcon_Sprite, AddNoteToolIcon_Sprite;
-		public static Sprite Gas_Placer_Sprite, Liquid_Placer_Sprite, Solid_Placer_Sprite, Special_Placer_Sprite;
-		public static Sprite PlanningToolPreview_Square, PlanningToolPreview_Circle, PlanningToolPreview_Diamond;
+		public static Sprite Note_Placer_Sprite = null!, NoteToolIcon_Sprite = null!, AddNoteToolIcon_Sprite = null!;
+		public static Sprite Gas_Placer_Sprite = null!, Liquid_Placer_Sprite = null!, Solid_Placer_Sprite = null!, Special_Placer_Sprite = null!;
+		public static Sprite PlanningToolPreview_Square = null!, PlanningToolPreview_Circle = null!, PlanningToolPreview_Diamond = null!;
 
-		public static Sprite BLUEPRINTS_CREATE_ICON_SPRITE;
-		public static Sprite BLUEPRINTS_CREATE_VISUALIZER_SPRITE;
-		public static Sprite BLUEPRINTS_APPLY_SETTINGS_SPRITE;
+		public static Sprite BLUEPRINTS_CREATE_ICON_SPRITE = null!;
+		public static Sprite BLUEPRINTS_CREATE_VISUALIZER_SPRITE = null!;
+		public static Sprite BLUEPRINTS_APPLY_SETTINGS_SPRITE = null!;
 
-		public static Sprite BLUEPRINTS_USE_ICON_SPRITE;
-		public static Sprite BLUEPRINTS_USE_VISUALIZER_SPRITE;
+		public static Sprite BLUEPRINTS_USE_ICON_SPRITE = null!;
+		public static Sprite BLUEPRINTS_USE_VISUALIZER_SPRITE = null!;
 
-		public static Sprite BLUEPRINTS_SNAPSHOT_ICON_SPRITE;
-		public static Sprite BLUEPRINTS_SNAPSHOT_VISUALIZER_SPRITE;
+		public static Sprite BLUEPRINTS_SNAPSHOT_ICON_SPRITE = null!;
+		public static Sprite BLUEPRINTS_SNAPSHOT_VISUALIZER_SPRITE = null!;
 
 		public static Color BLUEPRINTS_COLOR_VALIDPLACEMENT = Color.white;
 		public static Color BLUEPRINTS_COLOR_INVALIDPLACEMENT = Color.red;
@@ -41,7 +42,7 @@ namespace BlueprintsV2
 		public static HashSet<char> BLUEPRINTS_PATH_DISALLOWEDCHARACTERS;
 
 		public static HashSet<string> BLUEPRINTS_AUTOFILE_IGNORE = new();
-		public static FileSystemWatcher BLUEPRINTS_AUTOFILE_WATCHER;
+		public static FileSystemWatcher BLUEPRINTS_AUTOFILE_WATCHER = null!;
 		static ModAssets()
 		{
 			BLUEPRINTS_FILE_DISALLOWEDCHARACTERS = new HashSet<char>();
@@ -59,11 +60,11 @@ namespace BlueprintsV2
 		}
 
 
-		public static GameObject BlueprintSelectionScreenGO;
-		public static GameObject BlueprintInfoStateGO;
-		public static GameObject NoteToolStateScreenGO;
-		public static GameObject IconSelectorGO;
-		public static GameObject RenamingScreenGO;
+		public static GameObject BlueprintSelectionScreenGO = null!;
+		public static GameObject BlueprintInfoStateGO = null!;
+		public static GameObject NoteToolStateScreenGO = null!;
+		public static GameObject IconSelectorGO = null!;
+		public static GameObject RenamingScreenGO = null!;
 		public static void LoadAssets()
 		{
 			var bundle = AssetUtils.LoadAssetBundle("blueprints_ui", platformSpecific: true);
@@ -155,8 +156,8 @@ namespace BlueprintsV2
 			return BlueprintFileHandling.BlueprintFolders.Select(x => x.Name).ToArray();
 		}
 		public static BlueprintFolder GetCurrentFolder() => SelectedFolder == null ? BlueprintFileHandling.RootFolder : SelectedFolder;
-		public static BlueprintFolder SelectedFolder;
-		public static Blueprint SelectedBlueprint;
+		public static BlueprintFolder? SelectedFolder;
+		public static Blueprint? SelectedBlueprint;
 		public static Dictionary<BlueprintSelectedMaterial, Tag> DynamicReplacementTags = new();
 
 		public static void RemoveReplacementTag(BlueprintSelectedMaterial tag)
@@ -197,7 +198,7 @@ namespace BlueprintsV2
 		}
 		public static StringBuilder sb = new StringBuilder();
 
-		internal static bool TryImportBlueprintFromString(string bpString, out Blueprint bp, bool storeToFile = true)
+		internal static bool TryImportBlueprintFromString(string bpString, [NotNullWhen(true)] out Blueprint? bp, bool storeToFile = true)
 		{
 			bp = null;
 			try
@@ -224,7 +225,7 @@ namespace BlueprintsV2
 			}
 		}
 
-		public static bool ImportFromClipboard(out Blueprint bp)
+		public static bool ImportFromClipboard([NotNullWhen(true)] out Blueprint? bp)
 		{
 			bp = null;
 			if (IO_Utils.TryGetStringFromClipboard(out string clipboard))
@@ -264,7 +265,7 @@ namespace BlueprintsV2
 
 		public static class BlueprintFileHandling
 		{
-			public static BlueprintFolder RootFolder;
+			public static BlueprintFolder RootFolder = null!;
 			public static List<BlueprintFolder> BlueprintFolders = new();
 
 			//public static HashSet<Blueprint> Blueprints = new();
@@ -327,7 +328,7 @@ namespace BlueprintsV2
 
 			public static void ReloadBlueprints(bool ingame)
 			{
-				RootFolder = null;
+				RootFolder = null!;
 				BlueprintFolders.Clear();
 				//Blueprints.Clear();
 				LoadFolder(GetBlueprintDirectory());
@@ -349,7 +350,7 @@ namespace BlueprintsV2
 				bp.RemoveFromFolder();
 			}
 
-			public static bool TryGetFolder(Blueprint bp, out BlueprintFolder folder)
+			public static bool TryGetFolder(Blueprint bp, [NotNullWhen(true)] out BlueprintFolder? folder)
 			{
 				if (RootFolder.ContainsBlueprint(bp))
 				{
@@ -359,7 +360,7 @@ namespace BlueprintsV2
 				folder = BlueprintFolders.FirstOrDefault(x => x.ContainsBlueprint(bp));
 				return folder != null;
 			}
-			public static bool TryGetFolder(string folderName, out BlueprintFolder folder)
+			public static bool TryGetFolder(string? folderName, [NotNullWhen(true)] out BlueprintFolder? folder)
 			{
 				if (folderName == null || folderName == "")
 				{
@@ -391,7 +392,7 @@ namespace BlueprintsV2
 				return false;
 			}
 
-			public static void LoadFolder(string folder, string ParentFolder = null)
+			public static void LoadFolder(string folder, string? ParentFolder = null)
 			{
 				BlueprintFolder CurrentFolder;
 				//root
@@ -448,7 +449,7 @@ namespace BlueprintsV2
 				}
 				return CreateFolder(folderName);
 			}
-			public static bool TryGetBlueprintFolder(string folderName, out BlueprintFolder folder)
+			public static bool TryGetBlueprintFolder(string folderName, [NotNullWhen(true)] out BlueprintFolder? folder)
 			{
 				folder = null;
 				if (folderName.IsNullOrWhiteSpace())
@@ -477,7 +478,7 @@ namespace BlueprintsV2
 			{
 				if (LoadBlueprint(filePath, out Blueprint blueprint))
 				{
-					if (blueprint.Folder == Path.GetDirectoryName(GetBlueprintDirectory()) || blueprint.Folder == string.Empty)
+					if (blueprint.Folder == Path.GetDirectoryName(GetBlueprintDirectory()) || string.IsNullOrEmpty(blueprint.Folder))
 					{
 						SgtLogger.l("adding to root folder", blueprint.FriendlyName);
 						RootFolder.AddBlueprint(blueprint);
@@ -500,7 +501,7 @@ namespace BlueprintsV2
 			public static void HandleBlueprintDeletion(string fileLocation)
 			{
 				SgtLogger.l("Path: " + fileLocation, "BP FileWatcher Deletion");
-				Blueprint ToRemove = null;
+				Blueprint? ToRemove = null;
 				foreach (var folder in BlueprintFileHandling.BlueprintFolders)
 				{
 					foreach (var bp in folder.Blueprints)
@@ -586,7 +587,7 @@ namespace BlueprintsV2
 				STRINGS.UI.ACTIONS.TOGGLETOOLTIPS, new PKeyBinding(KKeyCode.Z));
 		}
 
-		public static Sprite GetBlueprintIconSprite(string id)
+		public static Sprite GetBlueprintIconSprite(string? id)
 		{
 			var sprite = Assets.GetSprite(id);
 			if (sprite == null)
@@ -764,31 +765,31 @@ namespace BlueprintsV2
 		}
 		public static class Actions
 		{
-			public static PAction BlueprintsCreateAction { get; set; }
-			public static PAction BlueprintsUseAction { get; set; }
-			public static PAction BlueprintsCreateNoteAction { get; set; }
-			public static PAction BlueprintsSnapshotAction { get; set; }
-			public static PAction BlueprintsSnapshotReuseAction { get; set; }
-			public static PAction BlueprintsReopenSelectionAction { get; set; }
-			public static PAction BlueprintsSwapAnchorAction { get; set; }
-			public static PAction BlueprintsToggleForce { get; set; }
+			public static PAction BlueprintsCreateAction { get; set; } = null!;
+			public static PAction BlueprintsUseAction { get; set; } = null!;
+			public static PAction BlueprintsCreateNoteAction { get; set; } = null!;
+			public static PAction BlueprintsSnapshotAction { get; set; } = null!;
+			public static PAction BlueprintsSnapshotReuseAction { get; set; } = null!;
+			public static PAction BlueprintsReopenSelectionAction { get; set; } = null!;
+			public static PAction BlueprintsSwapAnchorAction { get; set; } = null!;
+			public static PAction BlueprintsToggleForce { get; set; } = null!;
 
-			public static PAction BlueprintsFlipHorizontal { get; set; }
-			public static PAction BlueprintsFlipVertical { get; set; }
-			public static PAction BlueprintsRotate { get; set; }
-			public static PAction BlueprintsRotateInverse { get; set; }
-			public static PAction BlueprintsSelectNext { get; set; }
-			public static PAction BlueprintsSelectPrevious { get; set; }
-			public static PAction BlueprintsSelectNextFolder { get; set; }
-			public static PAction BlueprintsSelectPreviousFolder { get; set; }
+			public static PAction BlueprintsFlipHorizontal { get; set; } = null!;
+			public static PAction BlueprintsFlipVertical { get; set; } = null!;
+			public static PAction BlueprintsRotate { get; set; } = null!;
+			public static PAction BlueprintsRotateInverse { get; set; } = null!;
+			public static PAction BlueprintsSelectNext { get; set; } = null!;
+			public static PAction BlueprintsSelectPrevious { get; set; } = null!;
+			public static PAction BlueprintsSelectNextFolder { get; set; } = null!;
+			public static PAction BlueprintsSelectPreviousFolder { get; set; } = null!;
 
 
-			public static PAction BlueprintsToggleHotkeyToolTips { get; set; }
+			public static PAction BlueprintsToggleHotkeyToolTips { get; set; } = null!;
 
 		}
-		public static bool TryGetFilterLayerId(ObjectLayer objectLayer, out string filterLayerId)
+		public static bool TryGetFilterLayerId(ObjectLayer objectLayer, [NotNullWhen(true)] out string? filterLayerId)
 		{
-			filterLayerId = null;	
+			filterLayerId = null;
 			switch (objectLayer)
 			{
 				case ObjectLayer.Building:

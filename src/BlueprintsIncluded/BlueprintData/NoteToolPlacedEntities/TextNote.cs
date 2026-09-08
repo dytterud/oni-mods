@@ -62,7 +62,7 @@ namespace BlueprintsV2.BlueprintData.NoteToolPlacedEntities
 			SeatIndicator = shouldSeat;
 			SetDescription();
 		}
-		internal void UpdateInfo(string title = null, string text = null, string symbol = null, Color? tint = null)
+		internal void UpdateInfo(string? title = null, string? text = null, string? symbol = null, Color? tint = null)
 		{
 			if (title != null) Title = title;
 			if (text != null) Text = text;

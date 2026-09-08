@@ -28,9 +28,9 @@ namespace BlueprintsV2.BlueprintData
 			}
 		}
 
-		internal static JObject TryStoreBackwall(GameObject arg)
+		internal static JObject? TryStoreBackwall(GameObject arg)
 		{
-			JObject data = null;
+			JObject? data = null;
 			var backwallCmp = arg.GetComponent("Backwall");
 			if (backwallCmp != null)
 			{
@@ -55,7 +55,7 @@ namespace BlueprintsV2.BlueprintData
 
 			if (moodLampCmp != null)
 			{
-				string currentVariantID = arg2.GetValue("currentVariantID")?.Value<string>();
+				string? currentVariantID = arg2.GetValue("currentVariantID")?.Value<string>();
 
 				if (currentVariantID != null)
 					Traverse.Create(moodLampCmp).Method("SetVariant", new[] { typeof(string) }).GetValue(currentVariantID);
@@ -74,11 +74,11 @@ namespace BlueprintsV2.BlueprintData
 			}
 		}
 
-		internal static JObject TryStoreMoodLamp(GameObject arg)
+		internal static JObject? TryStoreMoodLamp(GameObject arg)
 		{
-			JObject data = null;
-			string currentVariantID = null;
-			string colorHex = null;
+			JObject? data = null;
+			string? currentVariantID = null;
+			string? colorHex = null;
 
 			var moodLampCmp = arg.GetComponent("MoodLamp");
 			if (moodLampCmp != null)
@@ -107,7 +107,7 @@ namespace BlueprintsV2.BlueprintData
 		}
 
 		//Artable (painting, statue)
-		internal static JObject TryStoreArtableSkin(GameObject arg)
+		internal static JObject? TryStoreArtableSkin(GameObject arg)
 		{
 			string skinId = string.Empty;
 			if (arg.TryGetComponent<Artable>(out var artable))
@@ -161,7 +161,7 @@ namespace BlueprintsV2.BlueprintData
 			}
 		}
 		//Facade (building skin)
-		internal static JObject TryStoreBuildingSkin(GameObject arg)
+		internal static JObject? TryStoreBuildingSkin(GameObject arg)
 		{
 			string skinId = string.Empty;
 			if (arg.TryGetComponent<BuildingFacade>(out var buildingFacade) && !buildingFacade.IsOriginal)

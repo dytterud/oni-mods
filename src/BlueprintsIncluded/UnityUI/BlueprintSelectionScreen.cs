@@ -26,7 +26,7 @@ namespace BlueprintsV2.UnityUI
 		//new bool ConsumeMouseScroll = true; // do not remove!!!!
 #pragma warning restore CS0414 // Remove unused private members
 #pragma warning restore IDE0051 // Remove unused private members
-		public static BlueprintSelectionScreen Instance = null;
+		public static BlueprintSelectionScreen Instance = null!;
 
 		enum OrderBy
 		{
@@ -53,77 +53,77 @@ namespace BlueprintsV2.UnityUI
 		}
 
 		//Main Areas
-		public GameObject BlueprintsList;
-		public GameObject BlueprintsElements;
-		public GameObject ReplaceBlueprintElements;
-		public GameObject BlueprintInfo;
+		public GameObject BlueprintsList = null!;
+		public GameObject BlueprintsElements = null!;
+		public GameObject ReplaceBlueprintElements = null!;
+		public GameObject BlueprintInfo = null!;
 		//public GameObject BlueprintInfoBuildingList;
-		public GameObject BlueprintPreview;
-		public FButton CloseBtn;
+		public GameObject BlueprintPreview = null!;
+		public FButton CloseBtn = null!;
 
 		//BlueprintList
-		public FInputField2 BlueprintSearchbar;
-		public FButton ClearBlueprintSearchbar;
-		public FButton OpenBlueprintFolder;
-		public FButton ImportBlueprintButton;
-		public FButton FolderUpBtn;
-		public GameObject HierarchyContainer;
-		public FileHierarchyEntry HierarchyEntryPrefab;
-		public FolderHierarchyEntry HierarchyFolderPrefab;
+		public FInputField2 BlueprintSearchbar = null!;
+		public FButton ClearBlueprintSearchbar = null!;
+		public FButton OpenBlueprintFolder = null!;
+		public FButton ImportBlueprintButton = null!;
+		public FButton FolderUpBtn = null!;
+		public GameObject HierarchyContainer = null!;
+		public FileHierarchyEntry HierarchyEntryPrefab = null!;
+		public FolderHierarchyEntry HierarchyFolderPrefab = null!;
 		public Dictionary<BlueprintFolder, FolderHierarchyEntry> FolderEntries = new();
 		public Dictionary<Blueprint, FileHierarchyEntry> BlueprintEntries = new();
 
-		public FOrderByParamToggle OrderByName, OrderByDate;
+		public FOrderByParamToggle OrderByName = null!, OrderByDate = null!;
 
 		//Blueprint Info Screen
-		public LocText BlueprintName;
-		public FInputField2 DescriptionInput;
-		public FButton ResetText, ApplyText;
-		public LocText DimensionInfo, BuildingCount, DigCount, NoteCount;
-		public FButton EditBlueprintIconBtn, ClearBlueprintIconBtn;
-		public FColorPickerArray ColorPicker;
+		public LocText BlueprintName = null!;
+		public FInputField2 DescriptionInput = null!;
+		public FButton ResetText = null!, ApplyText = null!;
+		public LocText DimensionInfo = null!, BuildingCount = null!, DigCount = null!, NoteCount = null!;
+		public FButton EditBlueprintIconBtn = null!, ClearBlueprintIconBtn = null!;
+		public FColorPickerArray ColorPicker = null!;
 
 		//Blueprint info building list
 		//public FInputField2 BuildingListSearchbar;
 		//public FButton ClearBuildingListSearchbar;
-		public GameObject BuildingInfoContainer;
-		public GameObject NoBuildingsInfo;
-		public BuildingInfoEntry BuildingInfoEntryPrefab;
+		public GameObject BuildingInfoContainer = null!;
+		public GameObject NoBuildingsInfo = null!;
+		public BuildingInfoEntry BuildingInfoEntryPrefab = null!;
 		public Dictionary<string, BuildingInfoEntry> BuildingInfoEntries = new();
-		public Image BlueprintIconDisplay;
+		public Image BlueprintIconDisplay = null!;
 		//Preview
-		BlueprintPreviewScreen Preview;
-		public FButton StartOverriding, PlaceBlueprintPreview;
+		BlueprintPreviewScreen Preview = null!;
+		public FButton StartOverriding = null!, PlaceBlueprintPreview = null!;
 
 
 
 		//MaterialList
 		public Dictionary<BlueprintSelectedMaterial, BlueprintElementEntry> ElementEntries = new();
-		public GameObject ElementEntryContainer;
-		public GameObject WarningGO, ErrorGO;
-		public GameObject WarningGO2, ErrorGO2;
-		public BlueprintElementEntry ElementEntryPrefab;
-		public FButton ClearOverrides, PlaceBlueprint, CreateNewBlueprintFromOverrides;
-		public LocText MaterialHeaderTitle;
-		public FToggle AdvancedReplacementToggle;
+		public GameObject ElementEntryContainer = null!;
+		public GameObject WarningGO = null!, ErrorGO = null!;
+		public GameObject WarningGO2 = null!, ErrorGO2 = null!;
+		public BlueprintElementEntry ElementEntryPrefab = null!;
+		public FButton ClearOverrides = null!, PlaceBlueprint = null!, CreateNewBlueprintFromOverrides = null!;
+		public LocText MaterialHeaderTitle = null!;
+		public FToggle AdvancedReplacementToggle = null!;
 
 
 		//ReplacementList
-		public FInputField2 ReplacementElementSearchbar;
+		public FInputField2 ReplacementElementSearchbar = null!;
 		public Dictionary<Tag, ReplaceElementEntry> ReplacementElementEntries = new();
-		public FButton ClearReplacementElementSearchbar;
-		public GameObject ReplacementElementsContainer;
-		public ReplaceElementEntry ReplacementElementsPrefab;
-		public LocText ToReplaceName;
-		public GameObject NoItems;
+		public FButton ClearReplacementElementSearchbar = null!;
+		public GameObject ReplacementElementsContainer = null!;
+		public ReplaceElementEntry ReplacementElementsPrefab = null!;
+		public LocText ToReplaceName = null!;
+		public GameObject? NoItems;
 
-		System.Action<Blueprint> onCloseAction;
+		System.Action<Blueprint?>? onCloseAction;
 
 		public bool CurrentlyActive;
 		public bool DialogueCurrentlyOpen;
 
 		public bool ShowingInfoPreview;
-		public Blueprint TargetBlueprint;
+		public Blueprint? TargetBlueprint;
 
 		private bool _openedFromSnapshot;
 		public bool OpenedFromSnapshot
@@ -359,6 +359,8 @@ namespace BlueprintsV2.UnityUI
 		}
 		void SetCurrentInfoBlueprintTint(Color tint)
 		{
+			if (TargetBlueprint == null)
+				return;
 			string tintHex = tint.ToHexString();
 			if (tintHex == TargetBlueprint.IconTintHex)
 				return;
@@ -372,7 +374,7 @@ namespace BlueprintsV2.UnityUI
 		}
 		void SetCurrentInfoBlueprintIcon(string spriteId)
 		{
-			if (TargetBlueprint.IconId == spriteId)
+			if (TargetBlueprint == null || TargetBlueprint.IconId == spriteId)
 				return;
 
 			TargetBlueprint.IconId = spriteId;
@@ -381,6 +383,8 @@ namespace BlueprintsV2.UnityUI
 		}
 		void ClearCurrentInfoBlueprintIcon()
 		{
+			if (TargetBlueprint == null)
+				return;
 			TargetBlueprint.IconId = null;
 			TargetBlueprint.Write();
 			RefreshInfoIcon();
@@ -394,7 +398,7 @@ namespace BlueprintsV2.UnityUI
 
 		void TryImportBlueprint()
 		{
-			if (ModAssets.ImportFromClipboard(out Blueprint bp))
+			if (ModAssets.ImportFromClipboard(out var bp))
 			{
 				CreateConfirmDialogue(BASE64_IMPORT_SUCCESS.TITLE, string.Format(BASE64_IMPORT_SUCCESS.TEXT, bp.FriendlyName));
 			}
@@ -409,7 +413,7 @@ namespace BlueprintsV2.UnityUI
 			SetMaterialState();
 		}
 
-		public static void ShowWindow(System.Action<Blueprint> OnClose, Blueprint targetBlueprint, bool showBlueprintList)
+		public static void ShowWindow(System.Action<Blueprint?> OnClose, Blueprint? targetBlueprint, bool showBlueprintList)
 		{
 			if (Instance == null)
 			{
@@ -533,7 +537,7 @@ namespace BlueprintsV2.UnityUI
 			bool hasBp = TargetBlueprint != null;
 			ShowInfo(hasBp && ShowingInfoPreview);
 			ShowElements(hasBp && !ShowingInfoPreview);
-			if (!hasBp)
+			if (TargetBlueprint == null)
 				return;
 
 			var blueprintMaterials = TargetBlueprint.BlueprintCost.OrderByDescending(kvp => kvp.Value).ToList();
@@ -553,7 +557,7 @@ namespace BlueprintsV2.UnityUI
 			else
 			{
 				MaterialHeaderTitle.SetText(string.Format(MATERIALSWITCH.MATERIALSHEADER.LABEL, TargetBlueprint.FriendlyName));
-				NoItems.SetActive(blueprintMaterials.Count() == 0);
+				NoItems?.SetActive(blueprintMaterials.Count() == 0);
 			}
 			foreach (var prev in ElementEntries)
 			{
@@ -644,14 +648,12 @@ namespace BlueprintsV2.UnityUI
 					kvp.Value.gameObject.SetActive(false);
 			}
 
-			var targetFolder = ModAssets.SelectedFolder;
-			bool root = targetFolder == null;
+			bool root = ModAssets.SelectedFolder == null;
+			var targetFolder = ModAssets.SelectedFolder ?? ModAssets.BlueprintFileHandling.RootFolder;
 			FolderUpBtn.SetInteractable(!root);
 			//SgtLogger.l("rebuilding folders");
 			if (root)
 			{
-				targetFolder = ModAssets.BlueprintFileHandling.RootFolder;
-
 				var folders = ModAssets.BlueprintFileHandling.BlueprintFolders.OrderBy(f => f.Name);
 				foreach (var folder in folders)
 				{
@@ -725,7 +727,7 @@ namespace BlueprintsV2.UnityUI
 			ClearUIState();
 		}
 
-		public void SelectFolder(BlueprintFolder folder)
+		public void SelectFolder(BlueprintFolder? folder)
 		{
 			ModAssets.SelectedFolder = folder;
 			UpdateBlueprintButtons();
@@ -852,7 +854,9 @@ namespace BlueprintsV2.UnityUI
 		void OnStartOverriding()
 		{
 			ShowingInfoPreview = false;
-			
+
+			if (TargetBlueprint == null)
+				return;
 			TargetBlueprint.CacheCost();
 			RefreshEntryHighlight();
 			foreach (var prev in ElementEntries)
@@ -902,7 +906,7 @@ namespace BlueprintsV2.UnityUI
 
 		public static bool HasReplacementCandidates(Tag original) => ModAssets.GetValidMaterials(original).Count() > 1;
 
-		BlueprintSelectedMaterial ToReplaceTag = null;
+		BlueprintSelectedMaterial? ToReplaceTag = null;
 		List<ReplaceElementEntry> PreviouslyActiveMaterialReplacementButtons = new();
 		private void SetReplacementMaterials(BlueprintSelectedMaterial materialTypeTag, float amount)
 		{
@@ -927,10 +931,10 @@ namespace BlueprintsV2.UnityUI
 				PreviouslyActiveMaterialReplacementButtons.Add(btn);
 				btn.gameObject.SetActive(true);
 
-				if (ModAssets.TryGetReplacementTag(ToReplaceTag, out var cachedReplacement))
-					btn.Refresh(TargetBlueprint, amount, ToReplaceTag.SelectedTag, cachedReplacement);
+				if (ModAssets.TryGetReplacementTag(materialTypeTag, out var cachedReplacement))
+					btn.Refresh(TargetBlueprint, amount, materialTypeTag.SelectedTag, cachedReplacement);
 				else
-					btn.Refresh(TargetBlueprint, amount, ToReplaceTag.SelectedTag);
+					btn.Refresh(TargetBlueprint, amount, materialTypeTag.SelectedTag);
 			}
 		}
 		private ReplaceElementEntry AddOrGetReplaceMaterialContainer(Tag material)
@@ -946,6 +950,8 @@ namespace BlueprintsV2.UnityUI
 		}
 		private void OnSelectReplacementTag(Tag replacement)
 		{
+			if (ToReplaceTag == null || TargetBlueprint == null)
+				return;
 			ModAssets.AddOrSetReplacementTag(ToReplaceTag, replacement);
 			TargetBlueprint.CacheCost();
 			ApplyReplacementMaterialUI(ToReplaceTag);
@@ -969,7 +975,7 @@ namespace BlueprintsV2.UnityUI
 			ReplaceBlueprintElements.SetActive(show);
 		}
 
-		private GameObject AddUiContainer(GameObject prefab, GameObject parent, string name, string description, System.Action onClickAction, Color overrideColor = default, Sprite placeImage = null)
+		private GameObject AddUiContainer(GameObject prefab, GameObject parent, string name, string description, System.Action onClickAction, Color overrideColor = default, Sprite? placeImage = null)
 		{
 
 			var PresetHolder = Util.KInstantiateUI(prefab, parent, true);
@@ -1097,7 +1103,7 @@ namespace BlueprintsV2.UnityUI
 		}
 
 
-		public static void DestroyInstance() { Instance = null; }
+		public static void DestroyInstance() { Instance = null!; }
 	}
 }
 

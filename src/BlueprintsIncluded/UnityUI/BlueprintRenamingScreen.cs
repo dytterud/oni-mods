@@ -15,9 +15,9 @@ namespace BlueprintsV2.UnityUI
 	{
 		class BlueprintNameOption : FButton
 		{
-			public LocText Text;
-			public string Name;
-			public System.Action<string> OnClicked;
+			public LocText Text = null!;
+			public string Name = null!;
+			public System.Action<string> OnClicked = null!;
 
 			bool spawned = false;
 
@@ -46,34 +46,34 @@ namespace BlueprintsV2.UnityUI
 		}
 
 
-		public static BlueprintRenamingScreen Instance = null;
+		public static BlueprintRenamingScreen Instance = null!;
 
 
-		public LocText TitleText;
-		public FButton CloseBtn;
+		public LocText TitleText = null!;
+		public FButton CloseBtn = null!;
 
-		public FInputField2 NameInput;
-		public FButton ClearNameInput;
-		public FButton PasteClipboardToInput;
+		public FInputField2 NameInput = null!;
+		public FButton ClearNameInput = null!;
+		public FButton PasteClipboardToInput = null!;
 
-		public FButton ConfirmBtn, CancelBtn;
+		public FButton ConfirmBtn = null!, CancelBtn = null!;
 
-		System.Action<string> _onConfirm;
-		System.Action _onCancel;
+		System.Action<string> _onConfirm = null!;
+		System.Action _onCancel = null!;
 
-		private Image _dropDownIcon;
-		private FButton _dropDownBtn;
-		private GameObject _dropDownGO;
-		private GameObject _dropDownContainer;
-		private BlueprintNameOption _dropDownEntryPrefab;
+		private Image _dropDownIcon = null!;
+		private FButton _dropDownBtn = null!;
+		private GameObject _dropDownGO = null!;
+		private GameObject _dropDownContainer = null!;
+		private BlueprintNameOption _dropDownEntryPrefab = null!;
 		private Dictionary<string, BlueprintNameOption> _dropDownEntries = [];
 
 
 		private bool init, spawned, _allowEmpty;
-		private string _cachedTitle;
-		private Sprite _dropdownOpen, _dropdownClose;
+		private string _cachedTitle = null!;
+		private Sprite _dropdownOpen = null!, _dropdownClose = null!;
 		private HashSet<string> _currentSelectableNames = [];
-		public static void DestroyInstance() { Instance = null; }
+		public static void DestroyInstance() { Instance = null!; }
 		public bool DropdownMode => _currentSelectableNames.Any();
 
 		public override float GetSortKey()
@@ -200,7 +200,7 @@ namespace BlueprintsV2.UnityUI
 			}
 			Deactivate();
 		}
-		void RefreshDropDownEntries(string[] selectableOptions)
+		void RefreshDropDownEntries(string[]? selectableOptions)
 		{
 			if (selectableOptions == null || selectableOptions.Length == 0)
 			{
@@ -272,7 +272,7 @@ namespace BlueprintsV2.UnityUI
 			_dropDownIcon.sprite = _dropDownGO.activeSelf ? _dropdownClose : _dropdownOpen;
 		}
 
-		private void Refresh(string title, System.Action<string> onConfirm, System.Action onCancel, string startString = "", bool allowEmpty = false, string[] selectableOptions = null)
+		private void Refresh(string title, System.Action<string> onConfirm, System.Action onCancel, string startString = "", bool allowEmpty = false, string[]? selectableOptions = null)
 		{
 			_onConfirm = onConfirm;
 			_onCancel = onCancel;
@@ -287,7 +287,7 @@ namespace BlueprintsV2.UnityUI
 			RefreshDropDownEntries(selectableOptions);
 			this.Activate();
 		}
-		public static void OpenNamingDialogue(string title, System.Action<string> onConfirm, System.Action onCancel, string startString = "", bool allowEmpty = false, string[] selectableOptions = null)
+		public static void OpenNamingDialogue(string title, System.Action<string> onConfirm, System.Action onCancel, string startString = "", bool allowEmpty = false, string[]? selectableOptions = null)
 		{
 			if (Instance == null)
 			{

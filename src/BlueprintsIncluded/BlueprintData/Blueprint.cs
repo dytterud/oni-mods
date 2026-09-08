@@ -43,13 +43,13 @@ namespace BlueprintsV2.BlueprintData
 		/// display icon of the blueprint in the file list
 		/// null equals no icon
 		/// </summary>
-		public string IconId { get; set; } = null;
+		public string? IconId { get; set; } = null;
 
 		/// <summary>
 		/// display icon color tint
 		/// null equals white
 		/// </summary>
-		public string IconTintHex { get; set; } = null;
+		public string? IconTintHex { get; set; } = null;
 
 
 		/// <summary>
@@ -66,7 +66,7 @@ namespace BlueprintsV2.BlueprintData
 		/// The folder that contains the blueprint.
 		/// Set to null to indicate no folder.
 		/// </summary>
-		public string Folder { get; private set; }
+		public string? Folder { get; private set; }
 
 		/// <summary>
 		/// The buildings contained inside the blueprint.
@@ -108,7 +108,7 @@ namespace BlueprintsV2.BlueprintData
 		/// used for tile previews picking the correct variant from the tilesheet
 		/// ... at least that was the plan, its unused currently
 		/// </summary>
-		public int[,] TileMap = null;
+		public int[,]? TileMap = null;
 
 		/// <summary>
 		/// A storage container for a bunch of optional metadata that can be used by
@@ -267,7 +267,6 @@ namespace BlueprintsV2.BlueprintData
 		/// <summary>
 		/// tile of interest dimensions of the blueprint
 		/// </summary>
-		[JsonIgnore]
 		public Vector2I Dimensions
 		{
 			get
@@ -278,7 +277,6 @@ namespace BlueprintsV2.BlueprintData
 		/// <summary>
 		/// actual dimensions of the blueprint, including extends of buildings
 		/// </summary>
-		[JsonIgnore]
 		public Vector2I VisibleDimensions = new();
 		private int _dimensionX, _dimensionY;
 
@@ -360,7 +358,7 @@ namespace BlueprintsV2.BlueprintData
 		{
 			//SgtLogger.l("SANITIZING: " + FriendlyName);
 			int minX = 0; int minY = 0;
-			void GetMin(Vector2I offset, string buildingId = null)
+			void GetMin(Vector2I offset, string? buildingId = null)
 			{
 				if (offset.x < minX)
 				{
@@ -1021,10 +1019,11 @@ namespace BlueprintsV2.BlueprintData
 			{
 				if (buildingConfig.BuildingDisabled)
 					continue;
-				Recipe buildingRecipe = buildingConfig.BuildingDef?.CraftRecipe;
+				BuildingDef? def = buildingConfig.BuildingDef;
+				Recipe? buildingRecipe = def?.CraftRecipe;
 				List<Tag> selectedElements = buildingConfig.SelectedElements;
 
-				if (buildingRecipe != null)
+				if (def != null && buildingRecipe != null)
 				{
 					for (int i = 0; i < buildingRecipe.Ingredients.Count; i++)
 					{
@@ -1040,7 +1039,7 @@ namespace BlueprintsV2.BlueprintData
 						{
 							selectedElement = ingredient.tag;
 						}
-						var key = BlueprintSelectedMaterial.GetBlueprintSelectedMaterial(selectedElement, ingredient.tag, buildingConfig.BuildingDef.PrefabID);
+						var key = BlueprintSelectedMaterial.GetBlueprintSelectedMaterial(selectedElement, ingredient.tag, def.PrefabID);
 
 						if (ModAssets.TryGetReplacementTag(key, out var replacement))
 						{
@@ -1062,14 +1061,14 @@ namespace BlueprintsV2.BlueprintData
 			}
 		}
 
-		public bool Equals(Blueprint other)
+		public bool Equals(Blueprint? other)
 		{
-			return other.FilePath == this.FilePath;
+			return other != null && other.FilePath == this.FilePath;
 		}
-		public override bool Equals(object obj) => obj is Blueprint other && Equals(other);
+		public override bool Equals(object? obj) => obj is Blueprint other && Equals(other);
 
-		public static bool operator ==(Blueprint a, Blueprint b) => a?.FilePath == b?.FilePath;
-		public static bool operator !=(Blueprint a, Blueprint b) => !(a == b);
+		public static bool operator ==(Blueprint? a, Blueprint? b) => a?.FilePath == b?.FilePath;
+		public static bool operator !=(Blueprint? a, Blueprint? b) => !(a == b);
 		public override int GetHashCode()
 		{
 			return FilePath.GetHashCode();
