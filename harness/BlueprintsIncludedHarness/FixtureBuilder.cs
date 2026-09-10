@@ -70,7 +70,7 @@ internal static class FixtureBuilder
         return placed;
     }
 
-    private static List<Tag> SelectElements(BuildingDef def)
+    internal static List<Tag> SelectElements(BuildingDef def)
     {
         // First material the mod itself considers valid for each ingredient category, so the
         // JSON round-trip's SanitizeSelectedTags has nothing legitimate to change. Falls back to
