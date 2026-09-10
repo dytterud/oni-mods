@@ -552,18 +552,29 @@ public class BuildingVisual : IVisual
         return false;
     }
 
-    public virtual bool SameBuildingAlreadyFinishedInPlace(int cellParam, [NotNullWhen(true)] out BuildingComplete? bc, bool excludeConduits)
+    /// <summary>
+    /// Finds a matching building already occupying <paramref name="cellParam"/>.
+    ///
+    /// <paramref name="includePlanned"/> widens the match from completed buildings to any
+    /// <see cref="Building"/>, so blueprint data can also be transferred onto a building that is
+    /// only queued for construction. Pass <c>false</c> where the caller goes on to do something
+    /// that is only meaningful on a finished building.
+    /// </summary>
+    public virtual bool SameBuildingAlreadyFinishedInPlace(int cellParam, [NotNullWhen(true)] out Building? building, bool excludeConduits, bool includePlanned)
     {
-        bc = null;
+        building = null;
         var def = BuildingDef;
         var existingBuilding = Grid.Objects[cellParam, (int)def.ObjectLayer];
-        if (existingBuilding != null && existingBuilding.TryGetComponent<BuildingComplete>(out bc))
+        if (existingBuilding != null && existingBuilding.TryGetComponent<Building>(out building))
         {
+            if (building is not BuildingComplete && !includePlanned)
+                return false;
+
             //is same def AND the building cell is aligned with the visualizer cell (aka the building is in the exact same spot as the vis.)
-            if (bc.Def == def && Grid.PosToCell(existingBuilding) == cellParam)
+            if (building.Def == def && Grid.PosToCell(existingBuilding) == cellParam)
             {
                 if (excludeConduits)
-                    return !bc.TryGetComponent<IHaveUtilityNetworkMgr>(out _);
+                    return !building.TryGetComponent<IHaveUtilityNetworkMgr>(out _);
 
                 return true;
             }
@@ -572,7 +583,7 @@ public class BuildingVisual : IVisual
     }
     public virtual bool CanApplyConduitSettings(int cellParam)
     {
-        if (!SameBuildingAlreadyFinishedInPlace(cellParam, out var otherConduit, false))
+        if (!SameBuildingAlreadyFinishedInPlace(cellParam, out var otherConduit, false, includePlanned: true))
             return false;
         if (otherConduit.TryGetComponent<IHaveUtilityNetworkMgr>(out var mng) && buildingConfig.GetConduitFlags(out var ownFlags))
         {
@@ -589,7 +600,7 @@ public class BuildingVisual : IVisual
         if (!allowed)
             return false;
 
-        if (SameBuildingAlreadyFinishedInPlace(cellParam, out var bc, false))
+        if (SameBuildingAlreadyFinishedInPlace(cellParam, out var bc, false, includePlanned: true))
         {
             if (bc.TryGetComponent<PrimaryElement>(out var e) && e.Element.tag == GetConstructionElements()[0])
                 return false;
@@ -601,7 +612,7 @@ public class BuildingVisual : IVisual
     {
         reconstructable = null;
         var def = BuildingDef;
-        if (SameBuildingAlreadyFinishedInPlace(cellParam, out var bc, false))
+        if (SameBuildingAlreadyFinishedInPlace(cellParam, out var bc, false, includePlanned: false))
         {
             if (bc.Def == def
                 && bc.TryGetComponent<Reconstructable>(out reconstructable)
@@ -655,9 +666,18 @@ public class BuildingVisual : IVisual
         //{
         //	return TryReconstructExistingBuilding(cellParam);
         //}
-        else if (CurrentStateInfo(_playerId).ApplySettingsToExistingBuildings && (SameBuildingAlreadyFinishedInPlace(cellParam, out var bc, true) || CanApplyConduitSettings(cellParam))) //apply building settings to existing, does not apply to conduits
+        else if (CurrentStateInfo(_playerId).ApplySettingsToExistingBuildings && (SameBuildingAlreadyFinishedInPlace(cellParam, out var bc, true, includePlanned: true) || CanApplyConduitSettings(cellParam))) //apply building settings to existing, incl. conduits via CanApplyConduitSettings
         {
-            ApplyBuildingData(bc!.gameObject, false);
+            ///bc is null when the first operand short-circuited to false and it was
+            ///CanApplyConduitSettings that matched: that call passes excludeConduits: true, so a
+            ///conduit never sets bc. Fall back to the object in the cell rather than
+            ///dereferencing null - reachable today with apply-settings on, over an existing
+            ///conduit of the same def whose connections differ from the blueprint's.
+            var target = bc?.gameObject ?? Grid.Objects[cellParam, (int)BuildingDef.ObjectLayer];
+            if (target == null)
+                return false;
+
+            ApplyBuildingData(target, false);
             if (buildingConfig.HasAnyBuildingData)
             {
                 PopFXManager.Instance.SpawnFX(ModAssets.BLUEPRINTS_APPLY_SETTINGS_SPRITE, STRINGS.UI.TOOLS.USE_TOOL.SETTINGS_APPLIED, null, offset: Grid.CellToPos(cellParam), Config.Instance.FXTime);
@@ -862,7 +882,7 @@ public class BuildingVisual : IVisual
         {
             return ModAssets.BLUEPRINTS_COLOR_VALIDPLACEMENT;
         }
-        else if (SameBuildingAlreadyFinishedInPlace(cellParam, out _, false))
+        else if (SameBuildingAlreadyFinishedInPlace(cellParam, out _, false, includePlanned: true))
         {
             if ((buildingConfig.HasAnyBuildingData || CanApplyConduitSettings(cellParam)) && stateInfo.ApplySettingsToExistingBuildings)
             {
