@@ -110,6 +110,16 @@ internal class BlueprintPreviewScreen : FScreen
             () => OnCategoryUnhovered(filterId)
             ));
         }
+        ///DIGPLACER is excluded from the generated entries above (see ignoreFilters), so it gets
+        ///an explicit one. No hover callbacks: those highlight a layer's visuals via
+        ///FilterLayerKbacs/FilterLayerImages, and dig placers are not registered in either -
+        ///RefreshVisualizerVisibility only walks filterKeys, so nothing would light up.
+        entries.Add(new FHoverableDropDownEntry(
+            DIGPLACERFILTER.NAME,
+            (on) => OnPreviewFilterChanged(ToolParameterMenu.FILTERLAYERS.DIGPLACER, on),
+            true,
+            DIGPLACERFILTER.TOOLTIP
+            ));
         entries.Add(new FDropDownButtonEntry(FILTERBUTTON.RESETALL, (_) => ResetPreviewFilters()));
 
         FilterDropDown.DropDownEntries = entries;

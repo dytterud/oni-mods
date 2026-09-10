@@ -533,9 +533,17 @@ public static class BlueprintState
             }
         }
 
-        foreach (var digLocation in blueprint.DigLocations)
+        ///Dig placers honour the preview filter the same way buildings do above. Gated here at
+        ///creation rather than by toggling visibility later: UpdateVisual only moves existing
+        ///visuals, and dig placers are never registered in BlueprintPreviewScreen's per-layer
+        ///opacity dictionaries, so there is nothing to fade. The filter is chosen in the selector
+        ///and takes effect when the world preview is next built, which is the order the flow runs in.
+        if (!blockedLayers.Contains(ToolParameterMenu.FILTERLAYERS.DIGPLACER))
         {
-            FoundationVisuals[playerId].Add(new DigVisual(playerId, Grid.XYToCell(topLeft.x + digLocation.x, topLeft.y + digLocation.y), digLocation));
+            foreach (var digLocation in blueprint.DigLocations)
+            {
+                FoundationVisuals[playerId].Add(new DigVisual(playerId, Grid.XYToCell(topLeft.x + digLocation.x, topLeft.y + digLocation.y), digLocation));
+            }
         }
 
         foreach (var elementIndicator in blueprint.WorldNotes)

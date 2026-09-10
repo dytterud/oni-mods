@@ -461,6 +461,17 @@ public class STRINGS
                     public static LocString TEXT = "FILTERS";
                     public static LocString RESETALL = "Reset Filters";
                 }
+                /// <summary>
+                /// Its own strings rather than reusing
+                /// <c>UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PRESERVEAIRTILES</c>: that key labels the
+                /// blueprint *creation* filter, and its tooltip ("Create Dig commands for tiles
+                /// that are not solid...") describes capturing them, not showing them.
+                /// </summary>
+                public class DIGPLACERFILTER
+                {
+                    public static LocString NAME = "Air/Liquid Bubbles";
+                    public static LocString TOOLTIP = "Show this blueprint's dig commands in the preview";
+                }
                 public class BUTTONS
                 {
                     public class ADDOVERRIDES
