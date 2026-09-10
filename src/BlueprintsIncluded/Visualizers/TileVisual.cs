@@ -86,7 +86,10 @@ public class TileVisual : BuildingVisual, ICleanableVisual
     {
         if (cellParam != cell || forceRedraw)
         {
-            Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, BuildingDef.SceneLayer));
+            ///see BuildingVisual.usesSharedVisualizer - a shared placeholder is never rendered or
+            ///read by position, so moving it would only stomp on other tiles sharing it.
+            if (!usesSharedVisualizer)
+                Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, BuildingDef.SceneLayer));
             UpdateGrid(cellParam);
             ApplyColorIfChanged(cellParam);
             cell = cellParam;

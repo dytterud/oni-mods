@@ -51,7 +51,10 @@ public sealed class UtilityVisual : BuildingVisual
     {
         if (cellParam != cell || forceRedraw)
         {
-            Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, Grid.SceneLayer.Building));
+            ///see BuildingVisual.usesSharedVisualizer - normally false here (a utility preview
+            ///renders, so it keeps its own clone), guarded for consistency.
+            if (!usesSharedVisualizer)
+                Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, Grid.SceneLayer.Building));
             cell = cellParam;
             ApplyColorIfChanged(cell);
         }

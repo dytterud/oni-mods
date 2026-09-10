@@ -41,6 +41,50 @@ public class BuildingVisual : IVisual
     protected bool isTile = false;
     //protected Color? _lastColor = null;
 
+    /// <summary>
+    /// True when <see cref="Visualizer"/> is the shared, per-def placeholder from
+    /// <see cref="SharedPlaceholders"/> rather than this visual's own clone. Callers must not
+    /// destroy it, move it, or write per-building data onto it.
+    /// </summary>
+    protected bool usesSharedVisualizer = false;
+
+    /// <summary>
+    /// One reusable placeholder per <see cref="BuildingDef"/> whose preview prefab renders nothing.
+    ///
+    /// Tiles are the case that matters: a tile's <c>BuildingPreview</c> carries no
+    /// <see cref="KBatchedAnimController"/> (verified in-game - 7 components, no children), so the
+    /// clone can't draw anything; the visible art comes entirely from <c>CustomTileRenderer</c>'s
+    /// block-tile atlas. The clone existed only to be handed to
+    /// <c>BuildingDef.IsValidPlaceLocation</c>, which was measured to consult only the cell it is
+    /// passed - not the object's position, and it accepts an inactive object. So one shared
+    /// instance serves every tile of a given def instead of ~38.5us of cloning each. See
+    /// docs/in-game-regression-testing.md §7.
+    ///
+    /// Gated on the preview actually lacking an anim controller rather than on "is a tile": a def
+    /// whose preview *can* render keeps its own clone, so this is safe per def by construction.
+    /// </summary>
+    private static readonly Dictionary<BuildingDef, GameObject?> SharedPlaceholders = new();
+
+    /// <summary>Returns the shared placeholder for <paramref name="def"/>, or null if its preview
+    /// has an anim controller and therefore has to be cloned per building as before.</summary>
+    private static GameObject? GetSharedPlaceholder(BuildingDef def)
+    {
+        if (SharedPlaceholders.TryGetValue(def, out var cached))
+            return cached;
+
+        GameObject? placeholder = null;
+        if (def.BuildingPreview != null && !def.BuildingPreview.TryGetComponent<KBatchedAnimController>(out _))
+        {
+            placeholder = GameUtil.KInstantiate(def.BuildingPreview, Vector3.zero, Grid.SceneLayer.Front,
+                "BlueprintModSharedBuildingVisualizer", LayerMask.NameToLayer("Place"));
+            placeholder.SetLayerRecursively(LayerMask.NameToLayer("Place"));
+            ///left inactive on purpose - nothing renders it, and IsValidPlaceLocation was verified
+            ///to behave identically for an inactive source.
+        }
+        SharedPlaceholders[def] = placeholder;
+        return placeholder;
+    }
+
     public BuildingVisual(BuildingConfig buildingConfig, int cell, ulong playerId)
     {
         this._playerId = playerId;
@@ -50,6 +94,21 @@ public class BuildingVisual : IVisual
         this.cell = cell;
 
         Vector3 positionCbc = Grid.CellToPosCBC(cell, BuildingDef.SceneLayer);
+
+        var shared = GetSharedPlaceholder(BuildingDef);
+        if (shared != null)
+        {
+            ///Non-rendering preview: reuse the shared placeholder and skip the clone entirely.
+            ///No positioning (nothing reads it), no ApplyAdditionalBuildingData (it writes onto the
+            ///object, which would be meaningless last-write-wins on a shared one - the real
+            ///building still gets its data via ApplyBuildingData at placement time).
+            Visualizer = shared;
+            usesSharedVisualizer = true;
+            ApplyColorIfChanged(cell);
+            UpdateRequirementsState();
+            return;
+        }
+
         Visualizer = GameUtil.KInstantiate(BuildingDef.BuildingPreview, positionCbc, Grid.SceneLayer.Front, "BlueprintModBuildingVisualizer", LayerMask.NameToLayer("Place"));
         Visualizer.transform.SetPosition(positionCbc);
         ///has to happen before the visualizer is activated;
@@ -102,7 +161,10 @@ public class BuildingVisual : IVisual
     {
         if (cell != cellParam || forceRedraw)
         {
-            Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, BuildingDef.SceneLayer));
+            ///a shared placeholder renders nothing and nothing reads its position, so moving it
+            ///would just be one visual stomping on another's.
+            if (!usesSharedVisualizer)
+                Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, BuildingDef.SceneLayer));
             ApplyColorIfChanged(cellParam);
             cell = cellParam;
         }
@@ -1036,6 +1098,11 @@ public class BuildingVisual : IVisual
 
     public void DestroyVisualizer()
     {
+        ///the shared placeholder outlives every visual that borrowed it - destroying it here would
+        ///pull it out from under every other tile of the same def (and every later one).
+        if (usesSharedVisualizer)
+            return;
+
         if (Visualizer.TryGetComponent<LogicPorts>(out var ports))
         {
             ports.DestroyVisualizers();

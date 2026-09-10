@@ -360,7 +360,7 @@ prefab's component count, child count and `Awake`/`OnEnable` work, so these are 
 
 | # | Lever | Idea | Status |
 |---|---|---|---|
-| 1 | Don't clone a `GameObject` per tile | See the prefab dump below — **confirmed: a tile's preview clone renders nothing.** Most promising lever. | **confirmed, not yet implemented** |
+| 1 | Don't clone a `GameObject` per tile | See the prefab dump below — a tile's preview clone renders nothing. **Implemented: `visualize` N=2000 181 ms → 86 ms (−52%).** | **done** |
 | 2 | Clone a lighter prefab | Largely subsumed by lever 1 for tiles (`Tile.BuildingPreview` is already only 7 components, no children). May still apply to non-tiles — `ManualGenerator.BuildingPreview` carries 10 including `BuildingCellVisualizer` and `LogicPorts`. | low priority |
 | 3 | Spread creation across frames | Doesn't reduce total cost, but turns a ~177 ms hitch into invisible background work. Arguably what actually matters for a hover preview. Lowest risk of the five. | not started |
 | 4 | Instantiate inactive, configure, activate once | **Already in effect** — the dump shows `active=False` on both preview prefabs, so `Awake`/`OnEnable` are deferred until `BuildingVisual`'s `SetActive(true)`. Nothing to gain. | closed |
@@ -407,6 +407,49 @@ the bulk of most large blueprints. Verify before implementing:
 3. `DestroyVisualizer` must not destroy a shared instance.
 4. Multiplayer shares `FoundationVisuals` per player — the dummy may need to be per-`(def, playerId)`
    rather than per-`def`.
+
+**Probe result — the source argument is positional-independent.** Ran all four questions in-game
+(`[probe]` lines, since removed):
+
+```
+T1 objAtA   queryA(valid)      = True
+T2 objAtA   queryB(valid, far) = True    <- object 100 cells away, B still validates
+T3 objAtA   queryOccupied      = False  "Must be built in unoccupied space"   <- decisive
+T5 objAtSolid queryB(valid)    = True    <- moved the object, answer unchanged
+T7 nullSource queryB(valid)    = True    <- null source works
+T8 nullSource queryOccupied    = False  "Must be built in unoccupied space"
+T9 inactiveObj queryB(valid)   = True    <- inactive behaves identically
+```
+
+T2 + T3 show the answer tracks the *queried cell* while the object sits elsewhere, and T5 shows
+moving the object doesn't change it: **`IsValidPlaceLocation` never reads the source's transform.**
+It also tolerates a `null` source and an inactive one.
+
+**Implemented in [`BuildingVisual.cs`](../src/BlueprintsIncluded/Visualizers/BuildingVisual.cs).**
+One lazily-created placeholder per `BuildingDef`, kept inactive, never moved and never destroyed,
+reused instead of cloning. Gated on *"the preview prefab has no `KBatchedAnimController`"* rather
+than on "is a tile" — a preview that can't render is safe to share by construction, and any def
+whose preview *can* render keeps its own clone, so no per-def audit is needed. When shared, the
+ctor also skips `ApplyAdditionalBuildingData` (it writes onto the object; meaningless
+last-write-wins on a shared one, and the real building still gets its data at placement), and
+`MoveVisualizer`/`DestroyVisualizer` skip the position write and the destroy.
+
+| N | `visualize` before | after | |
+|---:|---:|---:|---:|
+| 100 | 14.9 ms | 9.1 ms | −39% |
+| 500 | 50.3 ms | 25.0 ms | −50% |
+| 1000 | 94.8 ms | 46.1 ms | −51% |
+| 2000 | 181.1 ms | **86.2 ms** | **−52%** |
+
+Better than the ~43% the clone's share alone predicted, because the work that accompanied each
+clone (`SetActive`, `ApplyAdditionalBuildingData`, the transform writes, the teardown `Destroy`)
+goes with it. `TileVisual.ctor` 64.2 → **19.0 µs/call**; `KInstantiate` 36,466 → **6,467 calls**
+(exactly the 30,000 tile visuals removed); `ApplyAdditionalBuildingData` 34,680 → 4,680.
+`use` and `create` are untouched (`Instantiate` still 4,680 calls @ ~149 µs; `create` N=1000 still
+~1125 ms, 1000/1000 captured), and the tile-rendering path is provably intact — `AddTileBlock`
+(60,000), `RefreshCell` (360,720), `SetTileColor` (60,000) and `GetVisualizerColor` (60,000) all
+kept identical call counts. The surviving `KInstantiate` calls got *dearer* per call (38.5 →
+98.6 µs) only because the cheap tile clones left the average.
 
 The instrumentation also caught a real (if smaller) redundancy: `TileVisual.UpdateGrid` unregisters
 and re-registers a tile's mesh block (`CustomTileRenderer.AddTileBlock`/`RefreshCell`) on *every*
