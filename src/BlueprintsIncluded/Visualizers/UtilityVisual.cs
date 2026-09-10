@@ -8,44 +8,40 @@ namespace BlueprintsV2.Visualizers;
 public sealed class UtilityVisual : BuildingVisual
 {
 
+    readonly IUtilityNetworkMgr? _networkMgr;
+
     public UtilityVisual(BuildingConfig buildingConfig, int cell, ulong playerId) : base(buildingConfig, cell, playerId)
     {
-        if (hasKbac)
-        {
-            IUtilityNetworkMgr? utilityNetworkManager = BuildingDef.BuildingComplete.GetComponent<IHaveUtilityNetworkMgr>()?.GetNetworkManager();
-
-            if (utilityNetworkManager != null && buildingConfig.GetConduitFlags(out int flags))
-            {
-                string animation = utilityNetworkManager.GetVisualizerString((UtilityConnections)flags) + "_place";
-
-                if (kbac.HasAnimation(animation))
-                {
-                    kbac.Play(animation);
-                }
-            }
-        }
+        _networkMgr = BuildingDef.BuildingComplete.GetComponent<IHaveUtilityNetworkMgr>()?.GetNetworkManager();
+        UpdateConnectionVis();
     }
 
     public override void ApplyRotation(Orientation rotation, bool flippedX, bool flippedY)
     {
         BlueprintRotationStateHolder = rotation;
         base.ApplyRotation(rotation, flippedX, flippedY);
-        UpdateConnectionVis(Visualizer);
+        UpdateConnectionVis();
     }
-    void UpdateConnectionVis(GameObject go, bool built = false)
+
+    /// <summary>
+    /// Picks the connection-stub animation for the current rotation. Both the constructor and
+    /// every rotation go through here, so the two cannot drift apart - they used to, with the
+    /// constructor drawing the unrotated flags.
+    /// </summary>
+    void UpdateConnectionVis(bool built = false)
     {
-        var mng = BuildingDef.BuildingComplete.GetComponent<IHaveUtilityNetworkMgr>()?.GetNetworkManager();
-        if (mng != null && buildingConfig.GetConduitFlags(out var flags) && go.TryGetComponent<KBatchedAnimController>(out var kbac))
+        ///hasKbac is false when this visual reuses the shared placeholder (BuildingVisual returns
+        ///before assigning kbac), which is exactly when an animation must not be played: the
+        ///object is shared between buildings, so it would be last-write-wins.
+        if (hasKbac && _networkMgr != null && buildingConfig.GetConduitFlags(out var flags))
         {
-            string animation = mng.GetVisualizerString((UtilityConnections)GetRotatedUtilityConnectionFlags(flags));
+            string animation = _networkMgr.GetVisualizerString((UtilityConnections)GetRotatedUtilityConnectionFlags(flags));
             if (!built)
                 animation += "_place";
 
             if (kbac.HasAnimation(animation))
                 kbac.Play(animation);
         }
-        //else
-        //	SgtLogger.l("no connections to update on " + go.name);
     }
     public override void MoveVisualizer(int cellParam, bool forceRedraw)
     {

@@ -265,30 +265,44 @@ public class BuildingVisual : IVisual
         UpdateConduitConnectionBits(building);
     }
 
+    /// <summary>
+    /// Shifts this visual's stored connection flags to match the blueprint's current rotation.
+    /// </summary>
     public int GetRotatedUtilityConnectionFlags(int plannedFlags)
+        => RotateUtilityConnectionFlags(plannedFlags, -(int)BlueprintRotationStateHolder, FlippedH, FlippedV);
+
+    /// <summary>
+    /// Rotates a <see cref="UtilityConnections"/> bitmask by <paramref name="rotationSteps"/>
+    /// quarter turns, then applies the flips.
+    ///
+    /// <para>The stored flags are <b>absolute</b> (world-space):
+    /// <see cref="BlueprintState.CreateBlueprint"/> captures them with
+    /// <c>GetNetworkManager().GetConnections(cell, false)</c>, which is keyed on a grid cell and
+    /// takes no orientation - the bits say which neighbouring <em>cells</em> a conduit reaches,
+    /// not which way the building faces. So the only shift a placed blueprint needs is its own
+    /// rotation; the captured building's <see cref="BuildingConfig.Orientation"/> must not enter
+    /// this, and used to (see the git history and issue #4).</para>
+    ///
+    /// <para>Kept static and free of game state so the shift can be unit-tested directly -
+    /// a <see cref="BuildingVisual"/> cannot be constructed outside a live colony.</para>
+    /// </summary>
+    /// <param name="plannedFlags">the stored, world-space connection bits</param>
+    /// <param name="rotationSteps">signed quarter turns to rotate by</param>
+    /// <param name="flippedH">mirror left/right after rotating</param>
+    /// <param name="flippedV">mirror up/down after rotating</param>
+    public static int RotateUtilityConnectionFlags(int plannedFlags, int rotationSteps, bool flippedH, bool flippedV)
     {
-        int originalRotation = (int)buildingConfig.Orientation; //0-3;
-        int rotatedOrientation = (int)BlueprintRotationStateHolder;
-
-        int rotationDiff = originalRotation - rotatedOrientation;
-
         var shiftable = new List<bool>(4)
         {
-            (plannedFlags & (int)UtilityConnections.Left) != 0, //left
-				(plannedFlags & (int)UtilityConnections.Right) != 0, //right
-				(plannedFlags & (int)UtilityConnections.Up) != 0, //up
-				(plannedFlags & (int)UtilityConnections.Down) != 0  //down
-			};
-        //SgtLogger.l("RotationDiff: " + rotationDiff);
+            (plannedFlags & (int)UtilityConnections.Left) != 0,  //left
+            (plannedFlags & (int)UtilityConnections.Right) != 0, //right
+            (plannedFlags & (int)UtilityConnections.Up) != 0,    //up
+            (plannedFlags & (int)UtilityConnections.Down) != 0   //down
+        };
 
-        //SgtLogger.l("Left: " + shiftable[0].ToString());
-        //SgtLogger.l("Right: " + shiftable[1].ToString());
-        //SgtLogger.l("Up: " + shiftable[2].ToString());
-        //SgtLogger.l("Down: " + shiftable[3].ToString());
-
-        if (rotationDiff > 0)
+        if (rotationSteps > 0)
         {
-            for (int i = 0; i < rotationDiff; i++)
+            for (int i = 0; i < rotationSteps; i++)
             {
                 //no bit shifting possible because those arent sorted...
                 shiftable = [
@@ -299,9 +313,9 @@ public class BuildingVisual : IVisual
                 ];
             }
         }
-        else if (rotationDiff < 0)
+        else if (rotationSteps < 0)
         {
-            for (int i = 0; i < -rotationDiff; ++i)
+            for (int i = 0; i < -rotationSteps; ++i)
             {
                 shiftable = [
                     shiftable[3],
@@ -311,14 +325,14 @@ public class BuildingVisual : IVisual
                 ];
             }
         }
-        if (FlippedH)
+        if (flippedH)
         {
             bool left = shiftable[0];
             bool right = shiftable[1];
             shiftable[0] = right;
             shiftable[1] = left;
         }
-        if (FlippedV)
+        if (flippedV)
         {
             bool up = shiftable[2];
             bool down = shiftable[3];
@@ -330,17 +344,7 @@ public class BuildingVisual : IVisual
         byte[] bytes = new byte[1];
         bitField.CopyTo(bytes, 0);
 
-        int newRotation = bytes[0];
-        //SgtLogger.l("NEW:");
-
-        //SgtLogger.l("Left: " + shiftable[0].ToString());
-        //SgtLogger.l("Right: " + shiftable[1].ToString());
-        //SgtLogger.l("Up: " + shiftable[2].ToString());
-        //SgtLogger.l("Down: " + shiftable[3].ToString());
-
-
-        //SgtLogger.l($"Original Rotation: {buildingConfig.Orientation}, new Rotation: {RotatedOrientation}, old connection: {plannedFlags} new connection: {newRotation}");
-        return newRotation;
+        return bytes[0];
     }
 
     void UpdateConduitConnectionBits(GameObject go)
