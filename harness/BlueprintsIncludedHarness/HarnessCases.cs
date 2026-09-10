@@ -69,6 +69,7 @@ internal static class HarnessCases
         new HarnessCase("blueprint-rotation-rotates-the-layout", RotationLayout),
         new HarnessCase("data-transfer-priority-round-trips", DataTransferPriority),
         new HarnessCase("element-note-capture-round-trips", NoteCaptureRoundTrip),
+        new HarnessCase("instabuild-spawns-below-melting-point", InstabuildSpawnTemperature),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -281,12 +282,71 @@ internal static class HarnessCases
         }
     }
 
+    // ---- instabuild spawn temperature ----------------------------
+
+    /// <summary>
+    /// Instabuilt buildings must not materialise at their material's melting point.
+    ///
+    /// <c>CreateFinishedBuildingInternal</c> passes a spawn temperature to
+    /// <c>BuildingDef.Create</c>. Passing <c>ElementLoader.GetMinMeltingPointAmongElements</c>
+    /// raw - as it did before - spawns the building exactly at melting point, hot enough to
+    /// damage itself and to dump that heat into the surrounding cells. Asserted as the
+    /// behaviour rather than the formula: strictly below melting point, and no hotter than the
+    /// def's own temperature.
+    /// </summary>
+    private static IEnumerator InstabuildSpawnTemperature()
+    {
+        // No exact building count here: this case runs after the placement cases, whose build
+        // orders land inside the tile row's capture rectangle, so the row picks up extras.
+        // The temperature assertions below are what matter and they hold per building.
+        Blueprint bp = Snapshot(TileRowTopLeft(), TileRowBottomRight());
+        Assert.True(bp.BuildingConfigurations.Count >= 3,
+            $"row blueprint captured buildings ({bp.BuildingConfigurations.Count})");
+
+        var xy = Grid.CellToXY(AnchorCell);
+        var result = new PlacementResult();
+
+        bool savedInstantBuild = DebugHandler.InstantBuildMode;
+        DebugHandler.InstantBuildMode = true;
+        try
+        {
+            yield return PlaceAt(bp, new Vector2I(xy.x - 8, xy.y - 9), rotateSteps: 0, result);
+        }
+        finally
+        {
+            DebugHandler.InstantBuildMode = savedInstantBuild;
+        }
+
+        Assert.True(result.Orders.Count == 0,
+            "instabuild produces finished buildings, not build orders (got: " + Layout(result) + ")");
+        Assert.True(result.Finished.Count >= 2,
+            $"instabuild placed finished buildings ({result.Finished.Count}: " +
+            string.Join(", ", result.Finished.Select(f => f.id)) + ")");
+
+        foreach (var f in result.Finished)
+        {
+            Log?.Line($"  {f.id}@{f.cell} spawned at {f.temperature:F1}K " +
+                      $"(def {f.defTemperature:F1}K, min melting point {f.minMeltingPoint:F1}K)");
+
+            Assert.True(f.temperature < f.minMeltingPoint - 1f,
+                $"{f.id} spawned at {f.temperature:F1}K, below its {f.minMeltingPoint:F1}K melting point");
+            Assert.True(f.temperature <= f.defTemperature + 0.5f,
+                $"{f.id} spawned at {f.temperature:F1}K, no hotter than its def temperature {f.defTemperature:F1}K");
+        }
+    }
+
     // ---- placement helper ----------------------------------------
 
     private sealed class PlacementResult
     {
         public readonly List<(string id, Vector2I cell)> Orders = new();
         public readonly List<string> OutsideRegion = new();
+
+        /// <summary>
+        /// Buildings that came out already complete - the instabuild path. Empty on a normal
+        /// placement, where <see cref="Orders"/> carries <c>Constructable</c>s instead.
+        /// </summary>
+        public readonly List<(string id, Vector2I cell, float temperature, float defTemperature, float minMeltingPoint)> Finished = new();
     }
 
     private static Blueprint Snapshot(Vector2I topLeft, Vector2I bottomRight)
@@ -326,6 +386,7 @@ internal static class HarnessCases
         }
 
         var before = Constructables();
+        var completeBefore = BuildingCompletes();
         var cfg = ModConfig();
         bool savedTech = cfg.RequireConstructable_Tech, savedMat = cfg.RequireConstructable_Material;
         cfg.RequireConstructable_Tech = false;
@@ -358,6 +419,20 @@ internal static class HarnessCases
                 outResult.OutsideRegion.Add($"{id}@{Grid.CellToXY(cell)}");
         }
 
+        foreach (var bc in BuildingCompletes().Where(b => !completeBefore.Contains(b)))
+        {
+            var def = bc.Def;
+            if (def == null || !bc.TryGetComponent<PrimaryElement>(out var pe))
+                continue;
+
+            outResult.Finished.Add((
+                def.PrefabID,
+                Grid.CellToXY(Grid.PosToCell(bc.gameObject)),
+                pe.Temperature,
+                def.Temperature,
+                ElementLoader.GetMinMeltingPointAmongElements(new[] { pe.Element.tag })));
+        }
+
         BlueprintState.ClearVisuals();
         st.ResetRotations();
         st.ForceOverrideTransformations = false;
@@ -368,6 +443,9 @@ internal static class HarnessCases
 
     private static HashSet<Constructable> Constructables() =>
         new(UnityEngine.Object.FindObjectsByType<Constructable>(FindObjectsSortMode.None));
+
+    private static HashSet<BuildingComplete> BuildingCompletes() =>
+        new(UnityEngine.Object.FindObjectsByType<BuildingComplete>(FindObjectsSortMode.None));
 
     // Config.Instance lives on PLib's SingletonOptions<Config>, which the harness dll doesn't
     // reference - reach the inherited static getter by reflection.
