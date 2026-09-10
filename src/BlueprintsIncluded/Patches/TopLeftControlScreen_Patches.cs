@@ -61,6 +61,9 @@ internal class TopLeftControlScreen_Patches
                 return;
             }
             _toggleButton = toggle;
+            ///routed through BlueprintState so the hotkey - or anything else - keeps the button
+            ///in sync without every caller having to remember to refresh it.
+            BlueprintState.NoteVisibilityUiRefresh = RefreshNoteVisibilityToggle;
 
             var buttonColor = UIUtils.rgb(31, 161, 255);
             toggle.states[2].color = buttonColor;

@@ -39,6 +39,16 @@
   </Target>
 
   <ItemGroup>
+    <!-- Screenshot.cs only. Not in lib/, so there is no refasm for it - fine, because this
+         project is excluded from CLI solution builds and from CI (see the .slnx), and is only
+         ever built by run-ingame.ps1 against a real install. -->
+    <Reference Include="UnityEngine.ScreenCaptureModule">
+      <HintPath>$(GameLibsFolder)/UnityEngine.ScreenCaptureModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Compile against the already-built (ILRepack-merged) mod DLL - NOT a ProjectReference: a
          second build instance of the mod corrupts its incremental state / races its in-place
          ILRepack. run-ingame.ps1 builds the solution first, so the DLL is always current; a mod

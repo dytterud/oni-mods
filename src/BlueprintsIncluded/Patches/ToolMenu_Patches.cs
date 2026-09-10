@@ -36,7 +36,6 @@ class ToolMenu_Patches
             {
                 e.Consumed = true;
                 BlueprintState.ToggleNoteVisibility();
-                TopLeftControlScreen_Patches.RefreshNoteVisibilityToggle();
             }
         }
     }

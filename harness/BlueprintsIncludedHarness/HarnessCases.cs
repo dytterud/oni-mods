@@ -70,6 +70,7 @@ internal static class HarnessCases
         new HarnessCase("data-transfer-priority-round-trips", DataTransferPriority),
         new HarnessCase("element-note-capture-round-trips", NoteCaptureRoundTrip),
         new HarnessCase("instabuild-spawns-below-melting-point", InstabuildSpawnTemperature),
+        new HarnessCase("note-visibility-toggle-hides-notes", NoteVisibilityToggle),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -333,6 +334,78 @@ internal static class HarnessCases
             Assert.True(f.temperature <= f.defTemperature + 0.5f,
                 $"{f.id} spawned at {f.temperature:F1}K, no hotter than its def temperature {f.defTemperature:F1}K");
         }
+    }
+
+    // ---- note visibility toggle ----------------------------------
+
+    /// <summary>
+    /// The state and event half of the note-visibility toggle: flipping it must actually disable
+    /// a seated note's renderer, and a deleted note must not be left subscribed to the static
+    /// event.
+    ///
+    /// Also captures the HUD either side of the toggle. The top-left button itself cannot be
+    /// asserted on - whether it is in the right place and reads clearly is a human judgement -
+    /// so the frames are the evidence for that half.
+    /// </summary>
+    private static IEnumerator NoteVisibilityToggle()
+    {
+        var xy = Grid.CellToXY(AnchorCell);
+        int noteCell = Grid.XYToCell(xy.x - 4, xy.y - 3);
+        if (Grid.IsSolidCell(noteCell))
+        {
+            SimMessages.Dig(noteCell, skipEvent: true);
+            for (int i = 0; i < 30 && Grid.IsSolidCell(noteCell); i++) yield return null;
+        }
+
+        Assert.True(BlueprintState.NoteVisibility, "notes start visible");
+
+        ///seat: true is what the player-facing path does (CreateNoteTool, and the multiplayer
+        ///packet). Only seated notes own a persistent rendered mesh and subscribe to the toggle;
+        ///unseated ones are the transient preview visuals, which deliberately ignore it. Creating
+        ///an unseated note here made this case fail against correct code.
+        var note = BlueprintsV2.BlueprintData.NoteToolPlacedEntities.ElementNote.Create(
+            noteCell, SimHashes.Oxygen, amount: 100f, temperature: 296f, seat: true);
+        Assert.True(note != null, "created a seated ElementNote to toggle");
+        for (int i = 0; i < 5; i++) yield return null;
+
+        var renderer = note!.GetComponentInChildren<MeshRenderer>();
+        Assert.True(renderer != null, "the note has a MeshRenderer");
+        Assert.True(renderer!.enabled, "note renderer starts enabled");
+
+        yield return Screenshot.Capture("notes-visible", Log);
+
+        try
+        {
+            BlueprintState.ToggleNoteVisibility();
+            for (int i = 0; i < 3; i++) yield return null;
+            Assert.True(!BlueprintState.NoteVisibility, "toggle flipped the state off");
+            Assert.True(!renderer.enabled, "toggling off disabled the note's renderer");
+            yield return Screenshot.Capture("notes-hidden", Log);
+
+            BlueprintState.ToggleNoteVisibility();
+            for (int i = 0; i < 3; i++) yield return null;
+            Assert.True(BlueprintState.NoteVisibility, "toggle flipped the state back on");
+            Assert.True(renderer.enabled, "toggling on re-enabled the note's renderer");
+
+            ///the event is static, so a note that failed to unsubscribe in OnCleanUp would be
+            ///invoked after destruction. Delete it, then toggle twice more: a leak surfaces as a
+            ///MissingReferenceException, which exception-sweep would also catch.
+            BlueprintsV2.BlueprintData.NoteToolPlacedEntities.BlueprintNote.ClearExistingNote(noteCell);
+            for (int i = 0; i < 5; i++) yield return null;
+            BlueprintState.ToggleNoteVisibility();
+            yield return null;
+            BlueprintState.ToggleNoteVisibility();
+            for (int i = 0; i < 3; i++) yield return null;
+            Log?.Line("  toggled twice after deleting the note - no exception, so OnCleanUp unsubscribed");
+        }
+        finally
+        {
+            ///never leave the colony with notes hidden for later cases
+            if (!BlueprintState.NoteVisibility)
+                BlueprintState.ToggleNoteVisibility();
+        }
+
+        Assert.True(BlueprintState.NoteVisibility, "restored note visibility for later cases");
     }
 
     // ---- placement helper ----------------------------------------

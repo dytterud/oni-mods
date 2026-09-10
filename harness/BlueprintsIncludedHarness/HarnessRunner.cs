@@ -22,6 +22,7 @@ internal sealed class HarnessRunner : MonoBehaviour
     {
         var log = new HarnessLog(HarnessGate.LogPath);
         HarnessCases.Log = log;
+        Screenshot.Reset();
         var results = new ResultSet();
 
         string fixturePath = HarnessGate.FixturePath;
