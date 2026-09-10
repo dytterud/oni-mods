@@ -229,6 +229,53 @@ real install's executable publicised DLLs (no game launch, portable, rigorous). 
 the serialization layer cleanly; the in-game perf mode is for placement / capture /
 visualizer work that needs a live `Grid`.
 
+**Built next: blueprint placement.** Same `PerfRunner`, run right after the import sweep. Unlike
+import, placement drives `BlueprintState.VisualizeBlueprint` / `UseBlueprint`, which instantiate
+real Unity `GameObject`s per building and need real, diggable `Grid` cells — not just an in-memory
+`Blueprint`. `SyntheticBlueprint.Build` (the same single-ingredient-`Tile` generator, now exposed
+as an in-memory `Blueprint` alongside the existing JSON serializer) supplies the layout for
+N = 100 / 500 / 1000 / 2000 — capped below import's 5000 since a `GameObject` is much heavier per
+unit than a parsed JSON node, and the sweep needs a correspondingly large dug area. Before timing,
+`PerfRunner` digs a rectangle once, sized off `Grid.WidthInCells`/`HeightInCells` at absolute map
+coordinates (not anchor-relative, so a large sweep can't run off the map edge near the fixture
+colony) and reuses `HarnessCases.PlaceAt`'s dig-then-poll-until-clear pattern. Two operations:
+
+- **`visualize`** (warmup 2, iterations 5): `VisualizeBlueprint` redrawn at one fixed spot every
+  call — it clears and rebuilds its own preview `GameObject`s each time, so this is exactly what
+  real mouse-hover redraw does and is safe to repeat in place.
+- **`use`** (warmup 1, iterations 2): `UseBlueprint`, which commits real build orders
+  (`Constructable`s). Each draw claims a fresh strip of the pre-dug region instead of
+  canceling/destroying the previous draw's orders — simpler than reverse-engineering Klei's
+  construction-cancel path, and harmless since the sim stays paused for the whole run and the
+  process quits without saving.
+
+Wall-clock only for this pass, same as import's first pass — no hotspot instrumentation yet
+(added once real numbers show where a `visualize`/`use` gap points), no rotation, no cleanup of
+the committed build orders.
+
+**Finding (one real run, one machine — see limits below):** the dug region needed no fallback —
+all 10,800 cells were valid and dug/clear in 0.2s on the first try. The two operations scale very
+differently:
+
+| N | `visualize` | `use` |
+|---:|---:|---:|
+| 100 | 17.0 ms | 1.2 ms |
+| 500 | 41.0 ms | 2.8 ms |
+| 1000 | 69.8 ms | 4.9 ms |
+| 2000 | 134.8 ms | 8.9 ms |
+
+Both are linear in N, but at very different rates: `visualize` costs roughly **11 ms fixed + 62
+µs/building**, `use` roughly **0.8 ms fixed + 4 µs/building** — `use` (`UseBlueprint`, which
+commits the real build order) is **~15× cheaper per building** than `visualize`
+(`VisualizeBlueprint`, which builds the hover-preview `GameObject`). That's the opposite of what
+import found (there, the *cheap-looking* operation hid the real cost) — here the expensive part is
+plainly the one that instantiates + colors + anim-configures a preview object per building
+(`BuildingVisual`'s constructor: `GameUtil.KInstantiate`, `KBatchedAnimController` setup,
+`ApplyColorIfChanged`/`GetVisualizerColor`), not the one that commits it. Not chased further this
+pass (wall-clock only, per scope above) — Harmony-instrumenting `BuildingVisual`'s constructor and
+`GetVisualizerColor` would be the natural next step if this needs to get faster, the same way
+`GetValidMaterials` was pulled out of `SanitizeSelectedTags`'s wall-clock number for import.
+
 ## 8. Decision checklist
 
 - [x] Build the POC? — yes, `harness/`.

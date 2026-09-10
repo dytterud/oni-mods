@@ -11,11 +11,14 @@ namespace BlueprintsV2.Harness.Perf;
 /// </summary>
 internal static class SyntheticBlueprint
 {
-    private const int RowWidth = 100;
+    /// <summary>Cell width of a generated blueprint's row - shared with <see cref="Perf.PerfRunner"/>
+    /// so its placement-perf dig region lines up with the same layout.</summary>
+    internal const int RowWidth = 100;
 
-    /// <summary>Builds a blueprint with <paramref name="count"/> Tile buildings and returns its
-    /// on-disk JSON form - the input every timed import operation runs against.</summary>
-    public static string BuildJson(int count)
+    /// <summary>Builds a blueprint with <paramref name="count"/> Tile buildings, laid out
+    /// <see cref="RowWidth"/> wide. Used directly (in-memory) for placement-perf and via
+    /// <see cref="BuildJson"/> (serialized) for import-perf.</summary>
+    internal static Blueprint Build(int count)
     {
         var def = Assets.GetBuildingDef("Tile");
         var sandstone = ElementLoader.FindElementByHash(SimHashes.SandStone).tag;
@@ -33,7 +36,17 @@ internal static class SyntheticBlueprint
             bc.SelectedElements.Add(sandstone);
             bp.BuildingConfigurations.Add(bc);
         }
+        // Dimensions are otherwise 0 until computed - placement reads Blueprint.Dimensions
+        // (import's JSON round-trip never touches it, so BuildJson didn't need this).
+        bp.CacheCost();
+        return bp;
+    }
 
+    /// <summary>Builds a blueprint with <paramref name="count"/> Tile buildings and returns its
+    /// on-disk JSON form - the input every timed import operation runs against.</summary>
+    public static string BuildJson(int count)
+    {
+        var bp = Build(count);
         var sb = new System.Text.StringBuilder();
         using (var sw = new System.IO.StringWriter(sb))
             bp.WriteJsonString(sw);

@@ -33,7 +33,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 if (-not $PSBoundParameters.ContainsKey('TimeoutSeconds')) {
-    $TimeoutSeconds = if ($Perf) { 900 } else { 300 }   # perf's size sweep runs longer
+    # perf's size sweep runs longer - 1800s covers import + the placement sweep's real
+    # GameObject instantiation; dial back down once real numbers show the actual cost.
+    $TimeoutSeconds = if ($Perf) { 1800 } else { 300 }
 }
 
 function Get-BuildProp([string]$name) {

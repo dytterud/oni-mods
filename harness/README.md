@@ -68,8 +68,8 @@ diagnose a hang.
 | `FixtureBuilder.cs` | places that set via `BuildingDef.Build` |
 | `ExceptionSweep.cs` | fails a regression run on any mod-related Error/Exception log frame |
 | `Assert.cs` / `JUnitWriter.cs` | tiny assertion + JUnit report helpers |
-| `Perf/SyntheticBlueprint.cs` | builds an N-building blueprint in code (no placement) for import-perf sizing |
-| `Perf/PerfRunner.cs` | warmup + timed iterations per (operation, size); currently `deserialize` and `full-import` |
+| `Perf/SyntheticBlueprint.cs` | builds an N-building blueprint in code - `Build` (in-memory, used by placement-perf) and `BuildJson` (serialized, used by import-perf) |
+| `Perf/PerfRunner.cs` | warmup + timed iterations per (operation, size): `deserialize`/`full-import` (import) and `visualize`/`use` (placement, real `GameObject`s + a once-dug region) |
 | `Perf/PerfInstrumentation.cs` | manual Harmony patches on `BuildingConfig.SanitizeSelectedTags` / `ModAssets.GetValidMaterials` — call-count + cumulative-time hotspot attribution |
 | `Perf/PerfWriter.cs` | writes `perf.json` |
 
@@ -87,11 +87,16 @@ built object, replacement visualizers over occupied terrain.
 
 ## Adding a perf operation
 
-Add a `TimeOp(...)` call inside `PerfRunner.Run` for the new operation, and (if it needs a fresh
-input) extend `SyntheticBlueprint` rather than placing real buildings — real placement doesn't scale
-past a few hundred and isn't what most operations need. §7 lists the next two the user asked for:
-**placement of large blueprints** and **creation of large blueprints** (`CreateBlueprint` over a big
-captured area) — both need real placed/capturable buildings rather than the code-only blueprint
-`deserialize`/`full-import` use, so expect to grow `FixtureBuilder` or a perf-only equivalent that
-places many buildings fast (e.g. via `def.Build` in a tight loop, sandbox-instant) rather than one
-at a time through the tool pipeline.
+Add a `TimeOp(...)` call inside `PerfRunner.Run` (or, for placement, inside
+`RunPlacementSweep`) for the new operation. If it's a pure-data operation like import, extend
+`SyntheticBlueprint.Build`/`BuildJson` — no live `Grid` needed. If it mutates real game state (like
+placement's `use`), give `TimeOp`'s optional `setup` callback the job of moving to fresh input
+before each timed call rather than trying to make the operation itself idempotent.
+
+**Built:** import (`deserialize`/`full-import`, code-only) and placement (`visualize`/`use`, a
+once-dug region at absolute map coordinates + real `GameObject`s via `BlueprintState`). §7 still
+lists **creation of large blueprints** (`BlueprintState.CreateBlueprint` over a big captured area)
+as the next one — unlike placement it needs real *finished* buildings to capture, not just dug
+terrain, so it'll want either a fast finished-building placer (`def.Build` in a tight loop,
+sandbox-instant — `FixtureBuilder.PlaceAll` does this one at a time already) or reuse of
+placement's own committed build orders if they're advanced to completion first.
