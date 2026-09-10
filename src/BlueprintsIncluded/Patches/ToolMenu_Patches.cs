@@ -32,7 +32,12 @@ class ToolMenu_Patches
                 __instance.ChooseTool(SnapshotToolCollection.tools[0]);
                 SnapshotTool.Instance.TryVisualizeLastSnapshot();
             }
-
+            else if (e.IsAction(Actions.BlueprintsToggleNoteVisibility.GetKAction()))
+            {
+                e.Consumed = true;
+                BlueprintState.ToggleNoteVisibility();
+                TopLeftControlScreen_Patches.RefreshNoteVisibilityToggle();
+            }
         }
     }
     [HarmonyPatch(typeof(ToolMenu), "OnPrefabInit")]

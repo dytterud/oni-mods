@@ -35,6 +35,19 @@ public static class BlueprintState
 
     public static string SelectedBlueprintFolder = string.Empty;
 
+    /// <summary>
+    /// Whether placed blueprint notes are drawn. Toggled from the hotkey or the top-left
+    /// control-screen button; each <see cref="NoteToolPlacedEntities.BlueprintNote"/> subscribes
+    /// and hides its own renderer. Not serialized - notes come back visible on load.
+    /// </summary>
+    public static bool NoteVisibility { get; private set; } = true;
+
+    public static void ToggleNoteVisibility()
+    {
+        NoteVisibility = !NoteVisibility;
+        NoteToolPlacedEntities.BlueprintNote.TriggerNoteVisibilityChange(NoteVisibility);
+    }
+
     public static bool InstantBuild => DebugHandler.InstantBuildMode || Game.Instance.SandboxModeActive && SandboxToolParameterMenu.instance.settings.InstantBuild;
 
     private static readonly Dictionary<ulong, Blueprint> CurrentVisualizers = new();

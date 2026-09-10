@@ -613,6 +613,7 @@ public class STRINGS
             public static LocString CHANGE_ANCHOR_TITLE = "Change Blueprint Anchor";
             public static LocString TOGGLE_FORCE = "Toggle force rebuild";
             public static LocString TOGGLETOOLTIPS = "Toggle keybind tooltips";
+            public static LocString TOGGLENOTEVIS = "Toggle blueprint note visibility";
 
 
             public static LocString SELECT_NEXT_FOLDER = "Next Folder";

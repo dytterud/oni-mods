@@ -555,6 +555,11 @@ internal class ModAssets
         Actions.BlueprintsCreateNoteAction = actionManager.CreateAction(ActionKeys.ACTION_NOTETOOL_KEY,
             STRINGS.UI.ACTIONS.NOTETOOL_TITLE);
 
+        ///No default binding on purpose: every unused key is somebody's, and this is reachable
+        ///from the top-left control-screen button without one.
+        Actions.BlueprintsToggleNoteVisibility = actionManager.CreateAction(ActionKeys.ACTION_TOGGLE_NOTE_VISIBILITY_KEY,
+            STRINGS.UI.ACTIONS.TOGGLENOTEVIS);
+
         Actions.BlueprintsSelectPrevious = actionManager.CreateAction(ActionKeys.ACTION_SELECT_PREV_BLUEPRINT_KEY,
             STRINGS.UI.ACTIONS.SELECT_PREV, new PKeyBinding(KKeyCode.MouseScrollDown, Modifier.Shift));
         Actions.BlueprintsSelectNext = actionManager.CreateAction(ActionKeys.ACTION_SELECT_NEXT_BLUEPRINT_KEY,
@@ -776,6 +781,7 @@ internal class ModAssets
         public static readonly string ACTION_SELECT_NEXT_FOLDER_KEY = "BlueprintsV2.selectnextfolder";
         public static readonly string ACTION_SELECT_PREV_FOLDER_KEY = "BlueprintsV2.selectprevfolder";
         public static readonly string ACTION_TOGGLETOOLTIPS_KEY = "BlueprintsV2.toggletoooltips";
+        public static readonly string ACTION_TOGGLE_NOTE_VISIBILITY_KEY = "BlueprintsV2.togglenotevisibility";
     }
     public static class Actions
     {
@@ -799,6 +805,7 @@ internal class ModAssets
 
 
         public static PAction BlueprintsToggleHotkeyToolTips { get; set; } = null!;
+        public static PAction BlueprintsToggleNoteVisibility { get; set; } = null!;
 
     }
     public static bool TryGetFilterLayerId(ObjectLayer objectLayer, [NotNullWhen(true)] out string? filterLayerId)

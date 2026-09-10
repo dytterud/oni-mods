@@ -19,15 +19,46 @@ public class BlueprintNote : KMonoBehaviour
         renderer = GetComponentInChildren<MeshRenderer>();
     }
 
+    /// <summary>
+    /// Raised when <see cref="BlueprintState.ToggleNoteVisibility"/> runs. Static because the
+    /// toggle is global and notes come and go; every seated note subscribes for its lifetime.
+    /// </summary>
+    private static event Action<bool>? OnNoteVisibilityChanged;
+
+    internal static void TriggerNoteVisibilityChange(bool on) => OnNoteVisibilityChanged?.Invoke(on);
+
+    private int refreshHandle = -1, cancelHandle = -1;
+
     public override void OnSpawn()
     {
         base.OnSpawn();
         if (SeatIndicator)
             Seat();
 
-        Subscribe((int)GameHashes.RefreshUserMenu, OnRefreshUserMenu);
-        Subscribe((int)GameHashes.Cancel, Cancel);
+        refreshHandle = Subscribe((int)GameHashes.RefreshUserMenu, OnRefreshUserMenu);
+        cancelHandle = Subscribe((int)GameHashes.Cancel, Cancel);
+
+        ///only seated notes own a rendered mesh; unseated ones have nothing to hide.
+        if (SeatIndicator)
+        {
+            OnNoteVisibilityChanged += ChangeVisibility;
+            ChangeVisibility(BlueprintState.NoteVisibility);
+        }
     }
+
+    public override void OnCleanUp()
+    {
+        Unsubscribe(cancelHandle);
+        Unsubscribe(refreshHandle);
+        ///a static event outlives the note, so failing to detach here would leak this instance
+        ///and then fire ChangeVisibility on a destroyed object.
+        if (SeatIndicator)
+            OnNoteVisibilityChanged -= ChangeVisibility;
+
+        base.OnCleanUp();
+    }
+
+    private void ChangeVisibility(bool visible) => renderer.enabled = visible;
     private void OnRefreshUserMenu(object data)
     {
         Game.Instance.userMenu.AddButton(this.gameObject, new KIconButtonMenu.ButtonInfo("action_cancel", DELETE_NOTE.NAME, new System.Action(this.OnCancel), tooltipText: DELETE_NOTE.TOOLTIP));
