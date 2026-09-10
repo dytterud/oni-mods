@@ -55,22 +55,37 @@ usually has uncommitted work on a feature branch, and a dirty tree would skew th
 
 ## Triage rubric
 
-**Port-worthy**
+**Every substantive change under `BlueprintsV2/` gets an issue** — fixes *and* features. The
+scan's job is to surface the change and describe it well enough to decide on; whether this fork
+wants it is decided in the issue, not by the scan. Closing a feature issue as `wontfix` is a
+first-class outcome, and it leaves a durable record of the decision — which silent skipping does
+not.
 
-- Crashes, unhandled exceptions, null-reference bugs
-- Save/load and `KSerialization` compatibility fixes
-- Breakage against a new ONI game version (changed Klei API, renamed member, moved field)
-- Wrong behaviour in blueprint capture, import, placement or material selection
-- Localisation breakage (missing/garbled strings, font issues)
-- Performance regressions with a real user-visible cost
+Classify each one so they stay filterable. Both labels go on alongside `upstream-sync`:
 
-**Skip**
+| Kind | Labels | Examples |
+|---|---|---|
+| **Fix** | `upstream-sync`, `bug` | crashes and null-reference bugs, save/load and `KSerialization` compat, breakage against a new ONI version, wrong behaviour in capture/import/placement/material selection, localisation breakage, real performance regressions |
+| **Feature** | `upstream-sync`, `enhancement` | new tools, new UI, new filter layers, behaviour extensions — anything that makes the mod do something it currently doesn't |
 
-- New features and new tools
-- Version bumps, release commits, `buildall` and build-script churn
-- Changes to other mods in the monorepo
-- Anything this fork has already diverged past on purpose — the nullable migration, the
-  `GetValidMaterials` caching, the repo restructure
+A feature issue still needs the full body: what it does, which files, how it maps onto this
+tree, and what porting it would cost here. "Upstream added a thing" is not enough to decide on.
+
+**Still no issue for these:**
+
+- **Already ported** — nothing to decide. (But see
+  [One issue per change](#one-issue-per-change-not-per-commit): if it is only *partly* in, the
+  residual gets an issue.)
+- **Release and build churn** — version bumps, `buildall` commits, `.csproj` version edits,
+  build-script changes. No decision to make, and this fork's packaging is its own
+  (`Directory.Build.targets`). Record the verdict and move on.
+- **Other mods in the monorepo** — outside both watched paths.
+- **`UtilLibs` changes this mod cannot reach** — see
+  [the relevance filter](#the-utillibs-relevance-filter). That filter stays: `UtilLibs` serves
+  every Imalas mod, so "flag everything" there would be mostly noise about helpers this mod
+  never calls. The flag-everything rule is specific to `BlueprintsV2/`.
+- **Changes this fork deliberately diverged past** — the nullable migration, the
+  `GetValidMaterials` caching, the repo restructure. Say so in the verdict.
 
 Record a verdict for *every* commit scanned, including skips, so it is never re-triaged.
 
@@ -125,16 +140,22 @@ reachability call is close, prefer opening the issue.
 
 ## Output
 
-One GitHub issue per port-worthy, still-present fix, labelled `upstream-sync` and titled:
+One GitHub issue per still-present change — fix or feature — labelled `upstream-sync` plus
+`bug` or `enhancement` per the [rubric](#triage-rubric), and titled:
 
 ```
 upstream <short-sha>: <upstream commit subject>
 ```
 
 The body carries: the upstream commit link, which watched path it came from, a plain description
-of the bug and the fix, the relevant upstream hunks, the corresponding file(s) here with line
-references, reachability for a `UtilLibs` change, and a note on how the fork's divergence
-affects the port.
+of what changed and why upstream did it, the relevant upstream hunks, the corresponding file(s)
+here with line references, reachability for a `UtilLibs` change, and a note on how the fork's
+divergence affects the port.
+
+For a feature, the body also has to give the reader enough to decide with — what it would cost
+here, what it touches, and anything about this fork that makes it awkward or attractive. End it
+with an explicit note that closing as `wontfix` is a fine outcome, so nobody feels the issue
+obliges them to port it.
 
 ### Idempotency
 
