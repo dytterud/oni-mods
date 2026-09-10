@@ -1,5 +1,28 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<!--
+	  The three Generate* targets below deliberately do NOT register their outputs as
+	  <FileWrites>. Doing so made `dotnet test` delete them.
+
+	  The mod project is built twice with different global properties: as a mod, and again via
+	  BlueprintsIncluded.Tests' ProjectReference with DoNotBuildAsMod=true. Different global
+	  properties mean a separate MSBuild project instance, but both write to the same
+	  bin/$(Configuration)/$(TargetFramework). The test-flavoured instance skips these targets by
+	  condition, so with FileWrites registered its IncrementalClean saw mod.yaml / mod_info.yaml /
+	  LauncherMetadata.json as orphaned prior outputs and removed them.
+
+	  A whole-solution build (test/run-ingame.ps1 builds the slnx) runs both instances, so
+	  CopyModsToDevFolder below would then fail with MSB3030 on the missing files - and whether it
+	  did came down to which instance MSBuild finished last. `dotnet clean` first only changed
+	  that ordering luck.
+
+	  Without the registrations these files are never in the prior-writes list, so nothing claims
+	  them. The cost is that `dotnet clean` no longer deletes them individually; removing
+	  bin/ still does.
+
+	  The deeper issue - two build flavours sharing one output directory, which harness/README.md
+	  also blames for corrupted incremental state and ILRepack races - is untouched here.
+	-->
 	<!--Write mod.yaml file-->
 	<Target Name="GenerateModYaml" BeforeTargets="PrepareForRun" Condition="'$(DoNotBuildAsMod)' != 'true'">
 		<ItemGroup>
@@ -8,9 +31,6 @@
 			<ModLines Include="staticID: $(AssemblyName)"/>
 		</ItemGroup>
 		<WriteLinesToFile File="$(TargetDir)/mod.yaml" Overwrite="true" Lines="@(ModLines)"/>
-		<ItemGroup>
-			<FileWrites Include="$(TargetDir)/mod.yaml" Condition="Exists('$(TargetDir)/mod.yaml')"/>
-		</ItemGroup>
 	</Target>
 	<!--Write mod_info.yaml file-->
 	<Target Name="GenerateModInfoYaml" BeforeTargets="PrepareForRun" Condition="'$(DoNotBuildAsMod)' != 'true'">
@@ -24,9 +44,6 @@
 			<ModInfoLines Include="$([System.String]::Copy('$(ForbiddenDlcIds)').Insert(0,' - ').Replace(',','%0a- '))" Condition="'$(ForbiddenDlcIds)' != ''"/>
 		</ItemGroup>
 		<WriteLinesToFile File="$(TargetDir)/mod_info.yaml" Overwrite="true" Lines="@(ModInfoLines)"/>
-		<ItemGroup>
-			<FileWrites Include="$(TargetDir)/mod_info.yaml" Condition="Exists('$(TargetDir)/mod_info.yaml')"/>
-		</ItemGroup>
 	</Target>
 	<!--Write LauncherMetadata.json file for Romen ModLauncher and SgtsModUpdater-->
 	<Target Name="GenerateLauncherMetadata" BeforeTargets="PrepareForRun" Condition="'$(DoNotBuildAsMod)' != 'true'">
@@ -38,9 +55,6 @@
 			<LauncherMetadataLines Include='}'/>
 		</ItemGroup>
 		<WriteLinesToFile File="$(TargetDir)/LauncherMetadata.json" Overwrite="true" Lines="@(LauncherMetadataLines)"/>
-		<ItemGroup>
-			<FileWrites Include="$(TargetDir)/LauncherMetadata.json" Condition="Exists('$(TargetDir)/LauncherMetadata.json')"/>
-		</ItemGroup>
 	</Target>
 
 	<!--Merges all dlls in the output folder into a single dll-->
@@ -67,7 +81,18 @@
 	</PropertyGroup>
 
 	<!--Copies the mod dll, the yaml files and everything inside the ModAssets folder to the target mod folder-->
-	<Target Name="CopyModsToDevFolder" AfterTargets="ILRepack" Condition="'$(DoNotBuildAsMod)' != 'true'">
+	<!--
+	  DependsOnTargets on the three generators, not just BeforeTargets="PrepareForRun" on them:
+	  this target copies those files, so it has to guarantee they exist rather than assume an
+	  earlier phase produced them. When the compile is up to date, PrepareForRun's hooks do not
+	  re-emit missing metadata, but this target still runs - so a build whose outputs were partly
+	  removed (a clean that spared the assembly, an IncrementalClean from a differently-flavoured
+	  build) failed with MSB3030 while reporting the project as up to date. Regenerating three
+	  small text files is far cheaper than that failure mode. The generators are idempotent
+	  (WriteLinesToFile Overwrite="true"), so running them twice in one build is harmless.
+	-->
+	<Target Name="CopyModsToDevFolder" AfterTargets="ILRepack" Condition="'$(DoNotBuildAsMod)' != 'true'"
+	        DependsOnTargets="GenerateModYaml;GenerateModInfoYaml;GenerateLauncherMetadata">
 
 		<Message Text="Executing CopyDLLs task" Importance="High" />
 		<ItemGroup>
