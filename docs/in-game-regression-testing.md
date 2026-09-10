@@ -279,8 +279,13 @@ Adding a correctness check (counting real `Constructable`s created, the same ins
    refresh keeps landing on zero. Our synthetic blueprints want to place literally at
    `origin + offset`, with no anchor semantics to honor, so this is correct for the harness; a real
    player previewing a wide blueprint near the map's left/bottom edge with a non-`BottomLeft`
-   anchor could hit the same wraparound in actual gameplay — flagged separately as a production
-   follow-up, not fixed here.
+   anchor could hit the same wraparound in actual gameplay — confirmed reachable (the default
+   anchor is `BottomCenter`, and `UseBlueprintTool` feeds the raw cursor cell straight into
+   `GetRotatedCell` with no clamping) and **fixed in production**: `GetRotatedCell` now
+   bounds-checks the shifted position against `Grid.WidthInCells`/`HeightInCells` before calling
+   `Grid.PosToCell`, returning `Grid.InvalidCell` instead of wrapping. The harness's `_state`
+   reflection workaround above is no longer strictly required but is left in place since the
+   sweep still wants literal `origin + offset` placement, not anchor semantics.
 
 **Finding (one real run, one machine, after both fixes — see limits below):**
 

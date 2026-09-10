@@ -881,7 +881,11 @@ public static class BlueprintState
             visPos.x = Mathf.Round(visPos.x);
             visPos.y = Mathf.Round(visPos.y);
 
-            return Grid.PosToCell(origin + visPos);
+            Vector2 finalPos = origin + visPos;
+            if (finalPos.x < 0 || finalPos.x >= Grid.WidthInCells || finalPos.y < 0 || finalPos.y >= Grid.HeightInCells)
+                return Grid.InvalidCell;
+
+            return Grid.PosToCell(finalPos);
         }
 
         public void FlipVertical()
