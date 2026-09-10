@@ -391,12 +391,21 @@ depends only on the `GameObject`'s own state, not which layer/cell it was found 
 its now-correctly-attributed cost (~678 µs/call, unchanged per call) is still the majority of
 `create`'s remaining time (~60%). Regression suite re-verified 6/6 green.
 
-**Not attempted this pass** (bigger, riskier, flagged as a follow-up): cache *which* of the ~35
+**Investigated as a follow-up, declined:** cache *which* of the ~35 `AdditionalBuildingDataEntries`
 handlers actually apply *per `BuildingDef`* (most building types have none of most data types —
 `Tile` has none of the ~35), so most of the 35 `TryGetComponent` checks per building could be
-skipped entirely instead of run and found empty. Needs verifying that a `BuildingDef`'s component
-composition is consistent across all its instances for every handler type before it's safe — the
-same kind of correctness check that made the `GetValidMaterials` cache safe for import.
+skipped entirely instead of run and found empty. **Not safe as scoped.**
+`DataTransfer_Prioritizable.TryGetData` is a plain `TryGetComponent<Prioritizable>` check like the
+other 34 — but [`BuildingVisual.ApplyBuildingData`](../src/BlueprintsIncluded/Visualizers/BuildingVisual.cs)
+calls `building.FindOrAddComponent<Prioritizable>()` at blueprint-placement time, so whether a given
+`GameObject` has a `Prioritizable` component depends on *how that instance was placed*, not on its
+`BuildingDef` — two buildings of the identical type can differ. A per-`BuildingDef` "never applies,
+skip forever" cache would silently drop legitimately-set priority data for exactly the instances
+where it *was* set. No other handler shows this pattern in the mod's own code, but that only clears
+this mod's code — Klei's own systems could add one of the other ~34 component types to a `GameObject`
+after initial placement under conditions not fully ruled out here. Given the risk (silent per-building
+data loss in a save/restore-adjacent feature) against the payoff (`create` is an occasional dev-tool
+action, not a hot path, and is already ~38% faster from the fix above), left un-implemented.
 
 ## 8. Decision checklist
 
