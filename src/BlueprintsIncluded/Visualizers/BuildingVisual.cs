@@ -364,7 +364,7 @@ public class BuildingVisual : IVisual
     {
         var def = BuildingDef;
         var selectedElements = GetConstructionElements();
-        var finishedBuilding = def.Create(positionCbc, null, GetConstructionElements(), def.CraftRecipe, ElementLoader.GetMinMeltingPointAmongElements(selectedElements), def.BuildingComplete);
+        var finishedBuilding = def.Create(positionCbc, null, selectedElements, def.CraftRecipe, ModAssets.GetSpawnTemperature(def, selectedElements), def.BuildingComplete);
 
         if (finishedBuilding == null)
         {
