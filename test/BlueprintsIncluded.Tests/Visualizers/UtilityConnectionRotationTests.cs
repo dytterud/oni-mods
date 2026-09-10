@@ -1,4 +1,7 @@
-﻿using BlueprintsV2.Visualizers;
+﻿using System.Reflection;
+using System.Runtime.CompilerServices;
+using BlueprintsV2.BlueprintData;
+using BlueprintsV2.Visualizers;
 using Xunit;
 
 namespace BlueprintsIncluded.Tests.Visualizers;
@@ -17,6 +20,12 @@ namespace BlueprintsIncluded.Tests.Visualizers;
 	/// the reference-only game assemblies. The method itself is static and free of game state, which
 	/// is the whole reason it can be tested at all - a <see cref="BuildingVisual"/> needs a live
 	/// colony to construct.
+	///
+	/// <para><b>Every <c>InlineData</c> here passes plain <c>int</c>s, never a Klei enum value.</b>
+	/// xUnit resolves attribute arguments during *discovery*, before the install gate can skip
+	/// anything, so a boxed <c>Orientation</c> in an attribute fails the offline build outright
+	/// with a <c>FileNotFoundException</c> / <c>BadImageFormatException</c> instead of skipping -
+	/// the third outcome CLAUDE.md warns about. Cast inside the test body instead.</para>
 	/// </summary>
 	public class UtilityConnectionRotationTests
 	{
@@ -130,4 +139,73 @@ namespace BlueprintsIncluded.Tests.Visualizers;
 			// flipping first would give Left --flipV--> Left --(-1)--> Up
 			Assert.NotEqual(Up, Rotate(Left, -1, flippedV: true));
 		}
+
+		#region The instance method — the actual regression guard for issue #4
+
+		/// <summary>
+		/// Builds a <see cref="BuildingVisual"/> <em>without running its constructor</em>, which
+		/// would need a live colony (it clones a preview prefab, reads the Grid, and registers an
+		/// anim controller). <see cref="GetRotatedUtilityConnectionFlags"/> reads only three fields,
+		/// all of which this sets or leaves at their zero value, so the bypass is sound here and
+		/// nowhere else — do not reuse this helper for anything that touches the visualizer.
+		///
+		/// <para>An uninitialized instance leaves <c>BlueprintRotationStateHolder</c> at
+		/// <c>Orientation.Neutral</c> (0) and both flips false, i.e. an unrotated blueprint.</para>
+		/// </summary>
+		private static BuildingVisual UnconstructedVisual(Orientation capturedOrientation)
+		{
+			var visual = (BuildingVisual)RuntimeHelpers.GetUninitializedObject(typeof(BuildingVisual));
+			typeof(BuildingVisual)
+				.GetField("buildingConfig", BindingFlags.NonPublic | BindingFlags.Instance)!
+				.SetValue(visual, new BuildingConfig { Orientation = capturedOrientation });
+			return visual;
+		}
+
+		private static void SetBlueprintRotation(BuildingVisual visual, Orientation rotation) =>
+			typeof(BuildingVisual)
+				.GetField("BlueprintRotationStateHolder", BindingFlags.NonPublic | BindingFlags.Instance)!
+				.SetValue(visual, rotation);
+
+		/// <summary>
+		/// Issue #4, stated directly: an unrotated blueprint must hand back the stored world-space
+		/// mask untouched, no matter which way the captured building happened to face.
+		///
+		/// This is the test that fails on the old code, where the shift was
+		/// <c>capturedOrientation - blueprintRotation</c> — a bridge captured at R90 had its stubs
+		/// rotated a quarter turn on a blueprint that was never rotated at all.
+		/// </summary>
+		[RequiresGameInstallTheory]
+		[InlineData(0)] // Neutral
+		[InlineData(1)] // R90
+		[InlineData(2)] // R180
+		[InlineData(3)] // R270
+		public void AnUnrotatedBlueprint_IgnoresTheCapturedBuildingsOrientation(int captured)
+		{
+			var visual = UnconstructedVisual((Orientation)captured);
+
+			Assert.Equal(Left, visual.GetRotatedUtilityConnectionFlags(Left));
+			Assert.Equal(Left | Right, visual.GetRotatedUtilityConnectionFlags(Left | Right));
+			Assert.Equal(Up | Down, visual.GetRotatedUtilityConnectionFlags(Up | Down));
+		}
+
+		/// <summary>
+		/// The same independence once the blueprint <em>is</em> rotated: the shift tracks the
+		/// blueprint's own rotation alone, so all four captured orientations agree.
+		/// </summary>
+		[RequiresGameInstallTheory]
+		[InlineData(0)] // Neutral
+		[InlineData(1)] // R90
+		[InlineData(2)] // R180
+		[InlineData(3)] // R270
+		public void ARotatedBlueprint_ShiftsByItsOwnRotationAlone(int captured)
+		{
+			var visual = UnconstructedVisual((Orientation)captured);
+			SetBlueprintRotation(visual, Orientation.R90);
+
+			// one quarter turn, the same shift the static takes at rotationSteps: -1
+			Assert.Equal(Rotate(Left, -1), visual.GetRotatedUtilityConnectionFlags(Left));
+			Assert.Equal(Up, visual.GetRotatedUtilityConnectionFlags(Left));
+		}
+
+		#endregion
 	}
