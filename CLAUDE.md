@@ -25,6 +25,7 @@ in-game after changes to blueprint data, tools, visualizers, or UI.
 | `src/BlueprintsIncluded/` | the mod (entry point `Mod.cs`, `Config.cs`, `STRINGS.cs`) |
 | `src/UtilLibs/` | vendored helper lib, ILRepacked into the mod dll |
 | `test/*` | one xUnit project per production project (net8.0) |
+| `harness/` | dev-only in-game regression harness — separate mod; in the slnx for the IDE but excluded from CLI solution builds / `dotnet test`; run via `test/run-ingame.ps1`. See [harness/README.md](harness/README.md) |
 | `lib/` | committed refasmer reference assemblies — **compile only, cannot execute** |
 | `Directory.Build.props` / `.targets` | shared build + mod-packaging pipeline |
 

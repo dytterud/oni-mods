@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Dev-only in-game regression-test harness. Listed in BlueprintsIncluded.slnx for the IDE, but
+    excluded from CLI solution builds (`<Build ... Project="false" />` in the .slnx) so
+    `dotnet build` / `dotnet test` / CI never touch it and it can't race the mod's in-place
+    ILRepack. Built + deployed by test/run-ingame.ps1 (a `-c Debug` build against a real ONI
+    install). See harness/README.md and docs/in-game-regression-testing.md.
+
+    Inherits the repo-root Directory.Build.props (netstandard2.1, game <Reference> items, nullable,
+    LangVersion 14) and Directory.Build.targets (mod.yaml / mod_info.yaml + CopyModsToDevFolder).
+  -->
+  <PropertyGroup>
+    <!-- Fallback for building this csproj on its own (outside the solution); a solution build
+         supplies SolutionDir. Needed by the inherited $(AssemblyPublicized) path. -->
+    <SolutionDir Condition="'$(SolutionDir)' == '' Or '$(SolutionDir)' == '*Undefined*'">$(MSBuildThisFileDirectory)..\..\</SolutionDir>
+
+    <AssemblyName>BlueprintsIncludedHarness</AssemblyName>
+    <RootNamespace>BlueprintsV2.Harness</RootNamespace>
+    <Version>0.1.0</Version>
+    <Authors>Lars Dytterud</Authors>
+
+    <IsMod>true</IsMod>
+    <!-- No ILRepack: the harness must resolve BlueprintsV2.* against the merged
+         BlueprintsIncluded.dll that ONI loads as the main mod, not bundle a 2nd copy. -->
+    <IsPacked>false</IsPacked>
+
+    <!-- Compile everywhere (coupling check), but only generate mod.yaml / mod_info.yaml and
+         copy to $(ModFolder) on a real-install Debug build. Offline has no runnable game code;
+         Release should not ship a test harness. -->
+    <DoNotBuildAsMod Condition="'$(OfflineBuild)' == 'true' Or '$(Configuration)' == 'Release'">true</DoNotBuildAsMod>
+
+    <ModName>Blueprints Included - Test Harness (dev only)</ModName>
+    <ModDescription>Dev-only. Loads a fixture colony and runs regression assertions against the blueprint pipeline, then quits. Harmless unless the run sentinel / BPI_HARNESS env var is set.</ModDescription>
+  </PropertyGroup>
+
+  <Target Name="_HarnessOfflineNote" BeforeTargets="BeforeBuild" Condition="'$(OfflineBuild)' == 'true'">
+    <Message Importance="normal" Text="BlueprintsIncludedHarness: OfflineBuild - compiling for the coupling check only; it will not be deployed or runnable. Use a real install + `-c Debug` to run it." />
+  </Target>
+
+  <ItemGroup>
+    <!-- Compile against the already-built (ILRepack-merged) mod DLL - NOT a ProjectReference: a
+         second build instance of the mod corrupts its incremental state / races its in-place
+         ILRepack. run-ingame.ps1 builds the solution first, so the DLL is always current; a mod
+         API change that breaks the harness then surfaces on the next `run-ingame.ps1`.
+         Private=false: ONI provides the merged DLL at runtime as the main mod. -->
+    <Reference Include="BlueprintsIncluded">
+      <HintPath>..\..\src\BlueprintsIncluded\bin\Debug\netstandard2.1\BlueprintsIncluded.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="_HarnessNeedsBuiltMod" BeforeTargets="ResolveAssemblyReferences"
+          Condition="!Exists('$(MSBuildThisFileDirectory)..\..\src\BlueprintsIncluded\bin\Debug\netstandard2.1\BlueprintsIncluded.dll')">
+    <Error Text="BlueprintsIncluded.dll (Debug) not found. Build the mod first: dotnet build BlueprintsIncluded.slnx -c Debug  (run-ingame.ps1 does this)." />
+  </Target>
+
+</Project>

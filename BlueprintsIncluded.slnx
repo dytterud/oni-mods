@@ -7,4 +7,13 @@
     <Project Path="test/BlueprintsIncluded.Tests/BlueprintsIncluded.Tests.csproj" />
     <Project Path="test/UtilLibs.Tests/UtilLibs.Tests.csproj" />
   </Folder>
+  <Folder Name="/harness/">
+    <!-- Dev-only in-game test harness: here for the IDE, but excluded from CLI solution builds
+         (dotnet build / dotnet test / CI) - it references an isolated non-packed build of the mod
+         and must not race the mod's in-place ILRepack. Build it via test/run-ingame.ps1. -->
+    <Project Path="harness/BlueprintsIncludedHarness/BlueprintsIncludedHarness.csproj">
+      <Build Solution="Debug|*" Project="false" />
+      <Build Solution="Release|*" Project="false" />
+    </Project>
+  </Folder>
 </Solution>

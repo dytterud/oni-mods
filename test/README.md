@@ -34,7 +34,10 @@ running colony, so it can't be unit-tested. Run [`docs/smoke-test-checklist.md`]
 in-game after any change to the blueprint data, tools, visualizers, or UI.
 
 Automating that pass by launching the game and asserting inside a live colony is feasible
-on a dev machine (not in CI) — feasibility analysis and proposed design in
+on a dev machine (not in CI). A proof-of-concept harness exists in
+[`harness/`](../harness/README.md) — a separate dev-only mod; it's in the solution for the IDE but
+excluded from CLI solution builds and **not** run by `dotnet test`. Drive it with
+[`test/run-ingame.ps1`](run-ingame.ps1). Background:
 [`docs/in-game-regression-testing.md`](../docs/in-game-regression-testing.md).
 
 ## Shared config

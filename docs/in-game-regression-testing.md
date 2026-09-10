@@ -1,8 +1,19 @@
 # Feasibility: automated in-game regression tests
 
-**Status:** investigation only — no harness code exists yet. This doc records whether it is
-worth building and how it would work. Decisions for the reader are in
-[§8](#8-decision-checklist).
+**Status:** built and passing — see [`harness/`](../harness/README.md) and
+[`test/run-ingame.ps1`](../test/run-ingame.ps1). This doc records why it was built and how it works.
+§3 below is the original design sketch; the harness now covers that whole case table. §7 (perf mode)
+is not built. Decisions are in [§8](#8-decision-checklist).
+
+**Implemented:** separate dev-only harness mod (`staticID` `BlueprintsIncludedHarness`, in the
+`.slnx` for the IDE but excluded from CLI builds), activation via sentinel file / `BPI_HARNESS` env
+var, a `MainMenu.OnSpawn` → `LoadScreen.DoLoad` bootstrap that loads a committed fixture colony and
+places a known building set in code, and six cases: capture + JSON round-trip **including**
+`BuildingConfigurations` (the slice `dotnet test` can't reach), place → `Constructable` build
+orders, blueprint rotation rotates the placed layout, a non-default `Prioritizable` priority
+round-trips byte-identically, an element-note capture round-trips, and a mod-wide exception sweep.
+Plus the PowerShell launcher (builds, deploys, patches `mods.json` for the run, launches ONI, polls,
+reports JUnit). Verified green against a real install. Not built: the §7 perf mode.
 
 ## 1. Summary & recommendation
 
@@ -181,10 +192,34 @@ visualizer work that needs a live `Grid`.
 
 ## 8. Decision checklist
 
-- [ ] Build the POC?
-- [ ] Commit a fixture save to the repo, or rely on new-game-with-seed?
-- [ ] Add `test/run-ingame.ps1`?
-- [ ] Activation gate: env var, sentinel file, or both?
-- [ ] Separate harness mod (recommended) vs. flag-gated code inside `BlueprintsIncluded`?
-- [ ] Include the [§7](#7-performance-measurement-separate-mode) perf mode, or add it later
-      when a performance change actually needs it?
+- [x] Build the POC? — yes, `harness/`.
+- [x] Commit a fixture save to the repo, or rely on new-game-with-seed? — **committed fixture save**
+      (`harness/fixtures/poc-colony.sav`); new-game fallback deferred.
+- [x] Add `test/run-ingame.ps1`? — yes.
+- [x] Activation gate: env var, sentinel file, or both? — **both** (`%TEMP%/bpi-harness/run` sentinel
+      written by the launcher, or `BPI_HARNESS=1`).
+- [x] Separate harness mod vs. flag-gated code inside `BlueprintsIncluded`? — **separate mod**,
+      `ProjectReference` for compile-time coupling. Listed in `BlueprintsIncluded.slnx` for the IDE
+      but excluded from CLI solution builds (`<Build … Project="false" />`) so it never races the
+      mod's in-place ILRepack; built directly by `test/run-ingame.ps1`.
+- [x] Include the [§7](#7-performance-measurement-separate-mode) perf mode, or add it later? — **later**.
+
+### Next steps
+
+- [x] Commit a loadable `harness/fixtures/poc-colony.sav` (fresh `Cesspool` sandbox). The harness
+      places its own building set (`FixtureLayout` / `FixtureBuilder`) rather than baking buildings
+      into the save.
+- [x] Run `test/run-ingame.ps1` end-to-end against a real install — green.
+- [x] Place case: capture → `VisualizeBlueprint`/`UseBlueprint` → assert `Constructable` build
+      orders for the right buildings at the right cells (mod tech/material requirements toggled off
+      for the run since a cycle-0 colony has neither).
+- [x] Rotation case: rotating the blueprint flips the placed layout (row → column).
+- [x] Data-transfer case: a non-default `Prioritizable` priority is captured into
+      `BuildingConfig.AdditionalBuildingData` and is byte-identical after the JSON round-trip.
+- [x] Notes case: place an `ElementNote` entity → capture with the notes filter forced on →
+      `WorldNotes` holds an Oxygen element note that round-trips through the JSON format.
+- [ ] Optional follow-ups: more building types / layers, place-with-settings applied to the built
+      object, replacement visualizers over occupied terrain, §7 perf mode.
+- [ ] `run-ingame.ps1` currently removes the dev `Blueprints Expanded` (`mods/dev/BlueprintsV2`)
+      from `mods.json` when it's present alongside; ONI re-adds it disabled on next launch, but a
+      cleaner disable-in-place would avoid the churn.
