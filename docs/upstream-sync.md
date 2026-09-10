@@ -41,8 +41,12 @@ upstream HEAD:
 - **Translations** — 5/6 byte-identical (`de.po`, `de.mo`, `fr.po`, `ko.po`, `ru.po`); only
   `zh.po` differs, because upstream changed it *after* the import.
 - **Assets** — 39/39 PNGs identical; only the three `blueprints_ui` bundles differ, same reason.
-- **`UtilLibs`** — 125/129 identical, **0 missing**. The four: two post-fork commits already
-  triaged, `UtilLibs.csproj` (this fork's build config), and `UtilMethods.cs` (see below).
+- **`UtilLibs`** — 125/129 identical, **0 missing** *at the time of the backfill*. The four:
+  two post-fork commits already triaged, `UtilLibs.csproj` (this fork's build config), and
+  `UtilMethods.cs` (see below). **91 of those files were later pruned deliberately** — see
+  [pruned `UtilLibs` files](utillibs-pruned.md). A re-run of this comparison will therefore
+  report them absent; that is the prune, not an incomplete import. Because none of the four
+  divergent files were pruned, every pruned file was byte-identical to upstream when it went.
 - **`BlueprintsV2` C#** — 103/107 files present. The four absent are one genuinely unported
   feature, one file moved to `Visualizers/` here, `SystemExtension.cs` (dropped for PolySharp in
   `5bd6d0b`), and upstream's `Vector2IConverter.cs`, which is dead code by its own comment and
@@ -123,10 +127,11 @@ tree, and what porting it would cost here. "Upstream added a thing" is not enoug
   build-script changes. No decision to make, and this fork's packaging is its own
   (`Directory.Build.targets`). Record the verdict and move on.
 - **Other mods in the monorepo** — outside both watched paths.
-- **`UtilLibs` changes this mod cannot reach** — see
-  [the relevance filter](#the-utillibs-relevance-filter). That filter stays: `UtilLibs` serves
-  every Imalas mod, so "flag everything" there would be mostly noise about helpers this mod
-  never calls. The flag-everything rule is specific to `BlueprintsV2/`.
+- **`UtilLibs` changes this mod cannot reach** — either the file was
+  [pruned](utillibs-pruned.md) and is not in this tree at all, or it is present but
+  unreachable. See [the relevance filter](#the-utillibs-relevance-filter). That filter stays:
+  `UtilLibs` serves every Imalas mod, so "flag everything" there would be mostly noise about
+  helpers this mod never calls. The flag-everything rule is specific to `BlueprintsV2/`.
 - **Changes this fork deliberately diverged past** — the nullable migration, the
   `GetValidMaterials` caching, the repo restructure. Say so in the verdict.
 
@@ -161,16 +166,37 @@ those changes serve mods this fork does not contain, and a helper this mod never
 affect the shipped dll (`UtilLibs` is ILRepacked into it). So for a `UtilLibs` fix, establish
 reachability from this mod before opening anything:
 
+Test these **in order** — the first one that matches wins:
+
 | Reachability | Test | Action |
 |---|---|---|
+| **pruned** | the file's path appears in [`docs/utillibs-pruned.md`](utillibs-pruned.md) | verdict `pruned-helper`, no issue |
 | **direct** | changed type/member is referenced from `src/BlueprintsIncluded/` | triage normally |
 | **indirect** | referenced from a `src/UtilLibs/` file that is itself referenced from `src/BlueprintsIncluded/` (one hop) | triage normally, state the hop in the issue |
-| **none** | neither | verdict `unused-helper`, no issue |
+| **none** | none of the above | verdict `unused-helper`, no issue |
+
+**`pruned` goes first** because it is the cheapest and most definite test — one `grep -F` of the
+upstream path against the manifest, no reasoning about call chains. A file on that list does not
+exist in this tree, so the change cannot reach the shipped dll:
+
+```bash
+grep -F "UtilLibs/RecipeBuilder.cs" docs/utillibs-pruned.md
+```
+
+Do not mistake a pruned path for an unported upstream file — the absence is deliberate, and the
+manifest is the record of it. Six files are dead but **retained** (see the manifest); those are
+present in the tree and take the ordinary `direct`/`indirect` tests, not this one.
+
+**Restoring a pruned helper** is the right move only if a `BlueprintsV2` change being ported
+actually calls it. The manifest carries the procedure; the short version is that pruned files
+were byte-identical to upstream when removed, so they come back from upstream rather than from
+this repo's history.
 
 **One hop is a deliberate heuristic.** It is cheap and catches the common case, but it can
 under-report a fix buried deeper in a `UtilLibs` internal call chain. A false `unused-helper` is
 the one failure mode that silently loses a fix, so when a commit looks important and the
-reachability call is close, prefer opening the issue.
+reachability call is close, prefer opening the issue. The prune helps here: with 91 fewer files
+in `src/UtilLibs/`, there is far less internal chain left for a fix to hide behind.
 
 ## Porting characteristics
 
