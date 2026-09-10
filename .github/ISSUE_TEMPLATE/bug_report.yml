@@ -65,7 +65,7 @@ body:
     attributes:
       label: Mod version
       description: From the Mods screen, or `mod_info.yaml` in the mod folder.
-      placeholder: 7.0.0
+      placeholder: 0.1.0
     validations:
       required: true
 
