@@ -191,17 +191,29 @@ drives it. Instead of asserting, `PerfRunner`
    ([PerfWriter.cs](../harness/BlueprintsIncludedHarness/Perf/PerfWriter.cs)). No committed
    baseline / regression-diff yet — this is investigation, not a gate.
 
-**Finding (one real run, one machine — see limits below):** `GetValidMaterials` — an uncached
-scan of `ElementLoader.elements` plus a `List<Tag>` alloc and an `OrderBy` sort, called once per
-building per ingredient from `SanitizeSelectedTags` — accounts for essentially **all** of
-`SanitizeSelectedTags`'s cost (both had ~178k calls / ~15.1s total in one sweep of all four
-sizes) and thus the large majority of import time: `deserialize` scaled from 9.9 ms at N=100 to
-505 ms at N=5000 (~85–100 µs per building, consistent with the ~85 µs/call `GetValidMaterials`
-average), `full-import` roughly double that at each N because it parses the document twice (see
-§2). Scaling is linear in N, not quadratic — but a large, easily-cacheable per-call constant
-dominates a 5000-building import. The natural fix, not yet made: cache `GetValidMaterials`'
-result per category tag (it depends only on the static element table + disabled state, not on
-the blueprint being read).
+**Finding + fix (one real run, one machine, before/after — see limits below):** `GetValidMaterials`
+— an uncached scan of `ElementLoader.elements` plus a `List<Tag>` alloc and an `OrderBy` sort,
+called once per building per ingredient from `SanitizeSelectedTags` — accounted for essentially
+**all** of `SanitizeSelectedTags`'s cost and thus the large majority of import time. Fixed by
+caching its result per `(category tag, omitDisabledElements)` — the inputs (the element table,
+each element's disabled state, which prefabs carry a given `GameTags.MaterialBuildingElements`
+tag) are all established once when the game's databases load and don't change for the life of the
+process, so the cache never needs invalidating (`ModAssets.ValidMaterialsCache`).
+
+| | before | after | |
+|---|---:|---:|---|
+| `GetValidMaterials` | 84.7 µs/call | 0.1 µs/call | ~850× |
+| `SanitizeSelectedTags` | 85.2 µs/call | 0.5 µs/call | ~170× |
+| `deserialize` N=100 | 9.9 ms | 1.8 ms | ~5.5× |
+| `deserialize` N=5000 | 504.7 ms | 84.8 ms | ~5.9× |
+| `full-import` N=5000 | 1014.9 ms | 195.9 ms | ~5.2× |
+
+(both runs: 178,200 total `GetValidMaterials`/`SanitizeSelectedTags` calls across the full size
+sweep). Scaling was already linear in N, not quadratic — the win is entirely from removing a large
+per-call constant. Regression suite re-verified 6/6 green after the change (the cache doesn't
+alter `SanitizeSelectedTags`'s decisions, only how fast it makes them). Remaining ~85 ms at
+N=5000 is the JSON parse + object graph construction itself — the next thing to profile if this
+matters again.
 
 **Limits — treat output as directional, not absolute:**
 

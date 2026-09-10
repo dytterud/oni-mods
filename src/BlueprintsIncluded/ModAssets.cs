@@ -636,8 +636,27 @@ internal class ModAssets
         return materialType;
     }
 
+    /// <summary>
+    /// Cache for <see cref="GetValidMaterials"/>, keyed by (category tag, omitDisabledElements).
+    /// The inputs - <see cref="ElementLoader.elements"/>, each element's disabled state, and which
+    /// prefabs carry a given <see cref="GameTags.MaterialBuildingElements"/> tag - are all
+    /// established once when the game's databases load and don't change for the life of the
+    /// process, so this never needs invalidating. Perf harness measured this as the dominant cost
+    /// of importing a large blueprint (~85us/call, called once per building per ingredient) -
+    /// see docs/in-game-regression-testing.md §7.
+    /// </summary>
+    private static readonly Dictionary<(Tag Tag, bool OmitDisabled), List<Tag>> ValidMaterialsCache = new();
+
+    /// <summary>
+    /// Returns the elements/prefabs valid for a blueprint material category tag. The returned list
+    /// is shared via <see cref="ValidMaterialsCache"/> - callers must not mutate it.
+    /// </summary>
     public static List<Tag> GetValidMaterials(Tag materialTypeTags, bool omitDisabledElements = true)
     {
+        var cacheKey = (materialTypeTags, omitDisabledElements);
+        if (ValidMaterialsCache.TryGetValue(cacheKey, out var cached))
+            return cached;
+
         List<Tag> validMaterials = new List<Tag>();
         var actualTags = materialTypeTags.ToString().Split('&');
         foreach (var actualTag in actualTags)
@@ -669,6 +688,7 @@ internal class ModAssets
             }
         }
         validMaterials = validMaterials.OrderBy(x => x.Name).ToList();
+        ValidMaterialsCache[cacheKey] = validMaterials;
         return validMaterials;
     }
 
