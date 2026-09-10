@@ -3,7 +3,9 @@
 	<!-- General Package Properties -->
 	<PropertyGroup>
 		<PackageId>BlueprintsIncluded</PackageId>
-		<Version>7.0.0</Version>
+		<!--This fork's own version, independent of upstream Blueprints Expanded's numbering.
+		    Never published under the inherited 7.0.0 (SteamId is empty), so the reset is free.-->
+		<Version>0.1.0</Version>
 		<Authors>Lars Dytterud</Authors>
 		<Copyright>$(AssemblyCopyright)</Copyright>
 		<RepositoryUrl>https://github.com/dytterud/BlueprintsIncluded</RepositoryUrl>

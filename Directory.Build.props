@@ -48,46 +48,22 @@
 		<Optimize>False</Optimize>
 	</PropertyGroup>
 
-	<!--Game Release Versions-->
+	<!--Minimum ONI build this mod supports, written into mod_info.yaml as
+	    minimumSupportedBuild. Upstream keeps a table of every historical release here; this
+	    fork only ever referenced the newest, so it tracks a single value. Find a build number
+	    on the main menu, bottom corner (e.g. U55-737790-S).-->
 	<PropertyGroup>
-		<WhattaBlast>549456</WhattaBlast>
-		<QoL2023June>560597</QoL2023June>
-		<PackedSnacks>581003</PackedSnacks>
-		<QoL2024Feb>596100</QoL2024Feb>
-		<FrostyPlanetBeta>616718</FrostyPlanetBeta>
-		<FrostyPlanetRelease>622222</FrostyPlanetRelease>
-		<QOL2024NovBeta>641371</QOL2024NovBeta>
-		<QOL2024NovRelease>644960</QOL2024NovRelease>
-		<BionicBoostBeta>645088</BionicBoostBeta>
-		<BionicBoosterRelease>646687</BionicBoosterRelease>
-		<JanuaryHotfix1>648807</JanuaryHotfix1>
-		<JanuaryHotfix2>651155</JanuaryHotfix2>
-		<JanuaryHotfix3>652372</JanuaryHotfix3>
-		<FebruaryQOL_Beta>659075</FebruaryQOL_Beta>
-		<FebruaryQOL_Hotfix3>661174</FebruaryQOL_Hotfix3>
-		<PrehistoricRelease>674504</PrehistoricRelease>
-		<QOL2025NovBeta>699556</QOL2025NovBeta>
-		<QOL2025NovRelease>700386</QOL2025NovRelease>
-		<QOL2026MarchRelease>722606</QOL2026MarchRelease>
-		<BeachedDlcBeta>731233</BeachedDlcBeta>
-		<BeachedDlcRelease>736649</BeachedDlcRelease>
-		<BeachedDlcHotfix1>737790</BeachedDlcHotfix1>
-		<!--Latest-->
-		<TargetGameVersion>$(BeachedDlcHotfix1)</TargetGameVersion>
+		<!--Beached DLC, hotfix 1-->
+		<TargetGameVersion>737790</TargetGameVersion>
 	</PropertyGroup>
 
 
-	<!--Copyright notice-->
+	<!--Copyright notice. Upstream also carried Author* / *Copyright pairs for the other
+	    modders it collaborates with (3GuB, Aki, Ronivan); nothing in this fork consumed them.-->
 	<PropertyGroup>
 		<CurrentYear>$([System.DateTime]::Now.ToString(`yyyy`))</CurrentYear>
-		<Author>Sgt_Imalas</Author>
-		<AuthorWith3GuB>Sgt_Imalas, 3GuB</AuthorWith3GuB>
-		<AuthorWithAki>Aki, Sgt_Imalas</AuthorWithAki>
-		<AuthorWithRonivan>Ronivan, Sgt_Imalas</AuthorWithRonivan>
+		<Author>Lars Dytterud</Author>
 		<AssemblyCopyright>Copyright ©$(Author) $(CurrentYear)</AssemblyCopyright>
-		<RetroOniCopyright>Copyright ©$(AuthorWith3GuB) $(CurrentYear)</RetroOniCopyright>
-		<RonivanCopyright>Copyright ©$(AuthorWithRonivan) $(CurrentYear)</RonivanCopyright>
-		<AkiCopyright>Copyright ©$(AuthorWithAki) $(CurrentYear)</AkiCopyright>
 	</PropertyGroup>
 
 	<PropertyGroup>
