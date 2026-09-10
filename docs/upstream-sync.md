@@ -77,8 +77,8 @@ The scheduled task keeps that state in
 }
 ```
 
-Each entry's `issue` may instead be `pr`, for a fix that cleared the safety bar and went out
-as a pull request.
+Every entry carries its `issue`. A fix that also went out as a pull request adds `"pr": <number>`
+alongside it.
 
 State is a speed optimisation, not a correctness requirement — see
 [Idempotency](#idempotency) below.
@@ -98,9 +98,9 @@ usually has uncommitted work on a feature branch, and a dirty tree would skew th
 
 ## Triage rubric
 
-**Every substantive change under `BlueprintsV2/` gets surfaced** — fixes *and* features. A fix
-clearing [the safety bar](#the-safety-bar) becomes a pull request; everything else becomes an
-issue. Whether this fork wants a *feature* is decided in its issue, never by the scan. Closing a feature issue as `wontfix` is a
+**Every substantive change under `BlueprintsV2/` gets an issue** — fixes *and* features. A fix
+clearing [the safety bar](#the-safety-bar) gets a pull request as well. Whether this fork wants
+a *feature* is decided in its issue, never by the scan. Closing a feature issue as `wontfix` is a
 first-class outcome, and it leaves a durable record of the decision — which silent skipping does
 not.
 
@@ -183,14 +183,27 @@ reachability call is close, prefer opening the issue.
 
 ## Output
 
+**Every finding gets an issue.** That is the ledger, and it is uniform: one place to look, one
+thing to filter, and a record that survives whatever happens to a branch.
+
+On top of that, a fix clearing [the safety bar](#the-safety-bar) also gets a **pull request**
+that closes its issue — so a simple port arrives ready to merge instead of waiting for someone
+to retype it.
+
 | Kind | Output |
 |---|---|
-| **Fix that clears the safety bar below** | a pull request |
-| **Fix that does not** | an issue |
-| **Feature** | an issue, always |
+| **Fix that clears the safety bar below** | issue **and** a PR that closes it |
+| **Fix that does not** | issue, saying which clause it missed |
+| **Feature** | issue, always |
 
 Features are never auto-ported: whether this fork wants one is a decision, and a PR presumes
 the answer.
+
+The issue is not redundant bookkeeping. A PR can be closed unmerged, and the scanned SHA is
+filtered out of every later run — so a PR-only finding would disappear from the ledger with
+nothing to resurface it. That is the same way `901b1238`'s second half was nearly lost (see
+[One issue per change](#one-issue-per-change-not-per-commit)); the issue is what makes the
+record durable.
 
 ### The safety bar
 
@@ -242,10 +255,10 @@ here, what it touches, and anything about this fork that makes it awkward or att
 with an explicit note that closing as `wontfix` is a fine outcome, so nobody feels the issue
 obliges them to port it.
 
-A **pull request** carries the same explanation as an issue would, plus which safety-bar clause
-it cleared and how that was checked (the blob SHA it matched, or the existing helper it reused),
-the build and test results, and an explicit list of what was **not** verified — in-game
-behaviour above all. It follows
+A **pull request** references its issue with `Closes #N` and does not repeat the whole analysis
+— the issue holds that. It states which safety-bar clause it cleared and how that was checked
+(the blob SHA it matched, or the existing helper it reused), the build and test results, and an
+explicit list of what was **not** verified — in-game behaviour above all. It follows
 [the PR template](../.github/pull_request_template.md) and keeps the AI-assisted disclosure.
 
 Rules the scan follows for its own PRs:
