@@ -1,0 +1,115 @@
+name: Bug report
+description: Something in the mod misbehaves, crashes, or breaks a save
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Mod bugs are usually reproducible only with the right game version, DLC and mod
+        combination, so the boring fields below are the ones that make a report actionable.
+
+        **If the mod fails to load at all, or the game crashes on startup, `Player.log` is the
+        single most useful thing you can attach.**
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what happened instead?
+      placeholder: |
+        Expected: placing the blueprint queues build orders for all 12 buildings.
+        Actual: only the tiles are queued; the wires are silently skipped.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: |
+        Be specific about the blueprint involved — how it was captured matters as much as how it
+        was placed. "It doesn't work" can't be investigated.
+      placeholder: |
+        1. Capture a blueprint over an area containing wires and tiles
+        2. Save, quit to menu, reload the colony
+        3. Place the blueprint anywhere
+        4. Only the tiles appear in the build queue
+    validations:
+      required: true
+
+  - type: input
+    id: oni-build
+    attributes:
+      label: ONI build number
+      description: |
+        Main menu, bottom corner — e.g. `U55-737790-S`. This mod's `minimumSupportedBuild` is
+        `737790`; older builds are not supported.
+      placeholder: U55-737790-S
+    validations:
+      required: true
+
+  - type: dropdown
+    id: dlc
+    attributes:
+      label: Game version
+      description: Which base version were you playing?
+      options:
+        - Base game (no Spaced Out!)
+        - Spaced Out!
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: mod-version
+    attributes:
+      label: Mod version
+      description: From the Mods screen, or `mod_info.yaml` in the mod folder.
+      placeholder: 7.0.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: other-mods
+    attributes:
+      label: Your other active mods
+      description: |
+        **Please don't skip this.** Mod conflicts are the most common cause of blueprint bugs,
+        and this mod patches shared game systems. If you can, confirm whether the problem still
+        happens with only this mod enabled — that one check often resolves the issue outright.
+
+        Also list any content packs (Frosty Planet, Bionic Booster, and so on).
+      placeholder: |
+        Blueprints Included only — still happens.
+        (or: paste your mod list)
+    validations:
+      required: true
+
+  - type: textarea
+    id: player-log
+    attributes:
+      label: Player.log
+      description: |
+        Windows: `%USERPROFILE%\AppData\LocalLow\Klei\Oxygen Not Included\Player.log`
+        Attach the file, or paste the relevant part. Exceptions mentioning `BlueprintsV2` are
+        the interesting ones — the namespace is still `BlueprintsV2` even though the mod is
+        called Blueprints Included.
+      render: shell
+
+  - type: textarea
+    id: extras
+    attributes:
+      label: Save file or blueprint
+      description: |
+        If the problem is specific to one colony or one blueprint, attach the `.sav`, or the
+        blueprint's `.json` from your blueprints folder. Drag files into this box to upload.
+
+  - type: checkboxes
+    id: upstream
+    attributes:
+      label: Upstream check
+      description: |
+        This is a fork of [Blueprints Expanded](https://steamcommunity.com/sharedfiles/filedetails/?id=2896474654)
+        by SGT_Imalas. If the bug also happens there, it's likely worth reporting upstream too.
+      options:
+        - label: I checked whether this also happens in Blueprints Expanded (optional)
