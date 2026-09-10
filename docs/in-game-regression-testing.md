@@ -347,6 +347,18 @@ visuals, tiles and non-tiles, snapshots and normal blueprints); or object-pool t
 `GameObject`s so redraws reuse existing previews instead of destroy+recreate every
 `VisualizeBlueprint` call (bigger architectural change, addresses `KInstantiate` directly).
 
+**`use`'s own hotspot breakdown** (added once the two bugs above were fixed and `use` turned out to
+be the costlier operation, not `visualize`): patched `BuildingVisual.TryUse`/`IsPlaceable`/
+`PlacePlannedBuilding`, `BuildingDef.Instantiate`, `ApplyBuildingData`, and
+`UpdateConduitConnectionBits`. Result: **`BuildingDef.Instantiate` — real Unity `GameObject`
+creation for the planned-building order — is ~93–97% of `use`'s per-building cost** (179.4 µs of
+`TryUse`'s 192.2 µs/call), the same shape as `visualize`'s `KInstantiate` finding and just as
+genuinely necessary (not a redundancy to fix): `IsPlaceable`'s validity gate is cheap (9.5 µs/call,
+confirming the earlier wraparound-bug investigation), and `ApplyBuildingData`/
+`UpdateConduitConnectionBits` are negligible (5.1 / 1.1 µs/call). No fix pursued — a committed build
+order's `GameObject` *is* the real, simulation-tracked order, not a discardable preview, so the
+"object pool it" idea above doesn't transfer here the way it might for `visualize`.
+
 **Built last: creating a blueprint.** `BlueprintState.CreateBlueprint` — capturing a rectangle of
 the world into a `Blueprint` — is the mirror image of import: unlike `visualize`/`use`, it's a pure
 read (scans every cell × every `Grid.ObjectLayers` in the rectangle for a `Constructable`/

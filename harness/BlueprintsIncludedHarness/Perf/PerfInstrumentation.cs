@@ -80,6 +80,25 @@ internal static class PerfInstrumentation
         }
         TryPatchAllOverloads(harmony, log, "NaturalBuildingCell", typeof(GameUtil));
 
+        // use hotspot candidates (docs §7): now the costlier placement operation (140ms vs
+        // visualize's 93.5ms at N=1000) but never broken down the way visualize/create were.
+        // TryUse ⊇ IsPlaceable (the ValidCell/IsValidPlaceLocation gate, already known cheap from
+        // the earlier wraparound investigation) + PlacePlannedBuilding ⊇ BuildingDef.Instantiate
+        // (real GameObject creation, the likely mirror of visualize's KInstantiate / create's
+        // BuildingDef.Build) + ApplyBuildingData (Rotatable, ApplyAdditionalBuildingData,
+        // Prioritizable, UpdateConduitConnectionBits).
+        TryPatchOne(harmony, log, "TryUse",
+            () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.TryUse), new[] { typeof(int) }));
+        TryPatchOne(harmony, log, "IsPlaceable",
+            () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.IsPlaceable)));
+        TryPatchOne(harmony, log, "PlacePlannedBuilding",
+            () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.PlacePlannedBuilding)));
+        TryPatchAllOverloads(harmony, log, "Instantiate", typeof(BuildingDef));
+        TryPatchOne(harmony, log, "ApplyBuildingData",
+            () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.ApplyBuildingData)));
+        TryPatchOne(harmony, log, "UpdateConduitConnectionBits",
+            () => AccessTools.Method(typeof(BuildingVisual), "UpdateConduitConnectionBits"));
+
         applied = true;
     }
 
