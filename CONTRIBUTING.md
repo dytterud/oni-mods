@@ -59,16 +59,16 @@ visualizers or UI. The harness doesn't cover everything.
 
 ### Why `dotnet test` reports different numbers
 
-Both of these are correct:
+Two outcomes are both correct — what distinguishes them is the **skip count**:
 
-| | result |
+| | expected |
 |---|---|
-| with an install configured | 42 passed, 0 skipped |
-| `-p:OfflineBuild=true` | 14 passed, **27 skipped** |
+| with an install configured | nothing skipped |
+| `-p:OfflineBuild=true` | every gated test skipped |
 
 The skipped ones are `[RequiresGameInstallFact]` / `[RequiresGameInstallTheory]`
 — they touch Klei/Unity types at runtime, which the reference assemblies can't
-do. A *third* outcome, 27 skipped **despite** an install, means the game
+do. A *third* outcome, tests skipped **despite** an install, means the game
 assemblies aren't reaching the test output; see `test/README.md`.
 
 ## Conventions

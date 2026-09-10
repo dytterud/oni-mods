@@ -80,10 +80,11 @@ are `ModAssets/translations/*.po`.
   `Directory.Build.targets` — edit the targets, not the output files.
 - Keep the `BlueprintsV2` root namespace (intentional — see git history).
 - Game-touching tests use `[RequiresGameInstallFact]` / `[RequiresGameInstallTheory]` and
-  auto-skip in offline builds — so `dotnet test` reports 42 passed with a real install
-  configured, 14 passed / 27 skipped offline. Both are correct; a *third* outcome (27 skipped
-  despite an install) means the game assemblies aren't reaching the test output, see
-  `CopyGameAssembliesForRuntime` in `test/BlueprintsIncluded.Tests/BlueprintsIncluded.Tests.csproj`.
+  auto-skip in offline builds, so `dotnet test` legitimately reports two different numbers.
+  What matters is the skip count: **zero skipped with a real install, every gated test skipped
+  offline**. Anything skipped *despite* an install means the game assemblies aren't reaching the
+  test output — see `CopyGameAssembliesForRuntime` in
+  `test/BlueprintsIncluded.Tests/BlueprintsIncluded.Tests.csproj`.
 
 ## Contributing
 

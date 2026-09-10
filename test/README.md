@@ -22,12 +22,14 @@ real ONI install is configured via `Directory.Build.props.user` (see
 `Directory.Build.props.default`). Those tests use `[RequiresGameInstallFact]` /
 `[RequiresGameInstallTheory]` — see `BlueprintsIncluded.Tests/GameAssemblies.cs`.
 
-So the counts differ by build, and both are correct:
+So the counts differ by build, and both are correct. Don't compare the passed count against a
+number written down somewhere — it changes with every test added. The **skip count** is the
+signal:
 
-| | result |
+| | expected |
 |---|---|
-| `dotnet test` with an install configured | 42 passed, 0 skipped |
-| `dotnet test -p:OfflineBuild=true` | 14 passed, **27 skipped** |
+| `dotnet test` with an install configured | **nothing skipped** |
+| `dotnet test -p:OfflineBuild=true` | **every gated test skipped** |
 
 The gate needs the real assemblies loadable *at runtime*, not just at compile time. Every game
 `<Reference>` in `Directory.Build.props` is `<Private>False</Private>` — correct for the mod,
