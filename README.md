@@ -40,5 +40,13 @@ Output: `src/BlueprintsIncluded/bin/BlueprintsIncluded.dll` (ILRepack-merged wit
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Credit: Mayall (original), SGT_Imalas (rewrite).
-Game reference assemblies used under Klei's Mod/UGC guidelines; no commercial use.
+MIT — see [LICENSE](LICENSE), and [NOTICE](NOTICE) for the attribution chain, the
+bundled third-party components, and Klei's terms.
+
+**No commercial use.** This mod builds against Oxygen Not Included's assemblies and
+is distributed under [Klei's Mod and UGC guidelines](https://support.klei.com/hc/en-us/articles/27787028069012),
+which forbid it. That restriction sits on top of the MIT grant: MIT's permission to
+sell copies doesn't extend to this mod, because the game code it depends on isn't
+ours to license.
+
+Credit: Mayall (original Blueprints), SGT_Imalas (Blueprints Expanded rewrite).

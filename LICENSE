@@ -21,11 +21,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-The reference assemblies bundled under lib/ are auto-generated from Oxygen Not
-Included and third-party libraries; see lib/LICENSE.txt. Game code is used under
-Klei Entertainment's Mod and UGC guidelines
-(https://support.klei.com/hc/en-us/articles/27787028069012), which do not permit
-commercial use of the mod.

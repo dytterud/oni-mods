@@ -1,0 +1,56 @@
+NOTICE — Blueprints Included
+============================
+
+The mod's own source is MIT licensed; see LICENSE. This file records the things
+LICENSE cannot: the attribution chain, the terms Klei imposes on ONI mods, and
+the third-party components bundled in this repository.
+
+It is kept separate so that LICENSE stays verbatim MIT and is detected as such
+by automated license scanners. Nothing here is optional reading — the Klei
+restriction below narrows what you may do with this mod.
+
+
+Attribution chain
+-----------------
+
+This is a standalone fork of "Blueprints Expanded" (BlueprintsV2) by
+SGT_Imalas, which is itself a rewrite of the original "Blueprints" mod by
+Mayall. All three copyright holders are named in LICENSE, and MIT requires
+those notices be retained in copies and substantial portions.
+
+  Mayall         original Blueprints mod
+  SGT_Imalas     Blueprints Expanded / BlueprintsV2 rewrite
+  Lars Dytterud  Blueprints Included fork
+
+
+Klei Mod and UGC guidelines — NO COMMERCIAL USE
+-----------------------------------------------
+
+This mod builds against Oxygen Not Included's game assemblies and is
+distributed under Klei Entertainment's Mod and UGC guidelines:
+
+  https://support.klei.com/hc/en-us/articles/27787028069012
+
+Those guidelines do NOT permit commercial use of the mod. That restriction
+applies on top of the MIT grant in LICENSE: MIT's permission to "sell copies"
+does not extend to this mod as distributed, because the game code it depends on
+is not ours to license.
+
+
+Bundled third-party components
+------------------------------
+
+  lib/*.dll
+      Reference assemblies auto-generated (via Refasmer) from Oxygen Not
+      Included and third-party libraries shipped with it. Metadata only — they
+      compile but cannot execute. See lib/LICENSE.txt.
+
+  src/UtilLibs/
+      Vendored helper library from SGT_Imalas' ONI mod collection, ILRepacked
+      into the mod assembly. Covered by the MIT grant in LICENSE.
+
+  src/UtilLibs/UI/FUI/Unity_UI_Extensions/
+      Unity UI Extensions. See that directory's LICENSE.md.
+
+  src/BlueprintsIncluded/ModAssets/License_Blueprints.txt
+      Licence text shipped with the mod's assets.
