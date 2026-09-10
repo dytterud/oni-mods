@@ -6,9 +6,10 @@ using UnityEngine;
 namespace BlueprintsV2.Harness;
 
 /// <summary>
-/// Drives one harness run: load fixture -> wait for sim -> run cases -> write results -> quit.
-/// Lives on a <see cref="UnityEngine.Object.DontDestroyOnLoad"/> GameObject so it survives the
-/// MainMenu -> game scene transition.
+/// Drives one harness run: load fixture -> wait for sim -> place fixture buildings -> run the
+/// assertion cases or (in perf mode) the benchmarks -> write results -> quit. Lives on a
+/// <see cref="UnityEngine.Object.DontDestroyOnLoad"/> GameObject so it survives the MainMenu -> game
+/// scene transition.
 /// </summary>
 internal sealed class HarnessRunner : MonoBehaviour
 {
@@ -105,6 +106,15 @@ internal sealed class HarnessRunner : MonoBehaviour
 
         for (int i = 0; i < SettleFrames; i++)
             yield return null;
+
+        if (HarnessGate.Mode == HarnessMode.Perf)
+        {
+            log.Line("mode=perf; running benchmarks instead of assertion cases");
+            yield return Perf.PerfRunner.Run(log);
+            log.Flush();
+            Application.Quit();
+            yield break;
+        }
 
         foreach (var testCase in HarnessCases.All)
         {

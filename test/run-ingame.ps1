@@ -2,7 +2,7 @@
 <#
 .SYNOPSIS
   Build + deploy BlueprintsIncluded and the dev-only in-game test harness, launch ONI, wait for
-  the harness to write its JUnit results, print a summary and exit non-zero on any failure.
+  the harness to write its results, print a summary and exit non-zero on any regression failure.
 
 .DESCRIPTION
   Requires a real ONI install configured via Directory.Build.props.user (GameLibsFolder + ModFolder).
@@ -13,12 +13,17 @@
   "Blueprints Expanded") so its patches don't collide. -NoModConfig skips this - enable/disable and
   order the mods yourself in ONI's Mods screen and re-run with -SkipBuild.
 
+  -Perf switches to the harness's opt-in benchmark mode (docs §7): a blueprint-size sweep timing
+  import operations, with no pass/fail semantics - it always exits 0. Without -Perf this runs the
+  regression assertion cases (JUnit results, exit code = failure count).
+
   The harness only acts when it finds the sentinel this script writes, so leaving it in mods/dev
   between runs is harmless.
 #>
 [CmdletBinding()]
 param(
-    [int]$TimeoutSeconds = 300,
+    [int]$TimeoutSeconds,
+    [switch]$Perf,
     [switch]$SkipBuild,
     [switch]$KeepSentinel,
     [switch]$NoModConfig,
@@ -27,6 +32,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
+if (-not $PSBoundParameters.ContainsKey('TimeoutSeconds')) {
+    $TimeoutSeconds = if ($Perf) { 900 } else { 300 }   # perf's size sweep runs longer
+}
 
 function Get-BuildProp([string]$name) {
     $userProps = Join-Path $repo 'Directory.Build.props.user'
@@ -49,13 +57,15 @@ $modsJson  = Join-Path (Split-Path $modFolder) 'mods.json'
 $outDir       = Join-Path ([System.IO.Path]::GetTempPath()) 'bpi-harness'
 $sentinel     = Join-Path $outDir 'run'
 $resultsXml   = Join-Path $outDir 'results.xml'
+$perfJson     = Join-Path $outDir 'perf.json'
+$waitFor      = if ($Perf) { $perfJson } else { $resultsXml }
 $harnessLog   = Join-Path $outDir 'harness.log'
 $modsJsonBak  = Join-Path $outDir 'mods.json.bak'
 $fixtureSrc   = Join-Path $repo 'harness/fixtures/poc-colony.sav'
 $fixtureDst   = Join-Path $outDir 'poc-colony.sav'   # harness loads this absolute path
 
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-Remove-Item $resultsXml, $harnessLog -ErrorAction SilentlyContinue
+Remove-Item $resultsXml, $perfJson, $harnessLog -ErrorAction SilentlyContinue
 
 # ---- build + deploy --------------------------------------------------
 if (-not $SkipBuild) {
@@ -114,38 +124,61 @@ try {
     Copy-Item $fixtureSrc $fixtureDst -Force
     Write-Host "==> copied fixture to $fixtureDst"
 
-    Set-Content -Path $sentinel -Value (Get-Date -Format o)
-    Write-Host "==> wrote sentinel $sentinel"
+    $mode = if ($Perf) { 'perf' } else { 'run' }
+    Set-Content -Path $sentinel -Value @($mode, (Get-Date -Format o))
+    Write-Host "==> wrote sentinel $sentinel (mode=$mode)"
 
     Write-Host '==> launching ONI (steam://run/457140)'
     Start-Process 'steam://run/457140'
 
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
-    while ((Get-Date) -lt $deadline -and -not (Test-Path $resultsXml)) { Start-Sleep -Seconds 3 }
+    while ((Get-Date) -lt $deadline -and -not (Test-Path $waitFor)) { Start-Sleep -Seconds 3 }
 
-    if (-not (Test-Path $resultsXml)) {
+    if (-not (Test-Path $waitFor)) {
         Write-Host '==> killing ONI (no results before timeout)'
         Get-Process -Name 'OxygenNotIncluded' -ErrorAction SilentlyContinue | Stop-Process -Force
         if (Test-Path $harnessLog) { Write-Host '--- harness.log ---'; Get-Content $harnessLog }
-        throw "harness did not produce $resultsXml within ${TimeoutSeconds}s"
+        throw "harness did not produce $waitFor within ${TimeoutSeconds}s"
     }
 
     Start-Sleep -Seconds 5
     Get-Process -Name 'OxygenNotIncluded' -ErrorAction SilentlyContinue | Stop-Process -Force
 
-    $suite = ([xml](Get-Content $resultsXml)).testsuite
-    Write-Host ''
-    Write-Host "==> $($suite.tests) case(s), $($suite.failures) failure(s)"
-    foreach ($tc in $suite.testcase) {
-        if ($tc.failure) {
-            Write-Host ("  FAIL  {0}" -f $tc.name) -ForegroundColor Red
-            Write-Host ("        {0}" -f ($tc.failure.'#text' -replace "`n", "`n        "))
-        } else {
-            Write-Host ("  PASS  {0}" -f $tc.name) -ForegroundColor Green
+    if ($Perf) {
+        $report = Get-Content $perfJson -Raw | ConvertFrom-Json
+        Write-Host ''
+        Write-Host 'NOTE: allocKB reads ~0 on ONI''s embedded Mono - GC.GetAllocatedBytesForCurrentThread' -ForegroundColor DarkYellow
+        Write-Host '      is not meaningfully implemented there. Time + hotspot call counts are reliable.' -ForegroundColor DarkYellow
+        foreach ($op in $report.operations) {
+            Write-Host "==> $($op.name)"
+            "{0,8} {1,10} {2,10} {3,10} {4,12}" -f 'N', 'iters', 'medianMs', 'p95Ms', 'allocKB' | Write-Host
+            foreach ($r in $op.results) {
+                "{0,8} {1,10} {2,10:F2} {3,10:F2} {4,12:F1}" -f $r.n, $r.iterations, $r.medianMs, $r.p95Ms, ($r.meanAllocBytes / 1024.0) | Write-Host
+            }
+            Write-Host ''
         }
+        Write-Host '==> hotspots'
+        "{0,-22} {1,10} {2,10} {3,14}" -f 'method', 'calls', 'totalMs', 'avgUsPerCall' | Write-Host
+        foreach ($h in $report.hotspots) {
+            "{0,-22} {1,10} {2,10:F1} {3,14:F1}" -f $h.name, $h.totalCalls, $h.totalMs, $h.avgUsPerCall | Write-Host
+        }
+        if (Test-Path $harnessLog) { Write-Host ''; Write-Host '--- harness.log ---'; Get-Content $harnessLog }
+        $exitCode = 0   # a benchmark run has no pass/fail - see docs §7
+    } else {
+        $suite = ([xml](Get-Content $resultsXml)).testsuite
+        Write-Host ''
+        Write-Host "==> $($suite.tests) case(s), $($suite.failures) failure(s)"
+        foreach ($tc in $suite.testcase) {
+            if ($tc.failure) {
+                Write-Host ("  FAIL  {0}" -f $tc.name) -ForegroundColor Red
+                Write-Host ("        {0}" -f ($tc.failure.'#text' -replace "`n", "`n        "))
+            } else {
+                Write-Host ("  PASS  {0}" -f $tc.name) -ForegroundColor Green
+            }
+        }
+        if (Test-Path $harnessLog) { Write-Host ''; Write-Host '--- harness.log ---'; Get-Content $harnessLog }
+        $exitCode = [int]$suite.failures
     }
-    if (Test-Path $harnessLog) { Write-Host ''; Write-Host '--- harness.log ---'; Get-Content $harnessLog }
-    $exitCode = [int]$suite.failures
 }
 finally {
     if (-not $KeepSentinel) { Remove-Item $sentinel -ErrorAction SilentlyContinue }
