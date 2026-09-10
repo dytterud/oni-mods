@@ -77,6 +77,9 @@ The scheduled task keeps that state in
 }
 ```
 
+Each entry's `issue` may instead be `pr`, for a fix that cleared the safety bar and went out
+as a pull request.
+
 State is a speed optimisation, not a correctness requirement — see
 [Idempotency](#idempotency) below.
 
@@ -95,9 +98,9 @@ usually has uncommitted work on a feature branch, and a dirty tree would skew th
 
 ## Triage rubric
 
-**Every substantive change under `BlueprintsV2/` gets an issue** — fixes *and* features. The
-scan's job is to surface the change and describe it well enough to decide on; whether this fork
-wants it is decided in the issue, not by the scan. Closing a feature issue as `wontfix` is a
+**Every substantive change under `BlueprintsV2/` gets surfaced** — fixes *and* features. A fix
+clearing [the safety bar](#the-safety-bar) becomes a pull request; everything else becomes an
+issue. Whether this fork wants a *feature* is decided in its issue, never by the scan. Closing a feature issue as `wontfix` is a
 first-class outcome, and it leaves a durable record of the decision — which silent skipping does
 not.
 
@@ -180,8 +183,50 @@ reachability call is close, prefer opening the issue.
 
 ## Output
 
-One GitHub issue per still-present change — fix or feature — labelled `upstream-sync` plus
-`bug` or `enhancement` per the [rubric](#triage-rubric), and titled:
+| Kind | Output |
+|---|---|
+| **Fix that clears the safety bar below** | a pull request |
+| **Fix that does not** | an issue |
+| **Feature** | an issue, always |
+
+Features are never auto-ported: whether this fork wants one is a decision, and a PR presumes
+the answer.
+
+### The safety bar
+
+A fix may go straight to a PR only when **every** one of these holds. Any doubt on any point
+means an issue instead — the whole value of the bar is that it fails closed.
+
+1. **The correct result is mechanically determinable**, either because
+   - the changed file is data or an asset and the port makes it **byte-identical to upstream's
+     blob**, or
+   - the change is a self-contained substitution whose replacement **already exists in this
+     fork and is already used elsewhere for the same purpose**.
+2. **Nothing about the intended behaviour is ambiguous.** If choosing correctly needs a fact
+   that isn't in the code, stop and open an issue.
+3. **The blast radius is confined** — one file, or several that are pure data. Not eligible:
+   signature changes, anything rippling across call sites, new files, new Harmony patches, UI
+   work, changes to nullable contracts, serialization, or `.po` structure.
+4. **`dotnet build … -c Release -p:OfflineBuild=true` and `dotnet test` both pass** after the
+   change.
+5. **Correctness doesn't rest on looking at the game.** A PR may still *want* in-game
+   confirmation — it must then say so plainly — but if the only way to know it's right is to
+   watch it, that's an issue.
+
+Worked examples from real ports:
+
+| Change | Verdict | Why |
+|---|---|---|
+| `00cb76d` four `zh.po` strings | **PR** | file became byte-identical to upstream's blob |
+| `063fb40` three `blueprints_ui` bundles | **PR** | binaries matched upstream's blobs exactly |
+| `901b123` spawn temperature | **PR** | one line, swapped to `ModAssets.GetSpawnTemperature`, already used by every other build path |
+| `21d4a4d` conduit rotation | **issue** | correct behaviour depends on whether stored `ConduitFlags` are absolute or relative — not knowable from the code |
+| `901b123` planned-building transfer | **issue** | widened a signature across five call sites, each needing its own judgement; also surfaced a latent NRE |
+
+### Issue and PR shape
+
+Issues are labelled `upstream-sync` plus `bug` or `enhancement` per the
+[rubric](#triage-rubric), and titled:
 
 ```
 upstream <short-sha>: <upstream commit subject>
@@ -197,12 +242,30 @@ here, what it touches, and anything about this fork that makes it awkward or att
 with an explicit note that closing as `wontfix` is a fine outcome, so nobody feels the issue
 obliges them to port it.
 
+A **pull request** carries the same explanation as an issue would, plus which safety-bar clause
+it cleared and how that was checked (the blob SHA it matched, or the existing helper it reused),
+the build and test results, and an explicit list of what was **not** verified — in-game
+behaviour above all. It follows
+[the PR template](../.github/pull_request_template.md) and keeps the AI-assisted disclosure.
+
+Rules the scan follows for its own PRs:
+
+- Always a branch off `main`, named `upstream-sync/<short-sha>-<slug>`. **Never commit to
+  `main`.**
+- One PR per change, matching [one issue per change](#one-issue-per-change-not-per-commit).
+- **Never merge**, never force-push, never touch another branch. CI validates the PR; a human
+  merges it.
+- If the build or tests fail, **abandon the branch and open an issue instead**, quoting the
+  failure. A red PR is worse than no PR.
+
 ### Idempotency
 
-The short SHA in the title is the dedupe key. Before creating an issue, search existing ones:
+The short SHA in the title is the dedupe key. Before creating anything, search existing issues
+**and pull requests** — a fix may already have gone out as a PR:
 
 ```bash
 gh issue list --repo dytterud/BlueprintsIncluded --search "<short-sha>" --state all
+gh pr list   --repo dytterud/BlueprintsIncluded --search "<short-sha>" --state all
 ```
 
 That check — not `state.json` — is what guarantees no duplicates. A deleted or corrupt state
