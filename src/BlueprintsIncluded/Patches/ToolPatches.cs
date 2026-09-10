@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using BlueprintsV2.BlueprintData;
+using HarmonyLib;
 using TMPro;
 
 namespace BlueprintsV2.Patches;
@@ -23,7 +24,7 @@ internal class ToolPatches
                     {
                         for (int i = text.Length - 1; i >= 0; --i)
                         {
-                            if (i < text.Length && ModAssets.BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.Contains(text[i]))
+                            if (i < text.Length && BlueprintPaths.DisallowedInPath.Contains(text[i]))
                             {
                                 text = text.Remove(i, 1);
                             }

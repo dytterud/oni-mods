@@ -5,8 +5,8 @@ using Xunit;
 namespace BlueprintsIncluded.Tests.BlueprintData;
 
 	/// <summary>
-	/// Locks the behaviour of <see cref="Blueprint.SanitizeFolder"/> /
-	/// <see cref="Blueprint.SanitizeFile"/>: both feed on-disk file and directory names, so a
+	/// Locks the behaviour of <see cref="BlueprintPaths.SanitizeFolder"/> /
+	/// <see cref="BlueprintPaths.SanitizeFile"/>: both feed on-disk file and directory names, so a
 	/// regression here silently mangles or collides blueprint files across Windows / Mac / Linux.
 	///
 	/// The logic is plain string work, but the methods are static members of <see cref="Blueprint"/>,
@@ -18,72 +18,72 @@ namespace BlueprintsIncluded.Tests.BlueprintData;
 	{
 		private static readonly char Sep = Path.DirectorySeparatorChar;
 
-		[RequiresGameInstallFact]
+		[Fact]
 		public void SanitizeFolder_EmptyString_IsUnchanged()
 		{
-			Assert.Equal("", Blueprint.SanitizeFolder(""));
+			Assert.Equal("", BlueprintPaths.SanitizeFolder(""));
 		}
 
-		[RequiresGameInstallFact]
+		[Fact]
 		public void SanitizeFolder_NormalisesBothSeparatorsToTheSystemSeparator()
 		{
-			Assert.Equal($"a{Sep}b{Sep}c", Blueprint.SanitizeFolder("a/b\\c"));
+			Assert.Equal($"a{Sep}b{Sep}c", BlueprintPaths.SanitizeFolder("a/b\\c"));
 		}
 
-		[RequiresGameInstallFact]
+		[Fact]
 		public void SanitizeFolder_DropsEmptyAndWhitespaceOnlySections()
 		{
-			Assert.Equal($"a{Sep}b", Blueprint.SanitizeFolder("a//b"));
-			Assert.Equal($"a{Sep}b", Blueprint.SanitizeFolder($"a{Sep}   {Sep}b"));
+			Assert.Equal($"a{Sep}b", BlueprintPaths.SanitizeFolder("a//b"));
+			Assert.Equal($"a{Sep}b", BlueprintPaths.SanitizeFolder($"a{Sep}   {Sep}b"));
 		}
 
-		[RequiresGameInstallFact]
+		[Fact]
 		public void SanitizeFolder_TrimsTrailingSeparator()
 		{
-			Assert.Equal($"a{Sep}b", Blueprint.SanitizeFolder($"a{Sep}b{Sep}"));
+			Assert.Equal($"a{Sep}b", BlueprintPaths.SanitizeFolder($"a{Sep}b{Sep}"));
 		}
 
-		[RequiresGameInstallFact]
+		[Fact]
 		public void SanitizeFolder_SanitisesEachSection()
 		{
 			// an invalid file-name character inside a section is replaced before the section is kept
 			char bad = Path.GetInvalidFileNameChars()[0];
-			Assert.Equal($"na_me{Sep}sub", Blueprint.SanitizeFolder($"na{bad}me/sub"));
+			Assert.Equal($"na_me{Sep}sub", BlueprintPaths.SanitizeFolder($"na{bad}me/sub"));
 		}
 
-		[RequiresGameInstallFact]
+		[Fact]
 		public void SanitizeFolder_NestedPathRoundTrips()
 		{
-			Assert.Equal($"one{Sep}two{Sep}three", Blueprint.SanitizeFolder("one/two/three"));
+			Assert.Equal($"one{Sep}two{Sep}three", BlueprintPaths.SanitizeFolder("one/two/three"));
 		}
 
-		[RequiresGameInstallFact]
+		[Fact]
 		public void SanitizeFile_ReplacesEveryDisallowedCharacterWithUnderscore()
 		{
 			var invalid = Path.GetInvalidFileNameChars();
 			var name = "a" + string.Concat(invalid) + "b";
 			var expected = "a" + new string('_', invalid.Length) + "b";
-			Assert.Equal(expected, Blueprint.SanitizeFile(name));
+			Assert.Equal(expected, BlueprintPaths.SanitizeFile(name));
 		}
 
-		[RequiresGameInstallFact]
+		[Fact]
 		public void SanitizeFile_KeepsAllowedCharactersAndTrims()
 		{
-			Assert.Equal("my blueprint 1", Blueprint.SanitizeFile("  my blueprint 1  "));
+			Assert.Equal("my blueprint 1", BlueprintPaths.SanitizeFile("  my blueprint 1  "));
 		}
 
-		[RequiresGameInstallFact]
+		[Fact]
 		public void SanitizeFile_StripsLeadingDotUnderscore()
 		{
 			// macOS/exFAT AppleDouble files are "._name" — a blueprint must not collide with them.
-			Assert.Equal("name", Blueprint.SanitizeFile("._name"));
+			Assert.Equal("name", BlueprintPaths.SanitizeFile("._name"));
 		}
 
-		[RequiresGameInstallTheory]
+		[Theory]
 		[InlineData("")]
 		[InlineData("   ")]
 		public void SanitizeFile_EmptyOrWhitespace_BecomesUnnamed(string input)
 		{
-			Assert.Equal("unnamed", Blueprint.SanitizeFile(input));
+			Assert.Equal("unnamed", BlueprintPaths.SanitizeFile(input));
 		}
 	}

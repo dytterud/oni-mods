@@ -295,31 +295,7 @@ public class Blueprint : IEquatable<Blueprint>
     /// </summary>
     /// <param name="folder">The folder path to sanitize</param>
     /// <returns>The sanitized, standardized folder path</returns>
-    public static string SanitizeFolder(string folder)
-    {
-        //If the blueprint is in the default folder there's nothing to be sanitized.
-        if (folder == "")
-        {
-            return "";
-        }
-
-        //Replace all different directory seperators ("/" and "\" for player entries and the alternative system character for redundancy) with the system's directory separator character.
-        folder = folder.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar).Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-        string returnString = "";
-
-        //Sanitize sections (invidual folders and files) of the blueprint's path.
-        string[] folderSections = folder.Split(Path.DirectorySeparatorChar);
-        foreach (string folderSection in folderSections)
-        {
-            //Skip any repeating seperator characters. Empty folder names are not possible for obvious reasons.
-            if (folderSection.Trim().Length > 0)
-            {
-                returnString += SanitizeFile(folderSection) + Path.DirectorySeparatorChar;
-            }
-        }
-
-        return returnString.TrimEnd(Path.DirectorySeparatorChar);
-    }
+    public static string SanitizeFolder(string folder) => BlueprintPaths.SanitizeFolder(folder);
 
     /// <summary>
     /// "Sanitizes" a blueprint's file name, removing any invalid characters for the host operating system.
@@ -327,27 +303,7 @@ public class Blueprint : IEquatable<Blueprint>
     /// </summary>
     /// <param name="file">The file name to sanitize</param>
     /// <returns>The sanitized file name</returns>
-    public static string SanitizeFile(string file)
-    {
-        string returnString = "";
-
-        //Remove any OS-dependant invalid characters, replacing them with an '_'
-        //Perhaps this should be improved to account for if '_' is an invalid character. However, I do not know of any operating systems that have this.
-        for (int i = 0; i < file.Length; ++i)
-        {
-            char character = file[i];
-            returnString += ModAssets.BLUEPRINTS_FILE_DISALLOWEDCHARACTERS.Contains(character) ? '_' : character;
-        }
-
-        if (returnString.StartsWith("._")) //Macs, IOS, apple, whatever create these ._[filename] files to store file information on exFat systems, dont let blueprints be confused with them
-        {
-            returnString = returnString.Substring(2);
-        }
-        if (returnString.Trim().Length <= 0)
-            return "unnamed";
-
-        return returnString.Trim();
-    }
+    public static string SanitizeFile(string file) => BlueprintPaths.SanitizeFile(file);
 
     /// <summary>
     /// removes negative coordinates by shifting everything towards topright
