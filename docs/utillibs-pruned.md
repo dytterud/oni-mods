@@ -2,8 +2,8 @@
 
 `src/UtilLibs/` is a vendored copy of SGT_Imalas' shared helper library, ILRepacked into the
 mod dll. It serves *every* Imalas ONI mod, so most of it was machinery this fork never called.
-On 2026-09-10 the unreachable part was removed: **91 `.cs` files, ~13,900 lines**, taking the
-library from 127 files to 36.
+On 2026-09-10 the unreachable part was removed: **92 `.cs` files, ~14,100 lines**, taking the
+library from 127 files to 35.
 
 This file is the record of what went, and it is the list the
 [upstream sync](upstream-sync.md) checks before triaging a `UtilLibs` commit.
@@ -180,7 +180,7 @@ grep -F "UtilLibs/RecipeBuilder.cs" docs/utillibs-pruned.md
     src/UtilLibs/ModSyncing/ModSyncUtils.cs
     src/UtilLibs/SharedModConfigMenu/OptionRegistry.cs
 
-### Root-level helpers (21)
+### Root-level helpers (22)
 
     src/UtilLibs/AccessibilityUtils.cs
     src/UtilLibs/ArtHelper.cs
@@ -201,13 +201,14 @@ grep -F "UtilLibs/RecipeBuilder.cs" docs/utillibs-pruned.md
     src/UtilLibs/SanitationUtils.cs
     src/UtilLibs/SoundUtils.cs
     src/UtilLibs/SupplyClosetUtils.cs
+    src/UtilLibs/TechUtils.cs
     src/UtilLibs/TranslatableTextBuilder.cs
     src/UtilLibs/TranspilerHelper.cs
 
 ## What survived
 
-For orientation, the 36 files still in `src/UtilLibs/`: the FUI widget wrappers actually used
+For orientation, the 35 files still in `src/UtilLibs/`: the FUI widget wrappers actually used
 by this mod's screens, `AssetUtils`, `IO_Utils`, `UIUtils`, `UtilMethods`, `Extensions`,
-`SgtLogger`, `LocalisationUtil`, `GameStrings`, `InjectionMethods`, `TechUtils`,
+`SgtLogger`, `LocalisationUtil`, `GameStrings`, `InjectionMethods`,
 `ModHashes`, `DialogUtil`, `CompatibilityNotifications`, the TMP conversion helpers,
 `ModAPIClasses/DecorPackA_ModAPI.cs`, and `SharedTweaks/ModsScreenMarkIncompatbileMods.cs`.
