@@ -30,7 +30,9 @@ The scheduled task keeps that state in
   "lastScannedDate": "2026-09-05T00:00:00Z",
   "scanned": [
     { "sha": "6c0a4238", "date": "2026-09-09", "path": "BlueprintsV2",
-      "verdict": "fix", "issue": 12 }
+      "verdict": "fix", "issue": 12 },
+    { "sha": "901b1238", "date": "2026-09-07", "path": "BlueprintsV2",
+      "verdict": "partial", "issue": [1, 6] }
   ]
 }
 ```
@@ -71,6 +73,28 @@ usually has uncommitted work on a feature branch, and a dirty tree would skew th
   `GetValidMaterials` caching, the repo restructure
 
 Record a verdict for *every* commit scanned, including skips, so it is never re-triaged.
+
+## One issue per change, not per commit
+
+Upstream routinely bundles a fix and an unrelated extension in one commit — `901b1238` shipped
+a spawn-temperature fix *and* a signature widening for planned-building data transfer.
+
+Because a scanned SHA is filtered out of every later run, **anything left inside a commit's
+single issue is lost the moment that issue closes.** Splitting a mixed commit is therefore not
+tidiness, it is the only thing keeping the deferred half alive: `901b1238` had to be split into
+#1 and #6 after the fact, and the scan would never have surfaced it again.
+
+So when a commit contains more than one separable change:
+
+- Open a **separate issue per change**, each titled with the same short SHA, and cross-link them.
+- Give the commit verdict `partial` in `state.json` and list every issue number:
+  `{"sha":"901b123","verdict":"partial","issue":[1,6]}`.
+- A change deliberately not taken still gets written down — either its own issue, or an explicit
+  note on a sibling issue saying it was skipped and why. `wontfix` is a fine outcome; silence is
+  not.
+
+The same applies to a fix that is only *partly* already ported: open an issue for the residual
+rather than marking the whole commit `already-ported`.
 
 ## The `UtilLibs` relevance filter
 
@@ -122,6 +146,16 @@ gh issue list --repo dytterud/BlueprintsIncluded --search "<short-sha>" --state 
 
 That check — not `state.json` — is what guarantees no duplicates. A deleted or corrupt state
 file costs a slower re-scan, nothing more.
+
+**A hit is not automatically a duplicate.** A mixed commit legitimately has several issues under
+one SHA (see [One issue per change](#one-issue-per-change-not-per-commit)), so read what the
+existing issues actually cover before skipping. Only skip when one of them covers *this*
+change. Give siblings a distinguishing suffix so they stay readable:
+
+```
+upstream 901b123: fix instabuild spawn temps…
+upstream 901b123 (part 2): allow blueprint data transfer to planned buildings
+```
 
 ## Untrusted input
 
