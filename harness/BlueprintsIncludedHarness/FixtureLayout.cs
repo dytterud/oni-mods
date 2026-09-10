@@ -6,8 +6,9 @@ namespace BlueprintsV2.Harness;
 /// The fixed set of buildings the harness places (via <see cref="FixtureBuilder"/>) into the
 /// fixture colony, and the capture rectangle the assertion case selects over them.
 ///
-/// All build from raw minerals (Sandstone), so the selected element survives the JSON round-trip
-/// unchanged. <c>ManualGenerator</c> carries a <c>Prioritizable</c> for the data-transfer case.
+/// All build from raw minerals - Basalt for the tile/ladder pieces, Aluminum Ore for the
+/// generator - so the selected element survives the JSON round-trip unchanged.
+/// <c>ManualGenerator</c> carries a <c>Prioritizable</c> for the data-transfer case.
 /// Offsets are cells from the active Printing Pod.
 /// </summary>
 internal static class FixtureLayout

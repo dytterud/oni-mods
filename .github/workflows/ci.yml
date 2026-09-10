@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A new push to the same branch supersedes an in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # windows-latest deliberately: ONI is a Windows game, the dev workflow is Windows, and the
+    # mod-packaging targets use backslash paths. Nothing here needs the game itself.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          # 10.0.x: the SDK. The mod is netstandard2.1 but uses LangVersion 14.0 (via PolySharp),
+          #         and the solution is the .slnx format, which older SDKs can't build.
+          # 8.0.x:  the runtime the test projects target.
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      # No ONI install here, so OfflineBuild auto-activates and compiles against the committed
+      # reference assemblies in lib/. Passed explicitly so a CI failure can never be a
+      # misdetected local install. Offline also skips the assembly publicizer, so this needs no
+      # `dotnet tool restore`.
+      - name: Restore
+        run: dotnet restore BlueprintsIncluded.slnx
+
+      - name: Build (Release, offline)
+        run: dotnet build BlueprintsIncluded.slnx -c Release -p:OfflineBuild=true --no-restore
+
+      # The 27 [RequiresGameInstall*] tests skip here by design - lib/ is reference-only and
+      # cannot execute. Expect "14 passed, 27 skipped"; see test/README.md.
+      - name: Test (offline)
+        run: dotnet test BlueprintsIncluded.slnx -p:OfflineBuild=true --no-build -c Release
+
+      # Offline builds write the packaged mod to Builds/, so a PR can be downloaded and tried
+      # in-game without a local toolchain.
+      - name: Upload packaged mod
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: BlueprintsIncluded-${{ github.sha }}
+          path: Builds/BlueprintsIncluded/
+          if-no-files-found: error
