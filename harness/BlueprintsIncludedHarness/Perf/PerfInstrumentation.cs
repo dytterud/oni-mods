@@ -69,6 +69,17 @@ internal static class PerfInstrumentation
         if (apiMethodsType != null)
             TryPatchOne(harmony, log, "ApplyAdditionalBuildingData", () => AccessTools.Method(apiMethodsType, "ApplyAdditionalBuildingData"));
 
+        // create hotspot candidates (docs §7): CreateBlueprint's per-found-building capture calls
+        // StoreAdditionalBuildingData, which loops every one of the ~35 registered
+        // AdditionalBuildingDataEntries handlers (GetAdditionalBuildingData) per building looking
+        // for a matching component - worth confirming directly rather than assuming.
+        if (apiMethodsType != null)
+        {
+            TryPatchOne(harmony, log, "StoreAdditionalBuildingData", () => AccessTools.Method(apiMethodsType, "StoreAdditionalBuildingData"));
+            TryPatchOne(harmony, log, "GetAdditionalBuildingData", () => AccessTools.Method(apiMethodsType, "GetAdditionalBuildingData"));
+        }
+        TryPatchAllOverloads(harmony, log, "NaturalBuildingCell", typeof(GameUtil));
+
         applied = true;
     }
 

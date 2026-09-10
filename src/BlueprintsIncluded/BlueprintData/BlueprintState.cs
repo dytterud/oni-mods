@@ -285,6 +285,16 @@ public static class BlueprintState
     {
         Blueprint blueprint = new Blueprint("unnamed", "");
 
+        // A building spanning multiple cells, or registered on more than one Grid.Objects layer
+        // at the same cell (tiles commonly occupy both their own layer and a ReplacementLayer),
+        // gets found here once per cell x layer it occupies - the capture work below only needs
+        // doing once per GameObject, and previously relied on BuildingConfigurations.Contains
+        // (value equality) to discard the redundant work *after* already paying for it. Perf
+        // harness measured StoreAdditionalBuildingData alone at ~685us/call (docs §7) and found it
+        // running exactly 2x the expected count on a single-cell-per-building layout - this was
+        // the single largest cost in a dense capture.
+        var capturedGameObjects = new HashSet<GameObject>();
+
         int blueprintHeight = (topLeft.y - bottomRight.y);
         bool storeDigCommandForNonSolidCells = filter != null && filter.AllowedToFilter(BlueprintCreationFilterKeys.NonSolidDigCommandssOptionID);
         bool collectNotes = filter != null && filter.AllowedToFilter(BlueprintCreationFilterKeys.Collect_Notes_ID);
@@ -344,6 +354,19 @@ public static class BlueprintState
                             //SgtLogger.l($"{gameObject != null} && {building != null} && {API_Methods.IsBuildable(building.Def)} && {(filter == null || filter.BuildingDefAllowedWithCurrentFilters(building.Def))}");
                             if (building != null && API_Methods.AllowedByRules(building.Def) && (filter == null || filter.BuildingDefAllowedWithCurrentFilters(building.Def)))
                             {
+                                if (building.Def.BuildingComplete.TryGetComponent<SimCellOccupier>(out var sco) && sco.doReplaceElement)
+                                    solidTileDefInCell = true;
+
+                                if (!capturedGameObjects.Add(gameObject))
+                                {
+                                    // Already fully captured from another cell/layer this same
+                                    // GameObject occupies - solidTileDefInCell/emptyCell above and
+                                    // below still need setting correctly for *this* cell, just not
+                                    // the expensive per-GameObject capture work again.
+                                    emptyCell = false;
+                                    continue;
+                                }
+
                                 Vector2I centre = Grid.CellToXY(GameUtil.NaturalBuildingCell(building));
 
                                 BuildingConfig buildingConfig = new()
@@ -353,9 +376,6 @@ public static class BlueprintState
                                     Orientation = building.Orientation
                                 };
                                 buildingConfig.BuildingDefId = building.Def.PrefabID;
-
-                                if (building.Def.BuildingComplete.TryGetComponent<SimCellOccupier>(out var sco) && sco.doReplaceElement)
-                                    solidTileDefInCell = true;
 
                                 if (deconstructable != null)
                                 {

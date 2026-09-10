@@ -353,7 +353,7 @@ instead of one at a time), in a dug-and-revealed band disjoint from `use`'s. A c
 (`captured X building(s) (expected N)`) verifies the scan actually found everything, the same
 instinct that caught `use`'s two bugs above.
 
-| N | `create` | captured / expected |
+| N | `create` (before) | captured / expected |
 |---:|---:|---:|
 | 100 | 181.0 ms | 100 / 100 |
 | 500 | 910.9 ms | 500 / 500 |
@@ -361,11 +361,42 @@ instinct that caught `use`'s two bugs above.
 
 Strikingly linear — 910.9 / 181.0 ≈ 5.03 and 1815.9 / 181.0 ≈ 10.03, almost exactly matching the
 5× and 10× size ratios — at a consistent **~1.8 ms/building** (dense 1-building-per-cell packing,
-so this is also ~1.8 ms per scanned cell here). No hotspot instrumentation added this pass; the
-natural next step if this needs to get faster is finding out how much of that ~1.8 ms is the
-per-cell × per-layer `Grid.Objects` scan itself versus the per-*found*-building capture work
-(`StoreAdditionalBuildingData`, element/conduit lookups) — the same `PatchOne`/`PatchAllOverloads`
-mechanism already built for `visualize` would drop straight in.
+so this is also ~1.8 ms per scanned cell here).
+
+**Instrumented follow-up, and a real fix.** Reusing the same `PatchOne`/`PatchAllOverloads`
+mechanism `visualize` already had, patched `API_Methods.StoreAdditionalBuildingData` (loops every
+one of the mod's ~35 registered `AdditionalBuildingDataEntries` handlers per building, each doing a
+`TryGetComponent` check for one data type — `Prioritizable`, `Automatable`, `Filterable`, and so
+on), `GetAdditionalBuildingData` (the handler loop itself), and `GameUtil.NaturalBuildingCell`.
+Result: **`StoreAdditionalBuildingData` averaged ~685 µs/call — and ran exactly 2× the expected
+call count** (22,400 instead of 11,200 for this sweep). `CreateBlueprint`'s per-cell × per-layer
+scan finds a building once per `Grid.Objects` layer it's registered on — `Tile` sits on two (its
+own layer and a `ReplacementLayer`) — and was redoing the *entire* expensive per-building capture
+(fresh `BuildingConfig`, `SelectedElements` copy, conduit-flag lookup,
+`StoreAdditionalBuildingData`) on every hit, only deduplicating the final list entry by value
+afterward (`BuildingConfigurations.Contains`) — after already paying for the redundant work. Fixed
+in [`BlueprintState.cs`](../src/BlueprintsIncluded/BlueprintData/BlueprintState.cs) by tracking
+already-captured `GameObject`s and skipping straight to `emptyCell = false` on a repeat hit,
+before any of the expensive work runs (safe regardless of *why* the same object is found again —
+multiple layers at one cell, or multiple cells for a multi-cell building — since a `BuildingConfig`
+depends only on the `GameObject`'s own state, not which layer/cell it was found from).
+
+| N | `create` (before) | `create` (after) | captured / expected |
+|---:|---:|---:|---:|
+| 100 | 181.0 ms | 117.6 ms (−35%) | 100 / 100 |
+| 500 | 910.9 ms | 559.4 ms (−39%) | 500 / 500 |
+| 1000 | 1815.9 ms | 1132.5 ms (−38%) | 1000 / 1000 |
+
+`StoreAdditionalBuildingData`'s call count dropped to exactly 11,200 (half), confirming the fix;
+its now-correctly-attributed cost (~678 µs/call, unchanged per call) is still the majority of
+`create`'s remaining time (~60%). Regression suite re-verified 6/6 green.
+
+**Not attempted this pass** (bigger, riskier, flagged as a follow-up): cache *which* of the ~35
+handlers actually apply *per `BuildingDef`* (most building types have none of most data types —
+`Tile` has none of the ~35), so most of the 35 `TryGetComponent` checks per building could be
+skipped entirely instead of run and found empty. Needs verifying that a `BuildingDef`'s component
+composition is consistent across all its instances for every handler type before it's safe — the
+same kind of correctness check that made the `GetValidMaterials` cache safe for import.
 
 ## 8. Decision checklist
 
