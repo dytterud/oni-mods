@@ -69,7 +69,7 @@ diagnose a hang.
 | `ExceptionSweep.cs` | fails a regression run on any mod-related Error/Exception log frame |
 | `Assert.cs` / `JUnitWriter.cs` | tiny assertion + JUnit report helpers |
 | `Perf/SyntheticBlueprint.cs` | builds an N-building blueprint in code - `Build` (in-memory, used by placement-perf) and `BuildJson` (serialized, used by import-perf) |
-| `Perf/PerfRunner.cs` | warmup + timed iterations per (operation, size): `deserialize`/`full-import` (import) and `visualize`/`use` (placement, real `GameObject`s + a once-dug region) |
+| `Perf/PerfRunner.cs` | warmup + timed iterations per (operation, size): `deserialize`/`full-import` (import), `visualize`/`use` (placement, real `GameObject`s + a once-dug-and-revealed region), `create` (`RunCreateSweep`, `CreateBlueprint` over real finished buildings) |
 | `Perf/PerfInstrumentation.cs` | generic manual-Harmony-patch registry (patch by name, one prefix/postfix pair) for call-count + cumulative-time hotspot attribution — import (`GetValidMaterials`/`SanitizeSelectedTags`) and placement (`TileVisual` ctor, `KInstantiate`, tile-block registration, coloring) targets |
 | `Perf/PerfWriter.cs` | writes `perf.json` |
 
@@ -93,10 +93,22 @@ Add a `TimeOp(...)` call inside `PerfRunner.Run` (or, for placement, inside
 placement's `use`), give `TimeOp`'s optional `setup` callback the job of moving to fresh input
 before each timed call rather than trying to make the operation itself idempotent.
 
-**Built:** import (`deserialize`/`full-import`, code-only) and placement (`visualize`/`use`, a
-once-dug region at absolute map coordinates + real `GameObject`s via `BlueprintState`). §7 still
-lists **creation of large blueprints** (`BlueprintState.CreateBlueprint` over a big captured area)
-as the next one — unlike placement it needs real *finished* buildings to capture, not just dug
-terrain, so it'll want either a fast finished-building placer (`def.Build` in a tight loop,
-sandbox-instant — `FixtureBuilder.PlaceAll` does this one at a time already) or reuse of
-placement's own committed build orders if they're advanced to completion first.
+**Built:** import (`deserialize`/`full-import`, code-only), placement (`visualize`/`use`, a
+once-dug-and-*revealed* region anchor-relative to the Printing Pod + real `GameObject`s via
+`BlueprintState`), and creation (`create` — `BlueprintState.CreateBlueprint`, a pure read over a
+rectangle of real finished buildings placed via `BuildingDef.Build` in a tight loop, the same call
+`FixtureBuilder.PlaceAll` uses one at a time for the regression fixture).
+
+Two real bugs turned up while getting `visualize`/`use`/`create` trustworthy, both worth knowing
+before adding another region-based operation: **(1)** digging clears terrain but doesn't reveal fog
+of war at a distance — `BuildingVisual.ValidCell` and `CreateBlueprint`'s capture both gate on
+`Grid.IsVisible`, so the region needs an explicit `Grid.Reveal(cell, byte.MaxValue, forceReveal:
+true)` after digging; **(2)** the default `BottomCenter` blueprint anchor shifts placement math in
+`GetRotatedCell` by half the blueprint's width, and when that goes negative the linear cell index
+wraps into the previous row at a huge x instead of failing cleanly — `PerfRunner` works around it
+by flipping the private `BlueprintTransformationInfo._state` field to `BlueprintAnchorState.BottomLeft`
+(shift 0,0) via reflection, since `VisualizeBlueprint`'s own `CheckPermittedRotations` call
+resets the shift from `_state` on every redraw (so overriding the derived floats alone doesn't
+stick). See docs §7 for the full story and numbers. A region-based perf operation should always add
+a correctness check (a captured/created count vs. expected) rather than trusting the timer alone —
+both bugs above produced plausible-looking timings while doing ~0–50% of the intended work.

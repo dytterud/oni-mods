@@ -5,6 +5,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using BlueprintsV2.BlueprintData;
+using BlueprintsV2.Visualizers;
+using HarmonyLib;
 using UnityEngine;
 
 namespace BlueprintsV2.Harness.Perf;
@@ -21,11 +23,18 @@ internal static class PerfRunner
 
     // Placement instantiates real GameObjects per building (much heavier per unit than JSON
     // parsing) and needs real dug Grid cells, so its sweep is capped lower than import's.
+    // visualize doesn't consume region rows (it redraws one fixed spot regardless of size), so it
+    // keeps the full sweep; use/create each need their own disjoint row band per size, and this
+    // fixture map only has ~94 rows of same-world room below the anchor - 2000 alone would eat
+    // that whole budget for use whilst leaving nothing for create, so they share a smaller sweep.
     private static readonly int[] PlacementSizes = { 100, 500, 1000, 2000 };
+    private static readonly int[] UseCreateSizes = { 100, 500, 1000 };
     private const int PlacementRowWidth = SyntheticBlueprint.RowWidth;
     private const int UseWarmup = 1, UseIterations = 2;               // mutating - kept small
     private const int VisualizeWarmup = 2, VisualizeIterations = 5;   // non-mutating - redrawable
+    private const int CreateWarmup = 2, CreateIterations = 5;         // non-mutating - redrawable
     private const int RegionEdgeMargin = 10;                          // cells kept clear of the map border
+    private const int RegionGapFromAnchor = 20;                       // cells kept clear of the small regression-case footprint near the pod
 
     // ModAssets.TryImportBlueprintFromString is internal - reach it by reflection, same pattern
     // FixtureBuilder uses for ModAssets.GetValidMaterials.
@@ -76,29 +85,54 @@ internal static class PerfRunner
     }
 
     /// <summary>
-    /// Times <c>VisualizeBlueprint</c> (non-mutating - redrawn at one fixed spot every call, same
-    /// as real mouse-hover redraw) and <c>UseBlueprint</c> (mutating - creates real build orders,
-    /// so each draw claims a fresh strip of a region dug once up front) for
-    /// <see cref="PlacementSizes"/>. Wall-clock only for this pass - see docs §7; a hotspot shows
-    /// up as a large gap between the two operations, the same way GetValidMaterials did for
-    /// import.
+    /// Digs one region up front, then times <c>VisualizeBlueprint</c> (non-mutating - redrawn at
+    /// one fixed spot every call, same as real mouse-hover redraw), <c>UseBlueprint</c> (mutating
+    /// - creates real build orders, so each draw claims a fresh strip of the region) and, via
+    /// <see cref="RunCreateSweep"/>, <c>CreateBlueprint</c> (non-mutating - a pure read over a
+    /// rectangle of real finished buildings) for <see cref="PlacementSizes"/>. See docs §7.
     /// </summary>
     private static IEnumerator RunPlacementSweep(PerfReport report, HarnessLog log)
     {
         int useDraws = UseWarmup + UseIterations;
-        int regionRows = PlacementSizes.Sum(RowsFor) * useDraws;
-        int maxRows = Grid.HeightInCells - 2 * RegionEdgeMargin;
+        int useRows = UseCreateSizes.Sum(RowsFor) * useDraws;
+        // create's buildings are real finished GameObjects (Grid.Objects-occupying), unlike
+        // visualize's previews or use's still-pending orders - they need their own disjoint band
+        // of the region, built once per size (CreateBlueprint itself is a pure read, safe to time
+        // repeatedly over the same rectangle like visualize).
+        int createRows = UseCreateSizes.Sum(RowsFor);
+        int regionRows = useRows + createRows;
+
+        // Anchor-relative, not an arbitrary absolute map coordinate: UseBlueprint's placement
+        // check (BuildingVisual.ValidCell) also gates on Grid.IsValidCellInWorld(cell,
+        // ClusterManager.Instance.activeWorldId) - an absolute coordinate picked without regard
+        // for world/asteroid boundaries can land in a different world than the fixture colony's,
+        // which silently fails placement even after fixing visibility (CreateBlueprint has no such
+        // gate, which is why it worked at the old absolute location while use still didn't).
+        // Straight down from the Printing Pod stays in the same world and clears the small
+        // regression-case footprint (which only extends to dy -6).
+        var anchorXY = Grid.CellToXY(HarnessCases.AnchorCell);
+        int maxRows = Math.Max(0, anchorXY.y - RegionGapFromAnchor - RegionEdgeMargin);
         if (regionRows > maxRows)
         {
-            log.Line($"  placement-perf region ({regionRows} rows) exceeds map height budget " +
-                     $"({maxRows}); shrinking - largest size(s)' use draws will be skipped");
-            regionRows = Math.Max(0, maxRows);
+            log.Line($"  placement-perf region ({regionRows} rows wanted) exceeds available room below " +
+                     $"the anchor ({maxRows}); shrinking - use gets priority, create gets what's left, " +
+                     $"largest size(s) of either will be skipped");
+            regionRows = maxRows;
+            // useRows must actually shrink too, not just the outer regionRows - otherwise use's own
+            // skip check (below) compares against a budget bigger than what DigRegion/Reveal
+            // actually covered, and its later sizes silently run onto undug/unrevealed cells.
+            useRows = Math.Min(useRows, regionRows);
+            createRows = regionRows - useRows;
         }
 
-        int x0 = Grid.WidthInCells / 2 - PlacementRowWidth / 2;
+        // Extend in the same direction (negative dx) FixtureLayout's own buildings already use
+        // successfully, rather than an arbitrary absolute X.
+        int x0 = Math.Clamp(anchorXY.x - PlacementRowWidth - RegionGapFromAnchor,
+            RegionEdgeMargin, Math.Max(RegionEdgeMargin, Grid.WidthInCells - PlacementRowWidth - RegionEdgeMargin));
         int y0 = RegionEdgeMargin;
         log.Line($"placement-perf region: x[{x0},{x0 + PlacementRowWidth}) y[{y0},{y0 + regionRows}) " +
-                 $"(anchor cell for reference: {HarnessCases.AnchorCell} {Grid.CellToXY(HarnessCases.AnchorCell)})");
+                 $"- rows [0,{useRows}) for visualize/use, [{useRows},{regionRows}) for create " +
+                 $"(anchor cell for reference: {HarnessCases.AnchorCell} {anchorXY})");
 
         yield return DigRegion(x0, y0, PlacementRowWidth, regionRows, log);
 
@@ -108,6 +142,26 @@ internal static class PerfRunner
         cfg.RequireConstructable_Material = false;
         var st = BlueprintState.CurrentStateInfo();
         st.ForceOverrideTransformations = true;
+
+        // BlueprintTransformationInfo.GetRotatedCell shifts every building's offset by the
+        // default anchor state (BottomCenter: half the blueprint's width in X) before converting
+        // to a cell - diagnosed via a Harmony postfix that this makes visPos.x negative for any
+        // building whose offset is smaller than the shift, and Grid.PosToCell's linear cell index
+        // (x + y*Grid.WidthInCells) then wraps a negative x into the *previous row* at a huge x,
+        // landing in unrelated (often invalid) territory instead of failing cleanly - it accounted
+        // for ~50% of "use" draws silently landing outside our dug/revealed region.
+        //
+        // Directly zeroing originShiftX/Y wasn't enough: VisualizeBlueprint calls
+        // CheckPermittedRotations -> RefreshAnchorState, which recomputes both floats from _state
+        // (still Config.Instance.DefaultAnchorState) on every single call, undoing the override
+        // before the first placement even happens. _state has no public setter either, so flip it
+        // (via reflection) to BottomLeft - the one AnchorState with a (0,0) shift - so every
+        // RefreshAnchorState call keeps landing on zero instead of reverting to BottomCenter.
+        var stateField = AccessTools.Field(typeof(BlueprintState.BlueprintTransformationInfo), "_state");
+        object? savedState = stateField?.GetValue(st);
+        stateField?.SetValue(st, BlueprintAnchorState.BottomLeft);
+        if (stateField == null)
+            log.Line("  _state field not found - use draws may still hit the anchor-shift wraparound");
 
         try
         {
@@ -122,19 +176,20 @@ internal static class PerfRunner
             }
 
             int rowCursor = 0;
-            foreach (int n in PlacementSizes)
+            foreach (int n in UseCreateSizes)
             {
                 int rows = RowsFor(n);
-                if (rowCursor + rows * useDraws > regionRows)
+                if (rowCursor + rows * useDraws > useRows)
                 {
                     log.Line($"  SKIP use-N{n}: not enough dug region left " +
-                             $"({regionRows - rowCursor} rows, need {rows * useDraws})");
+                             $"({useRows - rowCursor} rows, need {rows * useDraws})");
                     continue;
                 }
 
                 log.Line($"use N={n}");
                 var bp = SyntheticBlueprint.Build(n);
                 Vector2I origin = default;
+                int constructablesBefore = CountConstructables();
                 yield return TimeOp(report, log, "use", n, warmup: UseWarmup, iterations: UseIterations,
                     setup: () =>
                     {
@@ -147,6 +202,8 @@ internal static class PerfRunner
                         BlueprintState.VisualizeBlueprint(origin, bp);
                     },
                     body: () => BlueprintState.UseBlueprint(BlueprintState.PlayerId_DefaultTilePreviews, origin, bp));
+                int createdTotal = CountConstructables() - constructablesBefore;
+                log.Line($"  use-N{n}: {createdTotal} Constructable(s) created across {useDraws} draws (expected {n * useDraws})");
                 BlueprintState.ClearVisuals();
             }
         }
@@ -155,10 +212,73 @@ internal static class PerfRunner
             st.ForceOverrideTransformations = false;
             cfg.RequireConstructable_Tech = savedTech;
             cfg.RequireConstructable_Material = savedMat;
+            if (stateField != null) stateField.SetValue(st, savedState);
+        }
+
+        yield return RunCreateSweep(report, log, x0, y0 + useRows, Math.Max(0, regionRows - useRows));
+    }
+
+    /// <summary>
+    /// Times <c>BlueprintState.CreateBlueprint</c> - a pure read of <c>Grid</c> state into a new
+    /// <see cref="Blueprint"/>, safe to repeat over the same rectangle like <c>visualize</c> - over
+    /// a rectangle of real *finished* buildings (<c>BuildingDef.Build</c>, the same call
+    /// <c>FixtureBuilder.PlaceAll</c> uses for the regression fixture). Capture needs a
+    /// <c>Constructable</c> or <c>Deconstructable</c> component; a finished building is the
+    /// representative "capture an existing base" scenario (as opposed to placement's still-pending
+    /// orders, which would also capture but aren't what a player is usually blueprinting).
+    /// </summary>
+    private static IEnumerator RunCreateSweep(PerfReport report, HarnessLog log, int x0, int y0, int availableRows)
+    {
+        var def = Assets.GetBuildingDef("Tile");
+        var elements = new List<Tag> { ElementLoader.FindElementByHash(SimHashes.SandStone).tag };
+
+        int rowCursor = 0;
+        foreach (int n in UseCreateSizes)
+        {
+            int rows = RowsFor(n);
+            if (rowCursor + rows > availableRows)
+            {
+                log.Line($"  SKIP create-N{n}: not enough dug region left ({availableRows - rowCursor} rows, need {rows})");
+                continue;
+            }
+
+            int rectY0 = y0 + rowCursor;
+            rowCursor += rows;
+
+            int built = 0;
+            for (int i = 0; i < n; i++)
+            {
+                int cell = Grid.XYToCell(x0 + i % PlacementRowWidth, rectY0 + i / PlacementRowWidth);
+                var go = def.Build(cell, Orientation.Neutral, resource_storage: null, elements,
+                    temperature: 293.15f, playsound: false, timeBuilt: 0f);
+                if (go != null)
+                    built++;
+                if (i % 200 == 0)
+                    yield return null; // spread a few thousand Instantiate calls across frames
+            }
+            log.Line($"create N={n}: built {built}/{n} finished buildings");
+
+            // CreateBlueprint's convention: topLeft = (minX, maxY), bottomRight = (maxX, minY) -
+            // same as FixtureLayout.CaptureRect.
+            var topLeft = new Vector2I(x0, rectY0 + rows - 1);
+            var bottomRight = new Vector2I(x0 + PlacementRowWidth - 1, rectY0);
+
+            // The N=100..2000 timings came back suspiciously flat - verify the capture actually
+            // scaled with N rather than silently capturing a fixed subset.
+            Blueprint? lastCaptured = null;
+            yield return TimeOp(report, log, "create", n, warmup: CreateWarmup, iterations: CreateIterations,
+                () => { lastCaptured = BlueprintState.CreateBlueprint(topLeft, bottomRight, filter: null); });
+            log.Line($"  create-N{n}: captured {lastCaptured?.BuildingConfigurations.Count ?? -1} building(s) (expected {n})");
         }
     }
 
     private static int RowsFor(int n) => (n + PlacementRowWidth - 1) / PlacementRowWidth;
+
+    // Correctness check for "use" - it reported plausible-looking timings even while every call
+    // was silently failing (see DigRegion's Grid.Reveal comment), so count real output instead of
+    // trusting the timer alone. Same FindObjectsByType approach as HarnessCases.Constructables().
+    private static int CountConstructables() =>
+        UnityEngine.Object.FindObjectsByType<Constructable>(FindObjectsSortMode.None).Length;
 
     /// <summary>
     /// Digs every solid cell in the rectangle once, up front, then waits for it to clear - the
@@ -190,6 +310,18 @@ internal static class PerfRunner
             yield return null;
         }
         log.Line($"  region dig settled after {waited:F1}s ({cells.Count(Grid.IsSolidCell)} still solid)");
+
+        // Digging clears terrain but does NOT reveal fog of war at a distance - only something
+        // with vision (a Duplicant, a scanner) does that normally. This region is far from the
+        // fixture colony's starting reveal radius, and both UseBlueprint's placement check
+        // (BuildingVisual.ValidCell -> Grid.IsVisible) and CreateBlueprint's capture scan gate on
+        // Grid.IsVisible - confirmed via diagnostic dump that it was false here, silently making
+        // every use/create call in this region a no-op despite reporting a "successful" timing.
+        // Force-reveal every cell so the sweep actually measures the placement/capture path
+        // instead of its early-return fast path.
+        foreach (int c in cells)
+            Grid.Reveal(c, byte.MaxValue, forceReveal: true);
+        log.Line($"  revealed {cells.Count} cells (Grid.Reveal, forceReveal=true)");
     }
 
     // Config.Instance lives on PLib's SingletonOptions<Config>, which this dll doesn't reference -

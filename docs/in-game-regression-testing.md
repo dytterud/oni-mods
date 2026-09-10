@@ -251,24 +251,62 @@ colony) and reuses `HarnessCases.PlaceAt`'s dig-then-poll-until-clear pattern. T
 
 No rotation, no cleanup of the committed build orders.
 
-**Finding (one real run, one machine — see limits below):** the dug region needed no fallback —
-all 10,800 cells were valid and dug/clear in 0.2s on the first try. The two operations scale very
-differently:
+**Two real bugs hid behind plausible-looking numbers here — both fixed in the harness, not
+production code, but the second is a latent production edge case worth knowing about.** An
+initial run reported `use` timings that *looked* fine (1–9 ms, scaling with N) while every single
+placement was silently failing — the harness was trusting the timer, not checking the output.
+Adding a correctness check (counting real `Constructable`s created, the same instinct behind
+`create`'s own `captured X (expected N)` check below) caught it:
 
-| N | `visualize` | `use` |
+1. **Fog of war.** `BuildingVisual.ValidCell` and `CreateBlueprint`'s capture scan both gate on
+   `Grid.IsVisible(cell)`. Digging clears terrain but does **not** reveal fog of war at a distance
+   — only something with vision (a Duplicant, a scanner) does that normally, and the harness's
+   region sits far from anything with vision. Fixed by force-revealing the whole dug region with
+   `Grid.Reveal(cell, byte.MaxValue, forceReveal: true)` right after digging it.
+2. **Anchor-shift wraparound.** Even revealed, `use` still only placed ~50% of buildings —
+   entirely explained by X, not Y, confirmed by seeing it happen within a single unrotated row.
+   `BlueprintTransformationInfo.GetRotatedCell` shifts every building's X offset by the *default*
+   `BottomCenter` anchor state (half the blueprint's width) before converting to a cell. For a
+   building whose offset is smaller than that shift, the shifted value goes negative — and
+   `Grid.PosToCell`'s linear cell index (`x + y·Grid.WidthInCells`) silently **wraps a negative x
+   into the previous row at a huge x** instead of failing cleanly, landing the building somewhere
+   unrelated (often genuinely invalid) instead of where it was asked to go. `originShiftX`/`Y` are
+   private with no public "set an exact anchor" API, and setting them directly didn't stick either
+   — `VisualizeBlueprint` calls `CheckPermittedRotations` → `RefreshAnchorState` on every single
+   call, which recomputes both floats from the (still default) `_state` field, undoing the
+   override before the first placement even happens. The harness fix flips `_state` itself (via
+   reflection) to `BottomLeft` — the one `BlueprintAnchorState` with a (0, 0) shift — so every
+   refresh keeps landing on zero. Our synthetic blueprints want to place literally at
+   `origin + offset`, with no anchor semantics to honor, so this is correct for the harness; a real
+   player previewing a wide blueprint near the map's left/bottom edge with a non-`BottomLeft`
+   anchor could hit the same wraparound in actual gameplay — flagged separately as a production
+   follow-up, not fixed here.
+
+**Finding (one real run, one machine, after both fixes — see limits below):**
+
+| N | `visualize` | `use` (real placements / expected) |
 |---:|---:|---:|
-| 100 | 17.0 ms | 1.2 ms |
-| 500 | 41.0 ms | 2.8 ms |
-| 1000 | 69.8 ms | 4.9 ms |
-| 2000 | 134.8 ms | 8.9 ms |
+| 100 | 14.8 ms | 16.3 ms (300/300) |
+| 500 | 49.8 ms | 78.8 ms (1500/1500) |
+| 1000 | 93.5 ms | 140.2 ms (2880/3000) |
+| 2000 | 178.9 ms | *(not swept — see room note)* |
 
-Both are linear in N, but at very different rates: `visualize` costs roughly **11 ms fixed + 62
-µs/building**, `use` roughly **0.8 ms fixed + 4 µs/building** — `use` (`UseBlueprint`, which
-commits the real build order) is **~15× cheaper per building** than `visualize`
-(`VisualizeBlueprint`, which builds the hover-preview `GameObject`). That's the opposite of what
-import found (there, the *cheap-looking* operation hid the real cost) — here the expensive part is
-plainly the one that instantiates + colors + anim-configures a preview object per building, not
-the one that commits it.
+`use`'s N=1000 shortfall (96%) is a residual, much smaller effect than the two bugs above and
+wasn't chased further. Both operations are linear in N, but now `use` (`UseBlueprint`, which
+commits the real build order) is **the more expensive one**, not visualize — the opposite of the
+original (buggy) measurement's conclusion. That makes sense once `use` is actually doing its job:
+committing a real building is strictly more work than a preview (`PlacePlannedBuilding` → building
+instantiation, on top of everything `visualize` already pays for via `VisualizeBlueprint`'s own
+internal redraw). `visualize` itself was never affected by either bug — it doesn't consult
+`Grid.IsVisible` or `GetRotatedCell` to decide *whether* to build a preview, only to color it — so
+its numbers and the hotspot breakdown below stand unchanged.
+
+The `use`/`create` sweep also shares the map with the small regression-case footprint near the
+Printing Pod (`FixtureLayout`) and needs its own dug-and-revealed, same-world region — this
+particular fixture map only has ~94–130 rows of that room below the anchor, well short of what
+N=100/500/1000/2000 × 3 draws needs for `use` *and* a separate band for `create`. `visualize`
+doesn't consume region rows at all (it redraws one fixed spot regardless of size), so it keeps the
+full N=2000 sweep; `use`/`create` share a smaller `{100, 500, 1000}` sweep sized to fit.
 
 **Instrumented follow-up.** `PerfInstrumentation` gained a generic patch-by-name mechanism (one
 prefix/postfix pair looks up the accumulator via `__originalMethod`, so adding a hotspot candidate
@@ -304,6 +342,31 @@ visuals, tiles and non-tiles, snapshots and normal blueprints); or object-pool t
 `GameObject`s so redraws reuse existing previews instead of destroy+recreate every
 `VisualizeBlueprint` call (bigger architectural change, addresses `KInstantiate` directly).
 
+**Built last: creating a blueprint.** `BlueprintState.CreateBlueprint` — capturing a rectangle of
+the world into a `Blueprint` — is the mirror image of import: unlike `visualize`/`use`, it's a pure
+read (scans every cell × every `Grid.ObjectLayers` in the rectangle for a `Constructable`/
+`Deconstructable`-bearing `GameObject`, builds a fresh `Blueprint` object, mutates nothing), so it's
+safe to time repeatedly over one fixed rectangle the same way `visualize` is. The rectangle needs
+real, *finished* buildings to capture — `RunCreateSweep` places them directly via `BuildingDef.Build`
+(the same call `FixtureBuilder.PlaceAll` uses for the regression fixture, just in a tight loop
+instead of one at a time), in a dug-and-revealed band disjoint from `use`'s. A captured-count check
+(`captured X building(s) (expected N)`) verifies the scan actually found everything, the same
+instinct that caught `use`'s two bugs above.
+
+| N | `create` | captured / expected |
+|---:|---:|---:|
+| 100 | 181.0 ms | 100 / 100 |
+| 500 | 910.9 ms | 500 / 500 |
+| 1000 | 1815.9 ms | 1000 / 1000 |
+
+Strikingly linear — 910.9 / 181.0 ≈ 5.03 and 1815.9 / 181.0 ≈ 10.03, almost exactly matching the
+5× and 10× size ratios — at a consistent **~1.8 ms/building** (dense 1-building-per-cell packing,
+so this is also ~1.8 ms per scanned cell here). No hotspot instrumentation added this pass; the
+natural next step if this needs to get faster is finding out how much of that ~1.8 ms is the
+per-cell × per-layer `Grid.Objects` scan itself versus the per-*found*-building capture work
+(`StoreAdditionalBuildingData`, element/conduit lookups) — the same `PatchOne`/`PatchAllOverloads`
+mechanism already built for `visualize` would drop straight in.
+
 ## 8. Decision checklist
 
 - [x] Build the POC? — yes, `harness/`.
@@ -319,7 +382,7 @@ visuals, tiles and non-tiles, snapshots and normal blueprints); or object-pool t
       (`<Build … Project="false" />`) so it never races the mod's in-place ILRepack; built directly
       by `test/run-ingame.ps1`, which builds the mod first so the referenced DLL is current.
 - [x] Include the [§7](#7-performance-measurement-separate-mode) perf mode, or add it later? — **built**,
-      scoped to blueprint import (`test/run-ingame.ps1 -Perf`); placement/creation perf still open.
+      covering blueprint import, placement (`visualize`/`use`), and creation (`test/run-ingame.ps1 -Perf`).
 
 ### Next steps
 
@@ -339,8 +402,10 @@ visuals, tiles and non-tiles, snapshots and normal blueprints); or object-pool t
       `full-import`, plus `GetValidMaterials`/`SanitizeSelectedTags` call-count + time
       instrumentation. Finding: `GetValidMaterials`'s uncached element-table scan accounts for
       essentially all import cost; see §7.
-- [ ] Perf mode follow-ups (the user's stated next steps): placement of large blueprints, creation
-      of large blueprints (`CreateBlueprint` over a big captured area).
+- [x] Perf mode follow-ups (the user's stated next steps): placement of large blueprints
+      (`visualize`/`use`, found + fixed a fog-of-war and an anchor-shift-wraparound bug along the
+      way) and creation of large blueprints (`CreateBlueprint` over a big captured area, ~1.8
+      ms/building, cleanly linear). See §7.
 - [ ] Optional follow-ups: more building types / layers, place-with-settings applied to the built
       object, replacement visualizers over occupied terrain, a committed perf baseline + diff.
 - [ ] `run-ingame.ps1` currently removes the dev `Blueprints Expanded` (`mods/dev/BlueprintsV2`)
