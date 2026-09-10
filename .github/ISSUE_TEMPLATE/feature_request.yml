@@ -1,0 +1,44 @@
+name: Feature request
+description: Suggest something the mod should do
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Worth knowing before you write: this is a fork of SGT_Imalas' Blueprints Expanded, and
+        features landing upstream get flagged here automatically for a port decision. If you
+        want something that upstream already has, say so — that's a much shorter conversation
+        than designing it from scratch.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: |
+        Describe the situation, not just the feature. Knowing what you're working around often
+        reveals a simpler answer than the one you had in mind.
+      placeholder: |
+        I rebuild the same 40-tile SPOM in every colony, but the material overrides reset every
+        time, so I re-pick refined metal for 12 buildings on every placement.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What should it do?
+      description: How would you expect this to work in-game?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: upstream
+    attributes:
+      label: Does Blueprints Expanded already do this?
+      description: The upstream mod this one forked from.
+      options:
+        - "No / I don't think so"
+        - "Yes — it's upstream, port it"
+        - Not sure
+    validations:
+      required: true
