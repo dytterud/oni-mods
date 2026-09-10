@@ -320,9 +320,37 @@ constructor plus the pieces it calls: `GameUtil.KInstantiate`, `CustomTileRender
 `RefreshCell`, `BuildingVisual.GetVisualizerColor`, `VisualsUtilities.SetTileColor`,
 `UpdateRequirementsState`, `ApplyAdditionalBuildingData`. Result: **`TileVisual`'s constructor is
 essentially all of `visualize`'s cost, and `GameUtil.KInstantiate` (Unity's real GameObject
-instantiation) is ~90% of the constructor** (2005–2185 ms of ~2220–2306 ms total across the whole
-sweep) — unlike `GetValidMaterials`, this isn't a redundant computation to cache; it's genuine
-per-building object creation.
+instantiation) is the largest single piece of it** — unlike `GetValidMaterials`, this isn't a
+redundant computation to cache; it's genuine per-building object creation.
+
+⚠️ **The first measurement of `KInstantiate`'s share (~90%) was wrong — inflated by double
+counting.** It was patched with `TryPatchAllOverloads`, which puts every overload on one shared
+accumulator; `KInstantiate`'s overloads forward to each other, so a single logical call was timed
+twice (once in the outer overload, once in the inner) and counted twice. Re-measured with
+`TryPatchEachOverload` (one accumulator per overload, signature in the name):
+
+| Overload | Calls | Total | Per call |
+|---|---:|---:|---:|
+| `KInstantiate(GameObject,Vector3,SceneLayer,String,Int32)` — what `BuildingVisual` calls | 36,466 | 1402.7 ms | 38.5 µs |
+| `KInstantiate(GameObject,Vector3,SceneLayer,GameObject,String,Int32)` — it forwards to this | 36,466 | 1388.1 ms | 38.1 µs |
+| `KInstantiate(GameObject,SceneLayer,String,Int32)` | 2 | 0.3 ms | — |
+| `KInstantiate(Component,SceneLayer,String,Int32)` | 0 | — | — |
+
+Identical call counts confirm the 1:1 forwarding; the true figure is the outer overload's
+**38.5 µs/call / 1402.7 ms**, and the wrapper itself adds almost nothing (~0.4 µs/call). Against
+`TileVisual.ctor`'s 64.2 µs/call, the raw clone is **~60% of the constructor, not ~90%** — the
+remaining ~25.7 µs is coloring, tile-block registration, requirements state and anim setup.
+
+**What that means for the object-pooling idea:** a pooled, reused visual still has to be
+repositioned, recolored, re-registered with the tile renderer and re-evaluated for requirements
+state — so pooling can only save the raw clone, i.e. `visualize` N=2000 goes ~177 ms → ~100 ms
+(**~43% faster**), not the near-elimination the inflated number implied. Weighed against
+restructuring a visual lifecycle shared with rotation, flipping, replacement tiles and
+multiplayer's per-player visualizer lists — for an action that runs once per blueprint selection
+or rotation, not per frame — **the ceiling isn't judged worth the blast radius; pooling is not
+recommended.** `BuildingDef.Instantiate` (`use`, 140.5 µs/call, 91% of `TryUse`) has only one
+overload and was never double-counted, but pooling doesn't apply to it at all: a committed build
+order's `GameObject` is real, persistent state.
 
 The instrumentation also caught a real (if smaller) redundancy: `TileVisual.UpdateGrid` unregisters
 and re-registers a tile's mesh block (`CustomTileRenderer.AddTileBlock`/`RefreshCell`) on *every*

@@ -54,7 +54,11 @@ internal static class PerfInstrumentation
         // shift with a game update).
         TryPatchOne(harmony, log, "TileVisual.ctor",
             () => AccessTools.Constructor(typeof(TileVisual), new[] { typeof(BuildingConfig), typeof(int), typeof(ulong) }));
-        TryPatchAllOverloads(harmony, log, "KInstantiate", typeof(GameUtil));
+        // Per-overload, not shared: KInstantiate's overloads forward to each other, so a single
+        // shared accumulator double-counted the nested time (72,934 calls against ~30,000
+        // TileVisual ctors) and inflated its share of visualize's cost. Splitting them makes the
+        // outer vs inner split visible - this is the number a pooling refactor would be betting on.
+        TryPatchEachOverload(harmony, log, "KInstantiate", typeof(GameUtil));
         if (customTileRendererType != null)
         {
             TryPatchAllOverloads(harmony, log, "AddTileBlock", customTileRendererType);
@@ -93,7 +97,7 @@ internal static class PerfInstrumentation
             () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.IsPlaceable)));
         TryPatchOne(harmony, log, "PlacePlannedBuilding",
             () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.PlacePlannedBuilding)));
-        TryPatchAllOverloads(harmony, log, "Instantiate", typeof(BuildingDef));
+        TryPatchEachOverload(harmony, log, "Instantiate", typeof(BuildingDef));
         TryPatchOne(harmony, log, "ApplyBuildingData",
             () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.ApplyBuildingData)));
         TryPatchOne(harmony, log, "UpdateConduitConnectionBits",
@@ -108,6 +112,37 @@ internal static class PerfInstrumentation
         if (type == null)
             log.Line($"  perf instrumentation: type not found: {fullName} (its hotspot(s) will be zero)");
         return type != null;
+    }
+
+    /// <summary>Patches every overload of <paramref name="methodName"/> under its *own* accumulator,
+    /// named with its parameter list, logging each signature as it goes. Use this instead of
+    /// <see cref="TryPatchAllOverloads"/> when the overloads may forward to each other: a shared
+    /// accumulator counts a nested call's time twice (once in the outer overload, once in the
+    /// inner), inflating the total and the call count - which is exactly what happened to the
+    /// first `KInstantiate` measurement (docs §7).</summary>
+    private static bool TryPatchEachOverload(Harmony harmony, HarnessLog log, string methodName, Type declaringType)
+    {
+        try
+        {
+            var overloads = declaringType.GetMethods(AccessTools.all).Where(m => m.Name == methodName).ToList();
+            if (overloads.Count == 0)
+            {
+                log.Line($"  perf instrumentation: {declaringType.Name}.{methodName}: no overload found (its hotspot will be zero)");
+                return false;
+            }
+            foreach (var overload in overloads)
+            {
+                string sig = $"{methodName}({string.Join(",", overload.GetParameters().Select(p => p.ParameterType.Name))})";
+                log.Line($"  perf instrumentation: patching {declaringType.Name}.{sig}");
+                Register(sig, overload, harmony);
+            }
+            return true;
+        }
+        catch (Exception e)
+        {
+            log.Line($"  perf instrumentation: {declaringType.Name}.{methodName}: failed to patch (its hotspot will be zero): {e}");
+            return false;
+        }
     }
 
     private static bool TryPatchOne(Harmony harmony, HarnessLog log, string name, Func<MethodBase?> resolve)

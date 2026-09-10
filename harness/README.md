@@ -112,3 +112,14 @@ resets the shift from `_state` on every redraw (so overriding the derived floats
 stick). See docs §7 for the full story and numbers. A region-based perf operation should always add
 a correctness check (a captured/created count vs. expected) rather than trusting the timer alone —
 both bugs above produced plausible-looking timings while doing ~0–50% of the intended work.
+
+**Picking `TryPatchAllOverloads` vs `TryPatchEachOverload`:** the former puts every overload on one
+shared accumulator, which is fine only if the overloads never call each other. If they do forward
+(as `GameUtil.KInstantiate`'s do), a single logical call gets timed twice — once in the outer
+overload, once in the inner — inflating both the total and the call count. That's how
+`KInstantiate` came to be reported as ~90% of `visualize`'s cost when the real figure is ~60% (see
+docs §7). Prefer `TryPatchEachOverload` when unsure: it names each accumulator with the overload's
+signature, so forwarding shows up as two lines with identical call counts instead of hiding inside
+one inflated number. A call count that doesn't match what you expect from the sweep arithmetic is
+the tell — check it before trusting any hotspot figure, especially one you're about to base a
+refactor decision on.
