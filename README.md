@@ -38,6 +38,11 @@ Output: `src/BlueprintsIncluded/bin/BlueprintsIncluded.dll` (ILRepack-merged wit
 3. `dotnet build BlueprintsIncluded.slnx -c Debug` — the built mod is copied to
    your dev mods folder.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) — build and test tiers, the conventions
+that fail the build, and how to report a bug usefully.
+
 ## License
 
 MIT — see [LICENSE](LICENSE), and [NOTICE](NOTICE) for the attribution chain, the
