@@ -16,4 +16,69 @@
 		</ProjectReference>
 	</ItemGroup>
 
+	<!--
+	  The [RequiresGameInstall*] tests need the game assemblies loadable at RUNTIME, not just at
+	  compile time. Every game <Reference> in Directory.Build.props is <Private>False</Private> —
+	  correct for the mod, which must not ship copies of assemblies ONI already provides — so
+	  nothing lands in the test output and Assembly.Load fails. The gate then reports "no install"
+	  even when one is configured, and the tests skip forever (see GameAssemblies.cs).
+
+	  Copy them here, for this project only, and only for a non-offline build. Deliberately the raw
+	  install assemblies rather than the _public publicized ones: publicizing only widens
+	  accessibility for the compiler, and the publicized files keep the same *assembly* name while
+	  having a different *file* name, so simple-name probing would not find them.
+
+	  Offline builds copy nothing, so the gate still skips cleanly on CI and fresh clones.
+	-->
+	<Target Name="CopyGameAssembliesForRuntime"
+	        AfterTargets="Build"
+	        Condition="'$(OfflineBuild)' != 'true'">
+		<ItemGroup>
+			<!--
+			  The game <Reference>s from Directory.Build.props, minus three:
+			    mscorlib / netstandard - .NET 8 supplies its own; copying Unity's breaks the host.
+			    Newtonsoft.Json        - already present in the output; don't clobber a working copy.
+			  Reflecting over the mod's KMonoBehaviours (ScreenReferenceBindingTests) walks every
+			  widget field, so the UI and TextMeshPro assemblies are needed even though no test
+			  calls into them - a missing one surfaces as FileNotFoundException from
+			  RtFieldInfo.InitializeFieldType, not as a skip.
+			-->
+			<!--
+			  Required: the gate in GameAssemblies.cs loads Assembly-CSharp-firstpass by simple
+			  name, and everything the mod declares hangs off these two.
+			-->
+			<RequiredGameAssembly Include="$(GameLibsFolder)/Assembly-CSharp.dll" />
+			<RequiredGameAssembly Include="$(GameLibsFolder)/Assembly-CSharp-firstpass.dll" />
+
+			<!--
+			  Best-effort: copied when present. The exact module set varies by game version and
+			  DLC (this install has no UnityEngine.WebRequestModule, for instance, despite
+			  Directory.Build.props referencing it), so a missing one must not fail the build.
+			-->
+			<OptionalGameAssembly Include="$(GameLibsFolder)/0Harmony.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/FMODUnity.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.CoreModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/Unity.TextMeshPro.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.AssetBundleModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.PhysicsModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.Physics2DModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.ParticleSystemModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.ImageConversionModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.TextRenderingModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.UI.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.UIModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.WebRequestModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/com.rlabrecque.steamworks.net.dll" />
+
+			<GameRuntimeAssembly Include="@(RequiredGameAssembly)" />
+			<GameRuntimeAssembly Include="@(OptionalGameAssembly)" Condition="Exists('%(FullPath)')" />
+		</ItemGroup>
+		<Error Condition="!Exists('%(RequiredGameAssembly.FullPath)')"
+		       Text="Game assembly not found: %(RequiredGameAssembly.FullPath). GameLibsFolder is '$(GameLibsFolder)' — check Directory.Build.props.user, or build with -p:OfflineBuild=true." />
+		<Copy SourceFiles="@(GameRuntimeAssembly)"
+		      DestinationFolder="$(OutDir)"
+		      SkipUnchangedFiles="true" />
+	</Target>
+
 </Project>

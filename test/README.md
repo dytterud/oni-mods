@@ -22,6 +22,23 @@ real ONI install is configured via `Directory.Build.props.user` (see
 `Directory.Build.props.default`). Those tests use `[RequiresGameInstallFact]` /
 `[RequiresGameInstallTheory]` — see `BlueprintsIncluded.Tests/GameAssemblies.cs`.
 
+So the counts differ by build, and both are correct:
+
+| | result |
+|---|---|
+| `dotnet test` with an install configured | 42 passed, 0 skipped |
+| `dotnet test -p:OfflineBuild=true` | 14 passed, **27 skipped** |
+
+The gate needs the real assemblies loadable *at runtime*, not just at compile time. Every game
+`<Reference>` in `Directory.Build.props` is `<Private>False</Private>` — correct for the mod,
+which must not ship copies of assemblies ONI already provides — so the
+`CopyGameAssembliesForRuntime` target in `BlueprintsIncluded.Tests.csproj` copies them into the
+test output for non-offline builds. Offline builds copy nothing and the gate skips.
+
+If you add a gated test that reflects over a new widget type, its Unity assembly may need adding
+to that target's list; the symptom is a `FileNotFoundException` out of
+`RtFieldInfo.InitializeFieldType`, not a skip.
+
 Pure logic with no game types (string/collection helpers, math, JSON shaping) runs
 everywhere. That is most of what is currently unit-testable — the production code has few
 seams between logic and game state. Widening coverage mostly means extracting plain
