@@ -3,15 +3,15 @@
 Notable changes to Blueprints Included. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-Versions track upstream **Blueprints Expanded**'s numbering rather than this fork's own
-history — `7.0.0` is the upstream version this fork branched from, so a bump here means
-"aligned with that upstream release", not "seventh release of this fork".
+Versions are this fork's own, starting at `0.1.0`. They deliberately do **not** track
+upstream **Blueprints Expanded**'s numbering: the two codebases have already diverged, so a
+shared number would imply a parity that doesn't exist. The mod inherited `7.0.0` at the fork
+and was never published under it.
 
 ## [Unreleased]
 
-Nothing has been released from this fork yet: there are no tags or GitHub releases, and
-`mod_info.yaml` still reports the inherited `7.0.0`. Everything below is in `main` and
-unreleased.
+Nothing has been released from this fork yet — no tags, no GitHub releases. Everything
+below is in `main` and unreleased.
 
 ### Fixed
 
@@ -65,6 +65,11 @@ Internal only; no in-game behaviour change:
   errors.
 - File-scoped namespaces, 4-space indentation, `EnforceCodeStyleInBuild` (style violations
   are build errors), central package management, and PolySharp for language-feature polyfills.
+- **Version reset to `0.1.0`**, from the `7.0.0` inherited at the fork point. Never published
+  under the old number, so nothing sees this as a downgrade.
+- Build metadata corrected: the compiled assembly credited upstream's author rather than this
+  fork's. Upstream's copyright remains where it belongs, in [LICENSE](LICENSE) and
+  [NOTICE](NOTICE).
 - Repository restructured to a conventional `src/` + `test/` layout. The C# root namespace
   stays `BlueprintsV2` deliberately — renaming it would break save compatibility and every
   translation file.
