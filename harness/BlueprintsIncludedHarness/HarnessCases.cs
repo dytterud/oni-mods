@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using BlueprintsV2.BlueprintData;
 using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
+using BlueprintsV2.Visualizers;
 using UnityEngine;
 
 namespace BlueprintsV2.Harness;
@@ -71,6 +72,8 @@ internal static class HarnessCases
         new HarnessCase("element-note-capture-round-trips", NoteCaptureRoundTrip),
         new HarnessCase("instabuild-spawns-below-melting-point", InstabuildSpawnTemperature),
         new HarnessCase("note-visibility-toggle-hides-notes", NoteVisibilityToggle),
+        new HarnessCase("planned-buildings-match-for-data-transfer", PlannedBuildingMatch),
+        new HarnessCase("dig-placer-preview-filter-hides-digs", DigPlacerPreviewFilter),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -407,6 +410,201 @@ internal static class HarnessCases
 
         Assert.True(BlueprintState.NoteVisibility, "restored note visibility for later cases");
     }
+
+    // ---- planned buildings match for data transfer ----------------
+
+    /// <summary>
+    /// The contract widened for planned-building data transfer:
+    /// <c>BuildingVisual.SameBuildingAlreadyFinishedInPlace</c> must match a building that is only
+    /// queued when <c>includePlanned</c> is set, and must not when it isn't.
+    ///
+    /// Asserted directly on the predicate rather than by driving a whole placement, because that
+    /// predicate *is* the change - five call sites choose their flag from it, and each of those
+    /// choices is a separate judgement that a single end-to-end run would not distinguish.
+    /// </summary>
+    private static IEnumerator PlannedBuildingMatch()
+    {
+        Blueprint bp = Snapshot(TileRowTopLeft(), TileRowBottomRight());
+        var xy = Grid.CellToXY(AnchorCell);
+        var planned = new PlacementResult();
+
+        ///instabuild off: we want Constructables (queued), not finished buildings
+        bool savedInstant = DebugHandler.InstantBuildMode;
+        DebugHandler.InstantBuildMode = false;
+        try
+        {
+            yield return PlaceAt(bp, new Vector2I(xy.x - 8, xy.y - 12), rotateSteps: 0, planned);
+        }
+        finally
+        {
+            DebugHandler.InstantBuildMode = savedInstant;
+        }
+
+        Assert.True(planned.Orders.Count >= 1,
+            $"placement queued at least one building ({planned.Orders.Count} orders, {planned.Finished.Count} finished)");
+        Assert.True(planned.Finished.Count == 0, "nothing was instabuilt, so these are genuinely planned");
+
+        var order = planned.Orders[0];
+        int cell = Grid.XYToCell(order.cell.x, order.cell.y);
+        var config = bp.BuildingConfigurations.FirstOrDefault(b => b.BuildingDef?.PrefabID == order.id);
+        Assert.True(config != null, $"found the blueprint config for the queued {order.id}");
+
+        var visual = new BuildingVisual(config!, cell, BlueprintState.PlayerId_DefaultTilePreviews);
+        try
+        {
+            bool withPlanned = visual.SameBuildingAlreadyFinishedInPlace(cell, out var match, false, includePlanned: true);
+            Assert.True(withPlanned, $"includePlanned: true matches the queued {order.id} at {order.cell}");
+            Assert.True(match != null, "the match is non-null, per [NotNullWhen(true)]");
+            Assert.True(match is not BuildingComplete, "the match really is a planned building, not a finished one");
+
+            bool withoutPlanned = visual.SameBuildingAlreadyFinishedInPlace(cell, out _, false, includePlanned: false);
+            Assert.True(!withoutPlanned, "includePlanned: false does NOT match a queued building");
+
+            Log?.Line($"  queued {order.id}@{order.cell}: includePlanned true={withPlanned} false={withoutPlanned}");
+
+            ///and a finished building must still match either way - the fixture has real ones
+            var built = Components.BuildingCompletes.Items
+                .FirstOrDefault(b => b != null && b.Def != null && b.Def.PrefabID == "Tile");
+            if (built != null)
+            {
+                int builtCell = Grid.PosToCell(built.gameObject);
+                var builtConfig = bp.BuildingConfigurations.FirstOrDefault(b => b.BuildingDef?.PrefabID == "Tile");
+                if (builtConfig != null)
+                {
+                    var builtVisual = new BuildingVisual(builtConfig, builtCell, BlueprintState.PlayerId_DefaultTilePreviews);
+                    try
+                    {
+                        Assert.True(builtVisual.SameBuildingAlreadyFinishedInPlace(builtCell, out _, false, includePlanned: false),
+                            "a finished building still matches with includePlanned: false");
+                        Assert.True(builtVisual.SameBuildingAlreadyFinishedInPlace(builtCell, out _, false, includePlanned: true),
+                            "a finished building also matches with includePlanned: true");
+                    }
+                    finally
+                    {
+                        builtVisual.DestroyVisualizer();
+                    }
+                }
+            }
+        }
+        finally
+        {
+            visual.DestroyVisualizer();
+        }
+    }
+
+    // ---- dig-placer preview filter --------------------------------
+
+    private const string NonSolidDigFilterKey = "BLUEPRINTV2_PRESERVEAIRTILES"; // BlueprintCreationFilterKeys (internal)
+
+    /// <summary>
+    /// The dig-placer preview filter: with <c>DIGPLACER</c> blocked, visualizing a blueprint that
+    /// carries dig locations must create no dig visuals; unblocked, it must create them.
+    ///
+    /// Counted by scene objects named <c>BlueprintModDigVisualizer</c> - the name
+    /// <see cref="DigVisual"/> gives its clone - since the visual list itself is private.
+    /// </summary>
+    private static IEnumerator DigPlacerPreviewFilter()
+    {
+        var xy = Grid.CellToXY(AnchorCell);
+
+        ///capture with the non-solid-cells filter on, which is what puts entries in DigLocations
+        var menu = Tools.MultiToolParameterMenu.Instance;
+        Assert.True(menu != null, "MultiToolParameterMenu.Instance exists");
+        var paramsField = typeof(Tools.MultiToolParameterMenu)
+            .GetField("parameters", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        object? savedParams = paramsField.GetValue(menu);
+        paramsField.SetValue(menu, new Dictionary<string, ToolParameterMenu.ToggleState>
+        {
+            { NonSolidDigFilterKey, ToolParameterMenu.ToggleState.On },
+        });
+
+        ///Dig a dedicated patch rather than reusing ground the placement cases touched: those
+        ///leave build orders behind, and a queued building makes the cell non-empty, which is
+        ///exactly what the capture condition rejects. A cell must be non-solid AND empty.
+        var digTl = new Vector2I(xy.x + 4, xy.y - 2);
+        var digBr = new Vector2I(xy.x + 7, xy.y - 3);
+        var patch = new List<int>();
+        for (int x = digTl.x; x <= digBr.x; x++)
+            for (int y = digBr.y; y <= digTl.y; y++)
+            {
+                int c = Grid.XYToCell(x, y);
+                if (Grid.IsValidCell(c))
+                    patch.Add(c);
+            }
+        foreach (int c in patch)
+            if (Grid.IsSolidCell(c))
+                SimMessages.Dig(c, skipEvent: true);
+        float digWaited = 0f;
+        while (patch.Any(Grid.IsSolidCell) && digWaited < 20f)
+        {
+            digWaited += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        Log?.Line($"  dug a {patch.Count}-cell patch; still solid: {patch.Count(Grid.IsSolidCell)}");
+
+        Blueprint bp;
+        try
+        {
+            ///createsSnapshot: true matters. A non-snapshot capture that came out with ONLY dig
+            ///locations - no buildings or notes - has them deliberately cleared
+            ///("clear to not spam quasi empty blueprints", BlueprintState.cs), and a bare dug
+            ///patch is exactly that case.
+            bp = BlueprintState.CreateBlueprint(digTl, digBr, Tools.MultiToolParameterMenu.Instance, createsSnapshot: true);
+            bp.SetRandomSnapshotId();
+        }
+        finally
+        {
+            paramsField.SetValue(menu, savedParams);
+        }
+
+        Log?.Line($"  captured {bp.DigLocations.Count} dig location(s)");
+        Assert.True(bp.DigLocations.Count > 0,
+            "captured at least one dig location (needs non-solid empty cells in the rect)");
+
+        var stateInfo = BlueprintState.CurrentStateInfo();
+        var blocked = stateInfo.BlockedPlacementFilterLayers;
+        bool wasBlocked = blocked.Contains(ToolParameterMenu.FILTERLAYERS.DIGPLACER);
+        var target = new Vector2I(xy.x + 4, xy.y - 2);
+
+        try
+        {
+            blocked.Add(ToolParameterMenu.FILTERLAYERS.DIGPLACER);
+            BlueprintState.VisualizeBlueprint(target, bp);
+            for (int i = 0; i < 5; i++) yield return null;
+            int hidden = CountDigVisualizers();
+            BlueprintState.ClearVisuals();
+            for (int i = 0; i < 3; i++) yield return null;
+
+            blocked.Remove(ToolParameterMenu.FILTERLAYERS.DIGPLACER);
+            BlueprintState.VisualizeBlueprint(target, bp);
+            for (int i = 0; i < 5; i++) yield return null;
+            int shown = CountDigVisualizers();
+            BlueprintState.ClearVisuals();
+            for (int i = 0; i < 3; i++) yield return null;
+
+            Log?.Line($"  dig visualizers: filtered={hidden} unfiltered={shown}");
+            Assert.Equal(0, hidden, "no dig visuals created while DIGPLACER is filtered out");
+            Assert.True(shown > 0, $"dig visuals created when the filter is off ({shown})");
+        }
+        finally
+        {
+            if (wasBlocked)
+                blocked.Add(ToolParameterMenu.FILTERLAYERS.DIGPLACER);
+            else
+                blocked.Remove(ToolParameterMenu.FILTERLAYERS.DIGPLACER);
+            BlueprintState.ClearVisuals();
+        }
+    }
+
+    /// <summary>
+    /// Counts dig visualizers including INACTIVE ones. <see cref="DigVisual"/> calls
+    /// <c>SetActive(IsPlaceable(cell))</c>, and IsPlaceable requires the cell to be solid - you
+    /// dig solid ground - so a visual over an already-dug cell is created but switched off. The
+    /// preview filter controls whether the object is created at all, which is what this measures.
+    /// </summary>
+    private static int CountDigVisualizers() =>
+        UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .Count(tr => tr != null && tr.name == "BlueprintModDigVisualizer");
 
     // ---- placement helper ----------------------------------------
 
