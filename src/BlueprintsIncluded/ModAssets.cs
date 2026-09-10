@@ -35,27 +35,12 @@ internal class ModAssets
 
     public static Color BLUEPRINTS_COLOR_BLUEPRINT_DRAG = new Color32(0, 119, 145, 255);
 
-    public static HashSet<char> BLUEPRINTS_FILE_DISALLOWEDCHARACTERS;
-    public static HashSet<char> BLUEPRINTS_PATH_DISALLOWEDCHARACTERS;
+    // The blueprint file/folder character sets moved to BlueprintData/BlueprintPaths.cs:
+    // reading a static here drags in this type's Color/Sprite initialisers, which cannot run
+    // against the reference-only ./lib assemblies. See that file for the full reasoning.
 
     public static HashSet<string> BLUEPRINTS_AUTOFILE_IGNORE = new();
     public static FileSystemWatcher BLUEPRINTS_AUTOFILE_WATCHER = null!;
-    static ModAssets()
-    {
-        BLUEPRINTS_FILE_DISALLOWEDCHARACTERS = new HashSet<char>();
-        BLUEPRINTS_FILE_DISALLOWEDCHARACTERS.UnionWith(System.IO.Path.GetInvalidFileNameChars());
-
-        BLUEPRINTS_PATH_DISALLOWEDCHARACTERS = new HashSet<char>();
-        BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.UnionWith(Path.GetInvalidFileNameChars());
-        BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.UnionWith(Path.GetInvalidPathChars());
-
-        BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.Remove('/');
-        BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.Remove('\\');
-        BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.Remove(Path.DirectorySeparatorChar);
-        BLUEPRINTS_PATH_DISALLOWEDCHARACTERS.Remove(Path.AltDirectorySeparatorChar);
-
-    }
-
 
     public static GameObject BlueprintSelectionScreenGO = null!;
     public static GameObject BlueprintInfoStateGO = null!;
