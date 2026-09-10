@@ -162,5 +162,8 @@ Open an issue, and please include:
 ## Licence
 
 MIT — see [LICENSE](LICENSE). By contributing you agree your work is licensed
-the same way. Note the mod is distributed under Klei's Mod and UGC guidelines,
-which forbid commercial use.
+the same way.
+
+[NOTICE](NOTICE) carries what LICENSE can't: the attribution chain, the bundled
+third-party components, and Klei's Mod and UGC guidelines — which **forbid
+commercial use** of this mod, on top of the MIT grant.
