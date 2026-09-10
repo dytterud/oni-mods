@@ -135,6 +135,7 @@ internal static class PerfRunner
                  $"(anchor cell for reference: {HarnessCases.AnchorCell} {anchorXY})");
 
         yield return DigRegion(x0, y0, PlacementRowWidth, regionRows, log);
+        LogPreviewPrefabComposition(log);
 
         var cfg = ModConfig();
         bool savedTech = cfg.RequireConstructable_Tech, savedMat = cfg.RequireConstructable_Material;
@@ -273,6 +274,62 @@ internal static class PerfRunner
     }
 
     private static int RowsFor(int n) => (n + PlacementRowWidth - 1) / PlacementRowWidth;
+
+    /// <summary>
+    /// TEMPORARY diagnostic (docs §7, "speeding up object creation" candidates): the raw
+    /// GameObject clone is ~38.5us/call and ~60% of a TileVisual's construction. Unity's
+    /// Instantiate cost scales with component count, child count and Awake/OnEnable work, so dump
+    /// what BuildingDef.BuildingPreview actually carries - both to size up "clone a lighter
+    /// prefab" (lever 2) and to check whether a tile's per-object KBatchedAnimController is doing
+    /// any real rendering or whether CustomTileRenderer's block-tile atlas is (lever 1: if the
+    /// object is only needed as an argument to IsValidPlaceLocation, one shared dummy per def
+    /// could replace N clones). Tile is the sweep's building; ManualGenerator is a non-tile
+    /// comparison. Remove once the levers are settled.
+    /// </summary>
+    private static void LogPreviewPrefabComposition(HarnessLog log)
+    {
+        foreach (string prefabId in new[] { "Tile", "ManualGenerator" })
+        {
+            try
+            {
+                var def = Assets.GetBuildingDef(prefabId);
+                if (def == null)
+                {
+                    log.Line($"  [prefab-diag] {prefabId}: BuildingDef not found");
+                    continue;
+                }
+                log.Line($"  [prefab-diag] {prefabId}: isKAnimTile={def.isKAnimTile} BlockTileAtlas={def.BlockTileAtlas != null} " +
+                         $"SceneLayer={def.SceneLayer} ObjectLayer={def.ObjectLayer} ReplacementLayer={def.ReplacementLayer}");
+                LogPrefabObject(log, prefabId + ".BuildingPreview", def.BuildingPreview);
+            }
+            catch (Exception e)
+            {
+                log.Line($"  [prefab-diag] {prefabId}: threw {e.GetType().Name}: {e.Message}");
+            }
+        }
+    }
+
+    private static void LogPrefabObject(HarnessLog log, string label, GameObject? go)
+    {
+        if (go == null)
+        {
+            log.Line($"  [prefab-diag] {label}: null");
+            return;
+        }
+        var components = go.GetComponents<Component>();
+        int childCount = go.transform.childCount;
+        int descendants = go.GetComponentsInChildren<Transform>(includeInactive: true).Length - 1;
+        int componentsInChildren = go.GetComponentsInChildren<Component>(includeInactive: true).Length;
+        log.Line($"  [prefab-diag] {label}: active={go.activeSelf} components={components.Length} " +
+                 $"directChildren={childCount} descendants={descendants} componentsInHierarchy={componentsInChildren}");
+        log.Line($"  [prefab-diag] {label}: [{string.Join(", ", components.Select(c => c == null ? "<null>" : c.GetType().Name))}]");
+
+        if (go.TryGetComponent<KBatchedAnimController>(out var kbac))
+            log.Line($"  [prefab-diag] {label}: kbac enabled={kbac.enabled} visibilityType={kbac.visibilityType} " +
+                     $"animFiles={(kbac.AnimFiles == null ? -1 : kbac.AnimFiles.Length)} initialAnim={kbac.initialAnim}");
+        else
+            log.Line($"  [prefab-diag] {label}: no KBatchedAnimController");
+    }
 
     // Correctness check for "use" - it reported plausible-looking timings even while every call
     // was silently failing (see DigRegion's Grid.Reveal comment), so count real output instead of

@@ -352,6 +352,62 @@ recommended.** `BuildingDef.Instantiate` (`use`, 140.5 µs/call, 91% of `TryUse`
 overload and was never double-counted, but pooling doesn't apply to it at all: a committed build
 order's `GameObject` is real, persistent state.
 
+### Candidate levers for the object-creation cost
+
+Pooling (above) is only one way to attack the clone. Unity's `Instantiate` cost scales with the
+prefab's component count, child count and `Awake`/`OnEnable` work, so these are the other angles.
+**Only lever 1 has been tested so far**; the rest are recorded here to be picked up later.
+
+| # | Lever | Idea | Status |
+|---|---|---|---|
+| 1 | Don't clone a `GameObject` per tile | See the prefab dump below — **confirmed: a tile's preview clone renders nothing.** Most promising lever. | **confirmed, not yet implemented** |
+| 2 | Clone a lighter prefab | Largely subsumed by lever 1 for tiles (`Tile.BuildingPreview` is already only 7 components, no children). May still apply to non-tiles — `ManualGenerator.BuildingPreview` carries 10 including `BuildingCellVisualizer` and `LogicPorts`. | low priority |
+| 3 | Spread creation across frames | Doesn't reduce total cost, but turns a ~177 ms hitch into invisible background work. Arguably what actually matters for a hover preview. Lowest risk of the five. | not started |
+| 4 | Instantiate inactive, configure, activate once | **Already in effect** — the dump shows `active=False` on both preview prefabs, so `Awake`/`OnEnable` are deferred until `BuildingVisual`'s `SetActive(true)`. Nothing to gain. | closed |
+| 5 | Cull off-screen buildings | Most of a 2000-building preview is off-camera. Biggest theoretical win, but **blocked**: `UseBlueprint` places by iterating `FoundationVisuals`/`DependentVisuals`, so placement is coupled to visuals existing — culling would silently place fewer buildings. Decoupling placement from the visual list has to come first. | blocked |
+
+Unrelated aside found while checking these: `Config.AutoPreviewCuttoff` (default 2000) gates the
+*selection-screen thumbnail* (`BlueprintPreviewScreen`), not the in-world hover preview — but it
+establishes the precedent that this mod already degrades gracefully above a building-count
+threshold rather than doing the expensive thing.
+
+**Lever 1, tested — a tile's preview clone renders nothing.** Dumped what
+`BuildingDef.BuildingPreview` actually carries (temporary `[prefab-diag]` logging in `PerfRunner`):
+
+```
+Tile:            isKAnimTile=True BlockTileAtlas=True SceneLayer=TileMain ObjectLayer=Building ReplacementLayer=ReplacementTile
+Tile.BuildingPreview:            active=False components=7  directChildren=0 descendants=0
+  [Transform, KPrefabID, KSelectable, StateMachineController, PrimaryElement, BuildingPreview, BuildingFacade]
+  no KBatchedAnimController
+ManualGenerator.BuildingPreview: active=False components=10 directChildren=0 descendants=0
+  [Transform, KPrefabID, KSelectable, StateMachineController, PrimaryElement, BuildingPreview,
+   KBatchedAnimController, BuildingFacade, BuildingCellVisualizer, LogicPorts]
+  kbac enabled=True visibilityType=Default animFiles=1 initialAnim=place
+```
+
+A tile's preview has **no `KBatchedAnimController`**, so `BuildingVisual`'s ctor takes the `else`
+branch (`SetLayerRecursively`) and never sets up or plays an anim — the earlier worry that
+`kbac.Play("place")` runs for tiles too was wrong, that path is non-tile only. None of the seven
+components a tile preview *does* carry render anything: the visible art comes entirely from
+`CustomTileRenderer`'s block-tile atlas (~1.7 µs/call), while the 38.5 µs clone is a
+**non-rendering token object**, needed only to be passed as the `source` argument to
+`BuildingDef.IsValidPlaceLocation`/`TryReplaceTile`, positioned, and destroyed.
+
+That makes a **shared dummy per `BuildingDef`** more attractive than pooling: the same ~43%
+ceiling on `visualize`, but instead of restructuring the visual lifecycle it only changes how
+`Visualizer` is obtained plus not destroying it — and it's naturally scoped to tiles, which are
+the bulk of most large blueprints. Verify before implementing:
+
+1. Does `IsValidPlaceLocation(source, cell, …)` read the source's *transform position*, or only the
+   explicit `cell`? (Likely the latter — `source` is probably just "exclude myself from occupancy" —
+   but a shared dummy can only be at one position at a time, so this is the load-bearing question.)
+2. `ApplyAdditionalBuildingData(Visualizer, …)` *writes* onto the object in the ctor; with a shared
+   instance that becomes last-write-wins. Skip it, or confirm it's meaningless for a non-rendering
+   tile preview.
+3. `DestroyVisualizer` must not destroy a shared instance.
+4. Multiplayer shares `FoundationVisuals` per player — the dummy may need to be per-`(def, playerId)`
+   rather than per-`def`.
+
 The instrumentation also caught a real (if smaller) redundancy: `TileVisual.UpdateGrid` unregisters
 and re-registers a tile's mesh block (`CustomTileRenderer.AddTileBlock`/`RefreshCell`) on *every*
 forced redraw, even when the tile hasn't actually moved. Fixed in
