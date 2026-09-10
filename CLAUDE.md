@@ -3,9 +3,11 @@
 Oxygen Not Included game mod, C# / `netstandard2.1`. Standalone fork of Blueprints
 Expanded (`BlueprintsV2`) by SGT_Imalas. C# root namespace is still `BlueprintsV2`;
 mod `staticID` / `AssemblyName` is `BlueprintsIncluded` (ONI treats it as its own mod).
-History was squashed, so there is no merge-base with upstream — porting an upstream fix follows
+History was squashed, so there is no merge-base with upstream — porting an upstream change follows
 [docs/upstream-sync.md](docs/upstream-sync.md), which a daily scheduled task also uses to open
-`upstream-sync` issues for fixes landing in upstream `BlueprintsV2/` or `UtilLibs/`.
+`upstream-sync` issues. It watches two streams: commits touching upstream `BlueprintsV2/` or
+`UtilLibs/`, and BlueprintsV2 bug reports filed upstream. Never judge an upstream change from its
+diff alone — read its issue and commit message for intent first.
 
 ## Build & test
 

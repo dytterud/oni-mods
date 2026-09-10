@@ -1,8 +1,9 @@
-﻿# Upstream sync — porting BlueprintsV2 fixes
+﻿# Upstream sync — tracking BlueprintsV2 upstream
 
 This mod is a standalone fork of **Blueprints Expanded** by SGT_Imalas. Upstream keeps
-developing, and bug fixes that land there are not visible here unless someone looks. This
-document is the procedure for finding them, and it is what the
+developing, and nothing that happens there is visible here unless someone looks — not the fixes
+and features that land as commits, and not the bugs reported against it that this fork shares.
+This document is the procedure for finding both, and it is what the
 `upstream-blueprintsv2-sync` scheduled task follows on each run.
 
 ## Upstream coordinates
