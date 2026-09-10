@@ -1,12 +1,13 @@
-# Pruned `UtilLibs` files
+﻿# Pruned `UtilLibs` files
 
 `src/UtilLibs/` is a vendored copy of SGT_Imalas' shared helper library, ILRepacked into the
 mod dll. It serves *every* Imalas ONI mod, so most of it was machinery this fork never called.
-On 2026-09-10 the unreachable part was removed: **92 `.cs` files, ~14,100 lines**, taking the
-library from 127 files to 35.
+On 2026-09-10 the unreachable part — the bulk of the library — was removed.
 
-This file is the record of what went, and it is the list the
-[upstream sync](upstream-sync.md) checks before triaging a `UtilLibs` commit.
+The file list below is the record of what went, and it is what the
+[upstream sync](upstream-sync.md) checks before triaging a `UtilLibs` commit. It is
+deliberately not summarised as a count: a count goes stale the moment one more file is
+pruned or restored, and the list is the thing that has to be right.
 
 ## Why this is not a new judgement
 
@@ -82,7 +83,7 @@ Paths are fork-relative with forward slashes. An upstream-form path
 grep -F "UtilLibs/RecipeBuilder.cs" docs/utillibs-pruned.md
 ```
 
-### MarkdownExport/ (22)
+### MarkdownExport/
 
     src/UtilLibs/MarkdownExport/Exporter.cs
     src/UtilLibs/MarkdownExport/IMD_Entry.cs
@@ -107,7 +108,7 @@ grep -F "UtilLibs/RecipeBuilder.cs" docs/utillibs-pruned.md
     src/UtilLibs/MarkdownExport/MD_TagsTable.cs
     src/UtilLibs/MarkdownExport/MD_Text.cs
 
-### Unity_UI_Extensions/ (12)
+### Unity_UI_Extensions/
 
     src/UtilLibs/UI/FUI/Unity_UI_Extensions/LICENSE.md
     src/UtilLibs/UI/FUI/Unity_UI_Extensions/Scripts/Animation/CoroutineTween.cs
@@ -122,7 +123,7 @@ grep -F "UtilLibs/RecipeBuilder.cs" docs/utillibs-pruned.md
     src/UtilLibs/UI/FUI/Unity_UI_Extensions/Scripts/Utilities/MinMaxValues.cs
     src/UtilLibs/UI/FUI/Unity_UI_Extensions/Scripts/Utilities/ObjectPool.cs
 
-### BuildingPortUtils/ (10)
+### BuildingPortUtils/
 
     src/UtilLibs/BuildingPortUtils/ConduitDisplayPortPatching.cs
     src/UtilLibs/BuildingPortUtils/DisplayConduitPortInfo.cs
@@ -135,7 +136,7 @@ grep -F "UtilLibs/RecipeBuilder.cs" docs/utillibs-pruned.md
     src/UtilLibs/BuildingPortUtils/PortDisplayOutput.cs
     src/UtilLibs/BuildingPortUtils/SharedConduitUtils.cs
 
-### SharedTweaks/ (9)
+### SharedTweaks/
 
     src/UtilLibs/SharedTweaks/AttachmentPointTagNameFix.cs
     src/UtilLibs/SharedTweaks/DynamicMaterialSelectorHeaderHeight.cs
@@ -147,7 +148,7 @@ grep -F "UtilLibs/RecipeBuilder.cs" docs/utillibs-pruned.md
     src/UtilLibs/SharedTweaks/SkillsWidgetBetterConnectionLines.cs
     src/UtilLibs/SharedTweaks/TranslationFix.cs
 
-### ModVersionCheck/ and Updating/ (9)
+### ModVersionCheck/ and Updating/
 
     src/UtilLibs/ModVersionCheck/ModUpdatingState.cs
     src/UtilLibs/ModVersionCheck/OutdatedVersionInfoPatches.cs
@@ -159,28 +160,28 @@ grep -F "UtilLibs/RecipeBuilder.cs" docs/utillibs-pruned.md
     src/UtilLibs/Updating/VersionCheck.cs
     src/UtilLibs/Updating/WebRequestHelper.cs
 
-### ElementUtilNamespace/ (3)
+### ElementUtilNamespace/
 
     src/UtilLibs/ElementUtilNamespace/ElementGrouping.cs
     src/UtilLibs/ElementUtilNamespace/ElementInfo.cs
     src/UtilLibs/ElementUtilNamespace/ElementUtil.cs
 
-### UI/FUI/ (2)
+### UI/FUI/
 
     src/UtilLibs/UI/FUI/ModMenuButton.cs
     src/UtilLibs/UI/FUI/SideScreen.cs
 
-### YeetUtils/ (2)
+### YeetUtils/
 
     src/UtilLibs/YeetUtils/Rotator.cs
     src/UtilLibs/YeetUtils/YeetHelper.cs
 
-### ModSyncing/ and SharedModConfigMenu/ (2)
+### ModSyncing/ and SharedModConfigMenu/
 
     src/UtilLibs/ModSyncing/ModSyncUtils.cs
     src/UtilLibs/SharedModConfigMenu/OptionRegistry.cs
 
-### Root-level helpers (22)
+### Root-level helpers
 
     src/UtilLibs/AccessibilityUtils.cs
     src/UtilLibs/ArtHelper.cs
@@ -207,7 +208,7 @@ grep -F "UtilLibs/RecipeBuilder.cs" docs/utillibs-pruned.md
 
 ## What survived
 
-For orientation, the 35 files still in `src/UtilLibs/`: the FUI widget wrappers actually used
+For orientation, what still lives in `src/UtilLibs/`: the FUI widget wrappers actually used
 by this mod's screens, `AssetUtils`, `IO_Utils`, `UIUtils`, `UtilMethods`, `Extensions`,
 `SgtLogger`, `LocalisationUtil`, `GameStrings`, `InjectionMethods`,
 `ModHashes`, `DialogUtil`, `CompatibilityNotifications`, the TMP conversion helpers,

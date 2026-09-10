@@ -43,7 +43,7 @@ upstream HEAD:
 - **Assets** — 39/39 PNGs identical; only the three `blueprints_ui` bundles differ, same reason.
 - **`UtilLibs`** — 125/129 identical, **0 missing** *at the time of the backfill*. The four:
   two post-fork commits already triaged, `UtilLibs.csproj` (this fork's build config), and
-  `UtilMethods.cs` (see below). **92 of those files were later pruned deliberately** — see
+  `UtilMethods.cs` (see below). **Most of those files were later pruned deliberately** — see
   [pruned `UtilLibs` files](utillibs-pruned.md). A re-run of this comparison will therefore
   report them absent; that is the prune, not an incomplete import. Because none of the four
   divergent files were pruned, every pruned file was byte-identical to upstream when it went.
@@ -195,8 +195,9 @@ this repo's history.
 **One hop is a deliberate heuristic.** It is cheap and catches the common case, but it can
 under-report a fix buried deeper in a `UtilLibs` internal call chain. A false `unused-helper` is
 the one failure mode that silently loses a fix, so when a commit looks important and the
-reachability call is close, prefer opening the issue. The prune helps here: with 92 fewer files
-in `src/UtilLibs/`, there is far less internal chain left for a fix to hide behind.
+reachability call is close, prefer opening the issue. The prune helps here: `src/UtilLibs/` is
+now a fraction of its former size, so there is far less internal chain left for a fix to hide
+behind.
 
 ## Porting characteristics
 
