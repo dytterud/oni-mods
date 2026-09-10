@@ -41,7 +41,7 @@ internal static class PerfRunner
         {
             try
             {
-                PerfInstrumentation.Apply(HarnessGate.HarmonyInstance);
+                PerfInstrumentation.Apply(HarnessGate.HarmonyInstance, log);
             }
             catch (Exception e)
             {
@@ -65,14 +65,13 @@ internal static class PerfRunner
                 () => RunFullImport(json));
         }
 
-        var gvm = PerfInstrumentation.GetValidMaterialsSnapshot();
-        var sst = PerfInstrumentation.SanitizeSelectedTagsSnapshot();
-        log.Line($"  GetValidMaterials: {gvm.Calls} calls, {gvm.TotalMs:F1}ms total, {gvm.AvgUsPerCall:F1}us/call");
-        log.Line($"  SanitizeSelectedTags: {sst.Calls} calls, {sst.TotalMs:F1}ms total, {sst.AvgUsPerCall:F1}us/call");
-
         yield return RunPlacementSweep(report, log);
 
-        PerfWriter.Write(HarnessGate.PerfPath, report, gvm, sst);
+        var hotspots = PerfInstrumentation.SnapshotAll();
+        foreach (var (name, snap) in hotspots)
+            log.Line($"  {name}: {snap.Calls} calls, {snap.TotalMs:F1}ms total, {snap.AvgUsPerCall:F1}us/call");
+
+        PerfWriter.Write(HarnessGate.PerfPath, report, hotspots);
         log.Line($"wrote {HarnessGate.PerfPath}");
     }
 
@@ -141,8 +140,11 @@ internal static class PerfRunner
                     {
                         origin = new Vector2I(x0, y0 + rowCursor);
                         rowCursor += rows;
+                        // VisualizeBlueprint already calls UpdateVisual(forcingRedraw: true) at
+                        // its own end - an extra explicit call here was redundant (instrumentation
+                        // caught it: doubled the AddTileBlock/RefreshCell/GetVisualizerColor call
+                        // counts for every use draw with no effect on the placed result).
                         BlueprintState.VisualizeBlueprint(origin, bp);
-                        BlueprintState.UpdateVisual(BlueprintState.PlayerId_DefaultTilePreviews, origin, forcingRedraw: true, bp);
                     },
                     body: () => BlueprintState.UseBlueprint(BlueprintState.PlayerId_DefaultTilePreviews, origin, bp));
                 BlueprintState.ClearVisuals();

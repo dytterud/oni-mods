@@ -249,9 +249,7 @@ colony) and reuses `HarnessCases.PlaceAt`'s dig-then-poll-until-clear pattern. T
   construction-cancel path, and harmless since the sim stays paused for the whole run and the
   process quits without saving.
 
-Wall-clock only for this pass, same as import's first pass — no hotspot instrumentation yet
-(added once real numbers show where a `visualize`/`use` gap points), no rotation, no cleanup of
-the committed build orders.
+No rotation, no cleanup of the committed build orders.
 
 **Finding (one real run, one machine — see limits below):** the dug region needed no fallback —
 all 10,800 cells were valid and dug/clear in 0.2s on the first try. The two operations scale very
@@ -269,12 +267,42 @@ Both are linear in N, but at very different rates: `visualize` costs roughly **1
 commits the real build order) is **~15× cheaper per building** than `visualize`
 (`VisualizeBlueprint`, which builds the hover-preview `GameObject`). That's the opposite of what
 import found (there, the *cheap-looking* operation hid the real cost) — here the expensive part is
-plainly the one that instantiates + colors + anim-configures a preview object per building
-(`BuildingVisual`'s constructor: `GameUtil.KInstantiate`, `KBatchedAnimController` setup,
-`ApplyColorIfChanged`/`GetVisualizerColor`), not the one that commits it. Not chased further this
-pass (wall-clock only, per scope above) — Harmony-instrumenting `BuildingVisual`'s constructor and
-`GetVisualizerColor` would be the natural next step if this needs to get faster, the same way
-`GetValidMaterials` was pulled out of `SanitizeSelectedTags`'s wall-clock number for import.
+plainly the one that instantiates + colors + anim-configures a preview object per building, not
+the one that commits it.
+
+**Instrumented follow-up.** `PerfInstrumentation` gained a generic patch-by-name mechanism (one
+prefix/postfix pair looks up the accumulator via `__originalMethod`, so adding a hotspot candidate
+is one `PatchOne`/`PatchAllOverloads` call, not a new method) and patched `TileVisual`'s
+constructor plus the pieces it calls: `GameUtil.KInstantiate`, `CustomTileRenderer.AddTileBlock`/
+`RefreshCell`, `BuildingVisual.GetVisualizerColor`, `VisualsUtilities.SetTileColor`,
+`UpdateRequirementsState`, `ApplyAdditionalBuildingData`. Result: **`TileVisual`'s constructor is
+essentially all of `visualize`'s cost, and `GameUtil.KInstantiate` (Unity's real GameObject
+instantiation) is ~90% of the constructor** (2005–2185 ms of ~2220–2306 ms total across the whole
+sweep) — unlike `GetValidMaterials`, this isn't a redundant computation to cache; it's genuine
+per-building object creation.
+
+The instrumentation also caught a real (if smaller) redundancy: `TileVisual.UpdateGrid` unregisters
+and re-registers a tile's mesh block (`CustomTileRenderer.AddTileBlock`/`RefreshCell`) on *every*
+forced redraw, even when the tile hasn't actually moved. Fixed in
+[`TileVisual.cs`](../src/BlueprintsIncluded/Visualizers/TileVisual.cs) by skipping that cycle when
+already seated at the same cell. **Measured impact: negligible** (`visualize` N=2000: 164.8 ms →
+162.9 ms, noise-level) — the default `BottomCenter` blueprint anchor shifts every building's X
+position by half the blueprint's width on the very first post-construction redraw
+(`VisualizeBlueprint` places each building once at its raw offset, then immediately corrects every
+one of them via its own trailing `UpdateVisual(forcingRedraw: true)` call), so the "same cell" case
+essentially never triggers in this benchmark. Most of the modest `AddTileBlock`/`RefreshCell`
+call-count drop actually came from removing a redundant duplicate `UpdateVisual` call the harness's
+own `use`-sweep setup had been making (`PerfRunner.cs`), not from the production fix. Kept anyway —
+harmless, strictly correct, and would help other anchor states (`BottomLeft`/`TopLeft`, shift = 0)
+or a plain same-position force-redraw.
+
+Regression suite re-verified 6/6 green. Two real options identified but **not attempted this
+pass** (tracked as a follow-up task, not started): restructure `VisualizeBlueprint` to compute each
+building's final anchor-shifted/rotated cell *before* construction instead of placing-then-
+correcting (touches `BlueprintState.cs`'s shared placement math — foundation and dependent
+visuals, tiles and non-tiles, snapshots and normal blueprints); or object-pool the visualizer
+`GameObject`s so redraws reuse existing previews instead of destroy+recreate every
+`VisualizeBlueprint` call (bigger architectural change, addresses `KInstantiate` directly).
 
 ## 8. Decision checklist
 

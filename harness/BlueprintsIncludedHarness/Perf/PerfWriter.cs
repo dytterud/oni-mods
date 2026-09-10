@@ -20,8 +20,7 @@ internal sealed class PerfReport
 internal static class PerfWriter
 {
     public static void Write(string path, PerfReport report,
-        PerfInstrumentation.Accumulator.Snapshot getValidMaterials,
-        PerfInstrumentation.Accumulator.Snapshot sanitizeSelectedTags)
+        IReadOnlyList<(string Name, PerfInstrumentation.Accumulator.Snapshot Snap)> hotspotSnapshots)
     {
         var operations = new JArray();
         foreach (var opGroup in report.Results.GroupBy(r => r.Op))
@@ -41,11 +40,9 @@ internal static class PerfWriter
             operations.Add(new JObject { ["name"] = opGroup.Key, ["results"] = results });
         }
 
-        var hotspots = new JArray
-        {
-            HotspotJson("GetValidMaterials", getValidMaterials),
-            HotspotJson("SanitizeSelectedTags", sanitizeSelectedTags),
-        };
+        var hotspots = new JArray();
+        foreach (var (name, snap) in hotspotSnapshots)
+            hotspots.Add(HotspotJson(name, snap));
 
         var root = new JObject { ["operations"] = operations, ["hotspots"] = hotspots };
         System.IO.File.WriteAllText(path, root.ToString());

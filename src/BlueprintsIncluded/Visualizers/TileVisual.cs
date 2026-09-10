@@ -115,6 +115,15 @@ public class TileVisual : BuildingVisual, ICleanableVisual
     }
     private void UpdateGrid(int cellParam)
     {
+        if (seated && DirtyCell == cellParam)
+        {
+            // Already correctly registered at this exact cell - a forced redraw that didn't
+            // actually move this tile (e.g. VisualizeBlueprint's own post-placement redraw, or
+            // a rotation that doesn't affect this particular tile) shouldn't pay for an
+            // unregister-then-re-register cycle through Clean()/AddTileBlock/RefreshCell. Perf
+            // harness measured this as a real chunk of visualize's cost - see docs §7.
+            return;
+        }
         Clean();
         if (seated)
             return;

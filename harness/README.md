@@ -70,7 +70,7 @@ diagnose a hang.
 | `Assert.cs` / `JUnitWriter.cs` | tiny assertion + JUnit report helpers |
 | `Perf/SyntheticBlueprint.cs` | builds an N-building blueprint in code - `Build` (in-memory, used by placement-perf) and `BuildJson` (serialized, used by import-perf) |
 | `Perf/PerfRunner.cs` | warmup + timed iterations per (operation, size): `deserialize`/`full-import` (import) and `visualize`/`use` (placement, real `GameObject`s + a once-dug region) |
-| `Perf/PerfInstrumentation.cs` | manual Harmony patches on `BuildingConfig.SanitizeSelectedTags` / `ModAssets.GetValidMaterials` — call-count + cumulative-time hotspot attribution |
+| `Perf/PerfInstrumentation.cs` | generic manual-Harmony-patch registry (patch by name, one prefix/postfix pair) for call-count + cumulative-time hotspot attribution — import (`GetValidMaterials`/`SanitizeSelectedTags`) and placement (`TileVisual` ctor, `KInstantiate`, tile-block registration, coloring) targets |
 | `Perf/PerfWriter.cs` | writes `perf.json` |
 
 ## Adding a regression case
