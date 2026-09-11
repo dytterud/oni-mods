@@ -190,7 +190,10 @@ tree, and what porting it would cost here. "Upstream added a thing" is not enoug
   `UtilLibs` serves every Imalas mod, so "flag everything" there would be mostly noise about
   helpers this mod never calls. The flag-everything rule is specific to `BlueprintsV2/`.
 - **Changes this fork deliberately diverged past** — the nullable migration, the
-  `GetValidMaterials` caching, the repo restructure. Say so in the verdict.
+  `GetValidMaterials` caching, the repo restructure, and the `SgtLogger.debuglog(object, …)`
+  operator-precedence fix (`SgtLogger.cs` is otherwise byte-identical to upstream, so a diff
+  against it will flag this one hunk; it is covered by `SgtLoggerTests` here and should not be
+  reverted to upstream's expression). Say so in the verdict.
 
 Record a verdict for *every* commit scanned, including skips, so it is never re-triaged.
 

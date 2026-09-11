@@ -276,7 +276,11 @@ internal class CustomTileRenderer : BlockTileRenderer
                 bits |= Bits.Up;
             }
 
-            if (x < Grid.WidthInCells + 1 && MatchesDefVis(cellAbove + 1, def))
+            ///- 1, not + 1: x never reaches WidthInCells, so a "+ 1" guard is always true and the
+            ///rightmost column would look one cell past the end of the row above - which is the
+            ///first cell of the row after that, making an edge tile connect to an unrelated tile on
+            ///the far left. Every other diagonal/horizontal guard here already uses - 1.
+            if (x < Grid.WidthInCells - 1 && MatchesDefVis(cellAbove + 1, def))
             {
                 bits |= Bits.UpRight;
             }
