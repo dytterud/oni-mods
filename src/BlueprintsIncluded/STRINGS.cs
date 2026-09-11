@@ -177,6 +177,7 @@ public class STRINGS
                 public class APPLYSTOREDSETTINGS
                 {
                     public static LocString LABEL = "Apply stored building settings on place:";
+                    public static LocString TOOLTIP = "Placed buildings receive the additional settings stored in the blueprint, such as filters, priorities and conduit connections.\nDisable to build with each building's default settings instead.";
                 }
                 public class PRIORITYOVERRIDE
                 {
@@ -187,6 +188,7 @@ public class STRINGS
                 {
                     //public static LocString LABEL = "Rebuild existing with mismatched material:";
                     public static LocString LABEL = "Force build over existing buildings:";
+                    public static LocString TOOLTIP = "Replaces an existing finished building of the same type with one built from the blueprint's specified material, if it differs from what's already there.";
                 }
                 public class FORCETRANSFORMATIONTOGGLE
                 {
