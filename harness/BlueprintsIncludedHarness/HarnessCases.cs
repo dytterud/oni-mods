@@ -74,6 +74,7 @@ internal static class HarnessCases
         new HarnessCase("note-visibility-toggle-hides-notes", NoteVisibilityToggle),
         new HarnessCase("planned-buildings-match-for-data-transfer", PlannedBuildingMatch),
         new HarnessCase("dig-placer-preview-filter-hides-digs", DigPlacerPreviewFilter),
+        new HarnessCase("conduit-flags-ignore-captured-orientation", ConduitFlagsIgnoreCapturedOrientation),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -605,6 +606,148 @@ internal static class HarnessCases
     private static int CountDigVisualizers() =>
         UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None)
             .Count(tr => tr != null && tr.name == "BlueprintModDigVisualizer");
+
+    // ---- conduit rotation (issue #4) ------------------------------
+
+    /// <summary>
+    /// Issue #4: <c>BuildingVisual.GetRotatedUtilityConnectionFlags</c> used to shift the stored
+    /// <c>UtilityConnections</c> mask by <c>capturedOrientation - blueprintRotation</c>. The stored
+    /// flags are world-space (captured per grid cell), so the captured building's own facing must
+    /// not enter it — an unrotated blueprint has to hand the mask back untouched.
+    ///
+    /// <para>This does two things a unit test can't. First it establishes <b>reachability</b>: the
+    /// bad term only bites when a building carrying conduit flags is captured non-Neutral, and it
+    /// is not obvious from the code that any such building exists — <c>VisualizerType.UTILITY</c>
+    /// requires <c>IsTilePiece</c>, and tile pieces are not rotatable. The def sweep below settles
+    /// that against the real catalogue and logs it either way.</para>
+    ///
+    /// <para>Second, when a candidate does exist it drives the whole pipeline: a synthetic blueprint
+    /// carrying that def at R90 with known flags, placed unrotated, then reads the connections back
+    /// off the object placement actually produced. That is the end-to-end claim the PR rests on.</para>
+    /// </summary>
+    private static IEnumerator ConduitFlagsIgnoreCapturedOrientation()
+    {
+        ///Reachability sweep: which utility-flag-carrying defs can be rotated at all?
+        var utilityDefs = Assets.BuildingDefs
+            .Where(d => d?.BuildingComplete != null
+                        && d.BuildingComplete.GetComponent<IHaveUtilityNetworkMgr>() != null)
+            .ToList();
+
+        var rotatable = utilityDefs
+            .Where(d => d.PermittedRotations != PermittedRotations.Unrotatable)
+            .ToList();
+
+        Log?.Line($"  utility defs (IHaveUtilityNetworkMgr): {utilityDefs.Count}");
+        Log?.Line($"  of those, rotatable: {rotatable.Count}");
+        foreach (var d in rotatable.Take(15))
+            Log?.Line($"    {d.PrefabID}: rotations={d.PermittedRotations} tilePiece={d.IsTilePiece} " +
+                      $"kAnimTile={d.isKAnimTile}");
+
+        if (rotatable.Count == 0)
+        {
+            ///Not a failure: it means the removed term was dead code rather than a live bug, which
+            ///is exactly what this run exists to find out. Reported so the PR can say so honestly.
+            Log?.Line("  REACHABILITY: no rotatable utility def exists — the captured-orientation " +
+                      "term could never fire in a real colony.");
+            yield break;
+        }
+
+        ///UpdateConduitConnectionBits writes through a KAnimGraphTileVisualizer, so only a def whose
+        ///prefab carries one can actually have its connections corrupted by the shift. Check the
+        ///prefabs directly rather than placing one and hoping.
+        var withTileVis = rotatable
+            .Where(d => d.BuildingComplete.GetComponent<KAnimGraphTileVisualizer>() != null
+                        || (d.BuildingPreview != null && d.BuildingPreview.GetComponent<KAnimGraphTileVisualizer>() != null))
+            .ToList();
+
+        Log?.Line($"  rotatable AND carrying a KAnimGraphTileVisualizer: {withTileVis.Count}");
+        foreach (var d in withTileVis)
+            Log?.Line($"    candidate {d.PrefabID}");
+
+        if (withTileVis.Count == 0)
+        {
+            Log?.Line("  REACHABILITY: rotatable utility defs exist, but none carry a " +
+                      "KAnimGraphTileVisualizer — UpdateConduitConnectionBits can never write " +
+                      "connections for a rotatable building, so the captured-orientation term was " +
+                      "dead for that path.");
+            yield break;
+        }
+
+        var def = withTileVis[0];
+        Log?.Line($"  REACHABILITY: reachable — exercising {def.PrefabID}");
+
+        const int storedFlags = (int)(UtilityConnections.Left | UtilityConnections.Right);
+
+        var bp = new Blueprint("ConduitRotationProbe", "");
+        var bc = new BuildingConfig
+        {
+            Offset = new Vector2I(0, 0),
+            BuildingDef = def,
+            BuildingDefId = def.PrefabID,
+            ///the term under test: a building captured facing R90
+            Orientation = Orientation.R90,
+        };
+        foreach (var tag in FixtureBuilder.SelectElements(def))
+            bc.SelectedElements.Add(tag);
+        SetConduitFlags(bc, storedFlags);
+        bp.BuildingConfigurations.Add(bc);
+        bp.CacheCost();
+
+        Assert.True(TryGetConduitFlags(bc, out int roundTripped), "synthetic config carries conduit flags");
+        Assert.Equal(storedFlags, roundTripped, "synthetic config's stored flags");
+
+        var xy = Grid.CellToXY(AnchorCell);
+        var target = new Vector2I(xy.x + 14, xy.y - 6);
+        var result = new PlacementResult();
+        yield return PlaceAt(bp, target, rotateSteps: 0, result);
+
+        Log?.Line($"  placed {result.Orders.Count} order(s), {result.Finished.Count} finished");
+        foreach (var (id, cell) in result.Orders)
+            Log?.Line($"    order {id}@{cell}");
+
+        var placedCell = result.Orders
+            .Concat(result.Finished.Select(f => (id: f.id, cell: f.cell)))
+            .Where(o => o.id == def.PrefabID)
+            .Select(o => (Vector2I?)o.cell)
+            .FirstOrDefault();
+
+        Assert.True(placedCell != null, $"placement produced a {def.PrefabID}");
+
+        int cellIndex = Grid.XYToCell(placedCell!.Value.x, placedCell.Value.y);
+        var visualizer = UnityEngine.Object
+            .FindObjectsByType<KAnimGraphTileVisualizer>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(v => v != null && Grid.PosToCell(v.transform.GetPosition()) == cellIndex);
+
+        if (visualizer == null)
+        {
+            ///UpdateConduitConnectionBits only writes through a KAnimGraphTileVisualizer. Without
+            ///one there is nothing for the shift to corrupt on this def, which is again a
+            ///reachability finding rather than a failure.
+            Log?.Line($"  REACHABILITY: {def.PrefabID} placed without a KAnimGraphTileVisualizer — " +
+                      "UpdateConduitConnectionBits cannot write connections for it.");
+            yield break;
+        }
+
+        int actual = (int)visualizer.Connections;
+        Log?.Line($"  connections: stored={storedFlags} onPlacedObject={actual}");
+        Assert.Equal(storedFlags, actual,
+            "an unrotated blueprint places the stored world-space connections unshifted");
+    }
+
+    private static void SetConduitFlags(BuildingConfig bc, int flags) =>
+        typeof(BuildingConfig)
+            .GetMethod("SetConduitFlags", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(bc, new object[] { flags });
+
+    private static bool TryGetConduitFlags(BuildingConfig bc, out int flags)
+    {
+        var args = new object[] { 0 };
+        bool ok = (bool)typeof(BuildingConfig)
+            .GetMethod("GetConduitFlags", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(bc, args)!;
+        flags = (int)args[0];
+        return ok;
+    }
 
     // ---- placement helper ----------------------------------------
 
