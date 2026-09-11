@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -6,6 +6,7 @@ using System.Reflection;
 using BlueprintsV2.BlueprintData;
 using BlueprintsV2.Visualizers;
 using HarmonyLib;
+using UnityEngine;
 
 namespace BlueprintsV2.Harness.Perf;
 
@@ -83,6 +84,90 @@ internal static class PerfInstrumentation
             TryPatchOne(harmony, log, "GetAdditionalBuildingData", () => AccessTools.Method(apiMethodsType, "GetAdditionalBuildingData"));
         }
         TryPatchAllOverloads(harmony, log, "NaturalBuildingCell", typeof(GameUtil));
+
+        // UpdateBlueprintButtons uses this as a LINQ OrderBy key selector for its date sorts, so
+        // it runs once per blueprint per listing - it is the O(n) half of what used to make that
+        // listing O(n²). Public type, so no name lookup needed.
+        TryPatchOne(harmony, log, "GetBlueprintIndex",
+            () => AccessTools.Method(typeof(BlueprintFolder), nameof(BlueprintFolder.GetBlueprintIndex)));
+
+        // Selection-screen open hotspots (docs §7), all reached by name for the same reason as
+        // ModAssets above - BlueprintSelectionScreen, BlueprintPreviewScreen and the Vis_*
+        // previews are internal types. These names are unique to the dialog path (nothing in the
+        // import/placement/create sweeps touches them), so their run totals need no separating out.
+        TryResolveType("BlueprintsV2.UnityUI.BlueprintSelectionScreen", out var selectionScreenType, log);
+        TryResolveType("BlueprintsV2.UnityUI.BlueprintPreviewScreen", out var previewScreenType, log);
+        TryResolveType("BlueprintsV2.UnityUI.Components.PreviewVisualizers.Vis_BuildingPreview", out var visBuildingType, log);
+        TryResolveType("BlueprintsV2.UnityUI.Components.PreviewVisualizers.Vis_TilePreview", out var visTileType, log);
+
+        if (selectionScreenType != null)
+        {
+            TryPatchOne(harmony, log, "ShowWindow", () => AccessTools.Method(selectionScreenType, "ShowWindow"));
+            TryPatchOne(harmony, log, "ClearUIState", () => AccessTools.Method(selectionScreenType, "ClearUIState"));
+            TryPatchOne(harmony, log, "UpdateBlueprintButtons", () => AccessTools.Method(selectionScreenType, "UpdateBlueprintButtons"));
+            TryPatchOne(harmony, log, "AddOrGetBlueprintEntry", () => AccessTools.Method(selectionScreenType, "AddOrGetBlueprintEntry"));
+            TryPatchOne(harmony, log, "RefreshEntryHighlight", () => AccessTools.Method(selectionScreenType, "RefreshEntryHighlight"));
+            TryPatchOne(harmony, log, "SetMaterialState", () => AccessTools.Method(selectionScreenType, "SetMaterialState"));
+            TryPatchOne(harmony, log, "UpdateBuildingButtons", () => AccessTools.Method(selectionScreenType, "UpdateBuildingButtons"));
+        }
+        if (previewScreenType != null)
+        {
+            TryPatchOne(harmony, log, "LoadBlueprintPreview", () => AccessTools.Method(previewScreenType, "LoadBlueprintPreview"));
+            TryPatchOne(harmony, log, "Preview.ClearExisting", () => AccessTools.Method(previewScreenType, "ClearExisting"));
+            TryPatchOne(harmony, log, "GeneratePreview_Buildings", () => AccessTools.Method(previewScreenType, "GeneratePreview_Buildings"));
+            TryPatchOne(harmony, log, "RefreshVisualizerVisibility", () => AccessTools.Method(previewScreenType, "RefreshVisualizerVisibility"));
+        }
+        // Cold-open ceiling check (docs §7): what fraction of the ~464 us it costs to bring one
+        // FileHierarchyEntry into existence could a pool actually avoid? A pooled row still has to
+        // be rebound - blueprint, label, icon, tooltip, click handlers - so only the clone and the
+        // one-time component construction are addressable. Splitting OnPrefabInit (built once per
+        // row: 5 FButtons, a FToggleButton, 6 tooltips) from OnSpawn (rebound per row) is the
+        // measurement that decides whether pooling is worth a runtime-switchable code path.
+        TryResolveType("BlueprintsV2.UnityUI.Components.FileHierarchyEntry", out var hierarchyEntryType, log);
+        if (hierarchyEntryType != null)
+        {
+            TryPatchOne(harmony, log, "FileHierarchyEntry.OnPrefabInit", () => AccessTools.Method(hierarchyEntryType, "OnPrefabInit"));
+            TryPatchOne(harmony, log, "FileHierarchyEntry.OnSpawn", () => AccessTools.Method(hierarchyEntryType, "OnSpawn"));
+            TryPatchOne(harmony, log, "FileHierarchyEntry.RefreshIcon", () => AccessTools.Method(hierarchyEntryType, "RefreshIcon"));
+        }
+        // Per-overload: the Transform overload forwards to the GameObject one, and a shared
+        // accumulator would count the inner call's time twice - the same trap KInstantiate fell
+        // into above.
+        TryResolveType("UtilLibs.UIUtils", out var uiUtilsType, log);
+        if (uiUtilsType != null)
+            TryPatchEachOverload(harmony, log, "AddSimpleTooltipToObject", uiUtilsType);
+        // The raw UI clone itself. The non-generic overload only: Util.KInstantiateUI<T> is generic,
+        // which Harmony cannot patch as an open definition, and it forwards here anyway. Selected by
+        // hand rather than by parameter types - the generic and non-generic overloads take the same
+        // three parameters, so AccessTools.Method(type, name, types) throws AmbiguousMatchException.
+        TryPatchOne(harmony, log, "KInstantiateUI", () => typeof(Util)
+            .GetMethods(AccessTools.all)
+            .FirstOrDefault(m => m.Name == "KInstantiateUI"
+                && !m.IsGenericMethodDefinition
+                && m.GetParameters().Length == 3));
+
+        // Vis_ConduitPreview.Init overrides Vis_BuildingPreview.Init and calls base, so patching
+        // the base alone is right - patching both would count a conduit's time twice. (Neither
+        // synthetic blueprint contains conduits anyway; this is about not lying if one ever does.)
+        if (visBuildingType != null)
+        {
+            TryPatchOne(harmony, log, "Vis_BuildingPreview.Init", () => AccessTools.Method(visBuildingType, "Init"));
+            // Init only wires the KBatchedAnimController up; the first Play (loading and batching
+            // the anim) happens in OnSpawn, which Unity runs from Start - i.e. on a later frame,
+            // outside the stopwatch around the open. Without this hotspot that cost is invisible in
+            // everything except the -settled numbers.
+            TryPatchOne(harmony, log, "Vis_BuildingPreview.OnSpawn", () => AccessTools.Method(visBuildingType, "OnSpawn"));
+        }
+        if (visTileType != null)
+        {
+            // Pin the parameter list: Vis_TilePreview.Init(BuildingConfig) shadows rather than
+            // overrides the parameterless Vis_SpritePreview.Init() it inherits, and a name-only
+            // lookup resolves to that inherited one - which Harmony then refuses ("you can only
+            // patch implemented methods"), silently leaving the tile branch unattributed.
+            TryPatchOne(harmony, log, "Vis_TilePreview.Init",
+                () => AccessTools.Method(visTileType, "Init", new[] { typeof(BuildingConfig) }));
+            TryPatchOne(harmony, log, "Vis_TilePreview.ConnectAll", () => AccessTools.Method(visTileType, "ConnectAll"));
+        }
 
         // use hotspot candidates (docs §7): now the costlier placement operation (140ms vs
         // visualize's 93.5ms at N=1000) but never broken down the way visualize/create were.

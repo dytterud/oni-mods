@@ -1,4 +1,4 @@
-# Feasibility: automated in-game regression tests
+﻿# Feasibility: automated in-game regression tests
 
 **Status:** built and passing — see [`harness/`](../harness/README.md) and
 [`test/run-ingame.ps1`](../test/run-ingame.ps1). This doc records why it was built and how it works.
@@ -551,6 +551,289 @@ after initial placement under conditions not fully ruled out here. Given the ris
 data loss in a save/restore-adjacent feature) against the payoff (`create` is an occasional dev-tool
 action, not a hot path, and is already ~38% faster from the fix above), left un-implemented.
 
+**Built next: opening the selection screen.** The dialog the Use Blueprint tool puts up, reported
+as slow to open. `SelectionScreenPerf` drives the real `BlueprintSelectionScreen.ShowWindow` (the
+screen, `ModAssets` and the `Vis_*` previews are all internal types, so everything is reached by
+reflection) after swapping the root folder's contents for a synthetic library, and puts the two
+independent pieces of work on their own axes rather than reporting one blended number:
+
+- **the file list** — `UpdateBlueprintButtons` walks the folder and gives every blueprint a
+  `FileHierarchyEntry` GameObject, instantiated on first sight and cached in `BlueprintEntries`.
+  Swept over library size L with the preview suppressed, both **cold** (entry cache emptied first —
+  a session's first open) and **warm** (every open after that).
+- **the preview** — `LoadBlueprintPreview` destroys and rebuilds one GameObject per building in the
+  selected blueprint. Swept over building count N with a fixed 10-blueprint library, for both
+  visualizer branches: `Tile` takes the cheap `Vis_TilePreview` path, `Ladder` (1×1, raw-mineral,
+  `LadderTile` so it misses the tile branch) the `Vis_BuildingPreview` one with a real
+  `KBatchedAnimController` per building.
+
+Which opens draw a preview at all is worth knowing: `ShowingInfoPreview` starts false, so a
+session's *first* open shows none — but both close paths (`OnCloseClicked`, `OnPlaceBlueprint`) set
+it back to true, so **every subsequent open does**. The sweep sets the flag explicitly per case
+rather than relying on that ordering.
+
+`TimeOp` grew a `settleFrames` option for this, reporting a second `…-settled` figure measured
+through the next 3 rendered frames. UI work needs it: a `KMonoBehaviour`'s `OnSpawn` (and with it a
+`KBatchedAnimController`'s first `Play`) runs from Unity's `Start`, i.e. *after* the call that
+instantiated it returned, so a synchronous-only number would credit that work to nobody. The
+`idle-frame` op is the floor to compare against — the same 3 frames with no work in them, **60.0 ms
+here** (~20 ms/frame in this paused colony).
+
+| N / L | `open-list-cold` | `open-list-warm` | `open-preview-tile` | `open-preview-ladder` |
+|---:|---:|---:|---:|---:|
+| 100 / 10 | 6.6 ms | 2.3 ms | 24.1 ms | 37.6 ms |
+| 500 / 50 | 28.8 ms | 7.5 ms | 319.3 ms | 155.6 ms |
+| 1000 / 200 | 119.9 ms | 35.7 ms | 456.5 ms | 328.6 ms |
+| 2000 / 500 | 531.0 ms | 125.7 ms | 699.4 ms | 835.7 ms |
+
+(list columns read against L, preview columns against N; medians, sim paused. Settled figures run
+roughly 60–1400 ms higher — e.g. `open-preview-ladder` N=2000 is 835.7 ms synchronous,
+**2258.0 ms settled**, against the 60.0 ms idle floor, so well over half that blueprint's cost
+lands on the frames *after* the call returns.)
+
+**Finding: the preview is ~3⁄4 of the open, and it is the plain GameObject clone again.** Over the
+84 opens the sweep performs:
+
+| Hotspot | Calls | Total | Share of `ShowWindow` |
+|---|---:|---:|---:|
+| `ShowWindow` | 84 | 20,936.6 ms | — |
+| ↳ `ClearUIState` | 84 | 18,699.1 ms | 89% |
+| ↳ `SetMaterialState` | 84 | 15,955.9 ms | **76%** |
+| ↳ `LoadBlueprintPreview` | 48 | 15,900.9 ms | 76% |
+| ↳ `GeneratePreview_Buildings` | 48 | 15,476.6 ms | 74% |
+| ↳ `UpdateBlueprintButtons` | 84 | 2,743.0 ms | **13%** |
+| ↳ `AddOrGetBlueprintEntry` | 7,368 | 1,058.1 ms | 5% |
+| `Preview.ClearExisting` | 48 | 370.9 ms | 2% |
+| `Vis_TilePreview.ConnectAll` | 48 | 111.0 ms | <1% |
+| `UpdateBuildingButtons` | 48 | 20.2 ms | <1% |
+| `RefreshVisualizerVisibility` | 96 | 17.1 ms | <1% |
+
+The two suspicions going in were half right. The list *is* a cost and it *is* worst on a session's
+first open (cold 531.0 ms vs warm 125.7 ms at L=500 — entry instantiation, ~464 µs per entry once
+the warm baseline is subtracted from `AddOrGetBlueprintEntry`'s average), but at 13% it is second,
+and only bites libraries far larger than most. The preview dominates.
+
+Inside the preview, the expected culprit was wrong: **the `KBatchedAnimController` is cheap**.
+`Vis_BuildingPreview.Init` is 921.6 ms / 21,600 calls (42.7 µs) and its `OnSpawn` — the first
+`kbac.Play`, the part that was supposed to be expensive — is **2.4 µs/call**, 51 ms in total.
+That leaves ~14.5 s of `GeneratePreview_Buildings`'s 15.5 s in the loop body itself: one
+`Instantiate(BuildingEntry, transform)` of the preview-entry prefab per building, plus its
+`AddOrGet` and transform writes. Same shape as `visualize`'s `KInstantiate` finding — per-building
+Unity object creation, not a redundant computation to cache.
+
+That points the fix at the same levers as lever 3/1 above rather than at anything anim-related:
+skip the rebuild entirely when the target blueprint and its disabled-building state haven't changed
+since the last load (every open currently rebuilds from scratch, and so does every click in the
+file list); pool the entry objects instead of destroy-and-clone; or spread generation over frames
+so the window paints immediately. Worth noting `Config.AutoPreviewCuttoff`'s default of **2000**
+means the existing graceful-degradation gate almost never fires — a 2000-building preview costs
+835.7 ms synchronous / 2258.0 ms settled and is still drawn automatically.
+
+⚠️ **One hole in the first run's attribution, since fixed.** `Vis_TilePreview.Init` reported 0
+calls: it *shadows* rather than overrides the parameterless `Vis_SpritePreview.Init()` it inherits,
+a name-only `AccessTools.Method` lookup resolved to the inherited one, and Harmony refused it ("you
+can only patch implemented methods"). The lookup now pins `new[] { typeof(BuildingConfig) }`, and
+the re-run below has the number: **6.7 µs/call** against `Vis_BuildingPreview.Init`'s 27.4 µs. It
+doesn't move the conclusion — together the two `Init`s are 859 ms of `GeneratePreview_Buildings`'
+18,247 ms (~5%).
+
+**Fix — cache the preview instead of redrawing it.** `LoadBlueprintPreview` runs on far more than a
+change of blueprint: every reopen of the screen, every material-override action, and every
+`RefreshOnBpChanges` tick, each destroying and re-instantiating every building. It now returns
+early when the same blueprint at the same content revision is already drawn, doing only the filter
+reset `ClearExisting` owed (which re-tints every visual via `RefreshVisualizerVisibility`).
+
+Two details make it safe:
+
+- **Reference equality, not `Blueprint`'s own `==`.** That operator compares `FilePath`, and a
+  file-watcher reload builds a *new* instance for the same path — which must redraw.
+- **A `ContentRevision` counter on `Blueprint`**, bumped in `CacheCost()`. Reference identity alone
+  is not enough: a retake calls `UpdateFrom`, which rewrites `BuildingConfigurations` on the
+  *existing* instance. Hanging the counter off `CacheCost` rather than auditing every writer works
+  because every content-rewriting path already calls it (load, `UpdateFrom`, override). It
+  over-signals on a pure material override — which changes no preview geometry, since tiles draw
+  with `SimHashes.COMPOSITION` and building previews only read `BuildingDef.AnimFiles` — and that
+  is the right way to be wrong: a spurious rebuild costs one redraw, a missed one shows stale
+  geometry.
+
+The "loaded" marker is set inside `GeneratePreview`, not `LoadBlueprintPreview`, so the
+over-`AutoPreviewCuttoff` path (confirm prompt, draws only on Override) marks itself when it
+actually draws.
+
+`SelectionScreenPerf` gained an `open-preview-*-fresh` op whose setup calls `CacheCost()` to defeat
+the cache deliberately — otherwise a *broken* generator would read as a spectacular speedup.
+
+| N | reopen before | reopen after | first draw (`-fresh`) |
+|---:|---:|---:|---:|
+| `tile` 100 | 24.1 ms | **8.3 ms** (−66%) | 24.9 ms |
+| `tile` 1000 | 456.5 ms | **34.9 ms** (−92%) | 464.5 ms |
+| `tile` 2000 | 699.4 ms | **73.5 ms** (−89%) | 673.7 ms |
+| `ladder` 100 | 37.6 ms | **10.8 ms** (−71%) | 31.4 ms |
+| `ladder` 1000 | 328.6 ms | **51.5 ms** (−84%) | 262.2 ms |
+| `ladder` 2000 | 835.7 ms | **110.0 ms** (−87%) | 836.9 ms |
+
+Settled, against a 62.3 ms idle floor: `ladder` N=2000 **2258.0 → 879.6 ms**, `tile` N=2000
+**1347.5 → 546.2 ms**. The `-fresh` column matching the before column is the control — generation
+itself is untouched, and the cached column is fast because it skipped work.
+
+Call counts confirm the mechanism rather than just the timings: `LoadBlueprintPreview` ran 96 times
+while `GeneratePreview_Buildings` ran **56** — exactly the 8 warmup draws plus the 48 deliberately
+invalidated `-fresh` ones, so the other 40 opens drew nothing. Regression suite re-verified
+**11/11 green**.
+
+**What's left in a cached reopen** (`tile` N=2000, 73.5 ms, against 2.2 ms for a preview-less open
+of a comparable library): not the preview contents, but `ShowInfo`'s `SetActive` on a hierarchy
+that still holds 2000 child objects, plus `SetMaterialState`'s own cost/building-count passes over
+a 2000-building blueprint. Well past the point of diminishing returns, and not investigated
+further.
+
+**Second pass — the file list (the other 13%).** Three separate problems in
+[`BlueprintSelectionScreen`](../src/BlueprintsIncluded/UnityUI/BlueprintSelectionScreen.cs), all
+shipped together:
+
+1. **`UpdateBlueprintButtons` rebuilt unconditionally.** Every open hid every cached entry (across
+   all folders ever visited), then re-showed, re-ordered (`SetAsLastSibling`) and re-highlighted
+   every entry in the current folder — 126.1 ms at L=500 with nothing left to instantiate. Now
+   skipped when folder, sort order, `BlueprintFolder.ContentRevision`, root subfolder count and
+   entry-cache count all match, updating only the highlight when the selection moved. An explicit
+   `InvalidateBlueprintList()` covers what the key can't see: a rename (which changes name ordering
+   *and* FilePath without touching the folder), a move, a delete, and a non-empty search filter
+   (which hides entries behind the list builder's back). The entry-cache count is in the key partly
+   to defend against entries being dropped from underneath it — which is exactly what
+   `SelectionScreenPerf`'s cold sweep does.
+2. **The list could be built twice per open.** `ClearUIState` calls `ClearSearchbars`, which set
+   `BlueprintSearchbar.Text`, firing TMP's `onValueChanged` → `ApplyBlueprintFilter("")` →
+   `UpdateBlueprintButtons()` — and then called `UpdateBlueprintButtons()` itself. `FInputField2`
+   already has a guard for exactly this (`DataTextUpdate`, set by `SetTextFromData`), but it is
+   only honoured by its `AddListener` helper, and the screen had subscribed to `OnValueChanged`
+   directly, bypassing it. Now uses `AddListener` + `SetTextFromData`. Invisible in the benchmark —
+   TMP suppresses the event when the text is already empty, so it only fired on the first open
+   after an actual search.
+3. **Date sorting was O(n²).** `BlueprintFolder.GetBlueprintIndex` did `contentsList.Contains` then
+   `contentsList.IndexOf` — two O(n) scans — as a LINQ `OrderBy` key selector, so it ran once per
+   element, at ~n² `Blueprint.Equals` FilePath string comparisons per listing. Creation-date-
+   descending is the *default* sort, so this was the normal path. Now a dictionary built on demand
+   and dropped on any add/remove.
+
+`SelectionScreenPerf` gained `open-list-warm-fresh`, whose setup re-adds the identical library
+(same order, but `ContentRevision` bumps) to defeat the cache — which incidentally separates
+fix 3 from fix 1, since `-fresh` still pays the sort:
+
+| L=500, preview suppressed | before | after |
+|---|---:|---:|
+| `open-list-warm` — reopen | 126.1 ms | **25.9 ms** (−79%) |
+| `open-list-warm-fresh` — real rebuild | 126.1 ms | **67.6 ms** (−46%) |
+
+So **fix 3 alone took the rebuild 126.1 → 67.6 ms**, and **fix 1 takes a reopen that needs no
+rebuild to 25.9 ms**. `GetBlueprintIndex` is now 0.7 µs/call (4.6 ms over 6,928 calls). Settled,
+L=500: 222.5 → 116.6 ms.
+
+Cold opens moved 531.0 → 488.1 ms, but **that delta is not established** and should not be quoted
+as a win. The cold sweep runs with the preview suppressed, so the run that shipped only the preview
+cache changed nothing on this path — and still reported 548.4 ms, **+3.3%** against the baseline's
+531.0 ms. With one run per configuration and only `ColdIterations = 3` samples per point, anything
+under ~10% here is indistinguishable from run-to-run drift, exactly as the Limits above warn. The
+direction is plausible (fix 3 genuinely does less work per listing) and that is all this run
+supports.
+
+That is a measurement-capability gap, not just a caveat: a session's first open is dominated by
+instantiating a `FileHierarchyEntry` per blueprint (~464 µs each), and the levers left there —
+pooling or virtualizing the entries — are exactly the kind that might land 5-15% each. Banking wins
+that size needs the harness to resolve them first: more cold iterations, and an A/A run (the same
+build measured twice) to quantify the noise band before trusting any single-digit delta. Neither
+was done here.
+Preview numbers held (`tile` N=2000 reopen 72.8 ms, fresh 676.7 ms), so the list work didn't disturb
+the preview cache. Regression suite re-verified **11/11 green**.
+
+### Ceiling check on the cold open — and why pooling is the wrong lever
+
+Before committing to a runtime-switchable pooling path (needed for interleaved A/B, see the A/A
+section below), measure what a pool could even win. Patched `FileHierarchyEntry.OnPrefabInit` /
+`OnSpawn` / `RefreshIcon`, `Util.KInstantiateUI` and `UIUtils.AddSimpleTooltipToObject` (per
+overload — the `Transform` one forwards to the `GameObject` one, the same double-counting trap
+`KInstantiate` fell into earlier).
+
+| Hotspot | Calls | Per call |
+|---|---:|---:|
+| `AddOrGetBlueprintEntry` (7,608 real creations among 16,048 calls) | 16,048 | ~386 µs *per creation* |
+| `FileHierarchyEntry.OnPrefabInit` — 5 `FButton`s, an `FToggleButton`, 6 tooltips, ~7 `transform.Find` | 7,608 | 152.8 µs |
+| ↳ of which tooltips (5 × `Transform` overload @ 6.6 µs + 1 × `GameObject` @ 7.2 µs) | 38,056 / 45,671 | ~40 µs (26%) |
+| `FileHierarchyEntry.OnSpawn` — the rebinding a pooled row would still pay | 7,608 | **20.2 µs** |
+| `FileHierarchyEntry.RefreshIcon` | 7,784 | 2.5 µs |
+
+So ~539 µs to bring a row into existence, of which only ~23 µs (**~4%**) is rebinding. On the face
+of it a pool could avoid ~95% of it, and per-entry creation is ~90% of the cold open itself
+(500 × 539 µs ≈ 270 ms of a 301 ms `open-list-cold` at L=500).
+
+**And yet pooling is still the wrong lever, because the mod already has its pool.**
+`BlueprintEntries` caches an entry per blueprint for the life of the screen, and nothing destroys
+entries except deleting a blueprint. A player therefore pays creation exactly **once per blueprint
+per session** — which is what `open-list-cold` deliberately recreates by emptying the cache, and is
+*not* a cost any repeat open pays (that is `open-list-warm`, now 25.9 ms at L=500). A pool would be
+a second cache in front of an existing one.
+
+**The lever that does apply is virtualization** — build rows only for what's actually on screen,
+turning the first open from O(library) into O(visible rows), roughly 15. Same ~90% ceiling, and it
+attacks the cost that is genuinely there.
+
+**Recommendation: not worth doing yet.** The cost is once per session and scales with library size:
+~301 ms at L=500, ~113 ms at L=200, ~29 ms at L=50, ~7 ms at L=10. For a normal library it is
+imperceptible; it only bites people holding 200+ blueprints, once, at the first open. Weighed
+against reworking the file list into a virtualized scroller — with the folder/sort/filter/highlight
+behaviour that already has four invalidation paths — the payoff does not justify it unless large
+libraries turn out to be common. Revisit if that is reported.
+
+⚠️ `KInstantiateUI` reported **0 calls** in this run: the generic `KInstantiateUI<T>` and the
+non-generic overload take the same three parameters, so `AccessTools.Method(type, name, types)`
+threw `AmbiguousMatchException`. Fixed (the overload is now selected by hand, filtering out the
+generic definition) but **not re-measured** — it would only split the clone from the wiring *inside*
+`AddOrGetBlueprintEntry`'s ~386 µs, and the conclusion above doesn't rest on that split.
+
+### A/A noise measurement — what a perf delta here has to beat
+
+Prompted by the unsupportable "−8%" above. Two full perf passes were run on the **identical
+build**, no code change between them (`scratchpad/aa-run.ps1`), and their `perf.json` medians
+diffed. Anything that differs is harness/machine noise. Iteration counts were raised first
+(`SelectionScreenPerf`: cold 3 → 10, warm/preview 5 → 10).
+
+**The noise is not symmetric — there is a systematic drift favouring whichever pass runs second.**
+
+| | |
+|---|---:|
+| ops where pass 2 was faster | **64 / 75 (85%)** |
+| signed delta, median / mean | **−4.2% / −4.9%** |
+| \|delta\|, p50 / p90 / p95 | 4.2% / 8.9% / 11.8% |
+| residual \|delta\| once the −4.2% shift is removed | p50 2.9% / p90 5.2% |
+
+Three things follow, and the first is the uncomfortable one:
+
+1. **Every before/after comparison in §7 ran its "after" pass second**, so each carries a ~4-5%
+   tailwind. The preview cache (84-92%) and the file-list fixes (79% / 46%) are an order of
+   magnitude outside that and are unaffected. The cold-open "−8%" was inside it — dead, as above.
+2. **A single run pair supports a delta of roughly ±10% or better** (4% systematic + ~5% p90
+   residual), and nothing finer. Anything smaller is reading the weather.
+3. **The iteration bump moved the numbers it was measuring.** `open-list-cold` L=500 now reports
+   **~300-320 ms**, against ~490-550 ms at 3 iterations: the *first* cold iteration is a large
+   outlier (first-time Unity prefab/layout work) and with 3 samples the median sat on it. Absolute
+   figures recorded before this change are not comparable with ones recorded after it — including
+   every table above.
+
+**To resolve anything smaller, stop comparing runs.** Interleave A and B *within one game run* — a
+runtime toggle flipped per iteration inside the same sweep — which cancels the between-launch drift
+by construction rather than trying to subtract it. That needs the change under test to be
+switchable at runtime, so it is a per-investigation cost, not a one-off. Until that exists, treat
+single-digit deltas here as unmeasured.
+
+⚠️ `RefreshEntryHighlight` reports **0 calls** in the sweep: the benchmark never moves the selection
+while the screen is open, so the cheap highlight-only branch of the cached path is exercised only by
+the regression suite and by hand, never by a timing here.
+
+**Noted, not fixed.** `Blueprint.Rename` calls `InferFileLocation`, changing `FilePath` — and
+`Blueprint.GetHashCode` *is* `FilePath.GetHashCode()`, while blueprints are held as keys in
+`BlueprintFolder`'s `HashSet` and the screen's `BlueprintEntries` dictionary. Renaming therefore
+mutates a live hash key. Pre-existing and out of scope for a performance pass, but it is why fix 1
+invalidates explicitly on rename rather than trusting the folder's revision counter.
+
 ## 8. Decision checklist
 
 - [x] Build the POC? — yes, `harness/`.
@@ -590,6 +873,15 @@ action, not a hot path, and is already ~38% faster from the fix above), left un-
       (`visualize`/`use`, found + fixed a fog-of-war and an anchor-shift-wraparound bug along the
       way) and creation of large blueprints (`CreateBlueprint` over a big captured area, ~1.8
       ms/building, cleanly linear). See §7.
+- [x] Perf mode, selection-screen open: library-size and preview-size sweeps (cold/warm list,
+      both visualizer branches) plus `TimeOp`'s new `settleFrames` / `idle-frame` baseline for work
+      that lands after the call returns. Finding: the preview rebuild is ~76% of an open and the
+      cost is per-building GameObject instantiation, not the `KBatchedAnimController` (2.4 µs per
+      `OnSpawn`); the file list is 13%, worst on a session's first open. **Fixed** by caching the
+      drawn preview on (blueprint instance, `ContentRevision`) — reopening an unchanged blueprint
+      is 84-92% cheaper, 11/11 green. Second pass on the file list (cache the built list, stop
+      double-building it after a search, de-O(n²) the default date sort): reopening a
+      500-blueprint folder 126.1 -> 25.9 ms, 11/11 green. See §7.
 - [ ] Optional follow-ups: more building types / layers, place-with-settings applied to the built
       object, replacement visualizers over occupied terrain, a committed perf baseline + diff.
 - [ ] `run-ingame.ps1` currently removes the dev `Blueprints Expanded` (`mods/dev/BlueprintsV2`)

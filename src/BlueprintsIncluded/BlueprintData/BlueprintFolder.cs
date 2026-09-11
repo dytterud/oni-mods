@@ -31,6 +31,23 @@ public sealed class BlueprintFolder : IEquatable<BlueprintFolder>
     public HashSet<Blueprint> Blueprints => contents;
 
     /// <summary>
+    /// Position lookup for <see cref="GetBlueprintIndex"/>, built on demand and dropped whenever
+    /// the folder's contents change. Rebuilt rather than maintained incrementally because a
+    /// <see cref="List{T}.Remove"/> shifts every later index anyway, and removals (delete, move to
+    /// another folder) are rare next to the reads.
+    /// </summary>
+    private Dictionary<Blueprint, int>? indexLookup;
+
+    /// <summary>
+    /// Bumped whenever a blueprint enters or leaves this folder, so a consumer caching something
+    /// derived from the contents - the selection screen's file list - can tell "same folder,
+    /// unchanged" cheaply. Does <b>not</b> cover a rename: <see cref="Blueprint.Rename"/> changes
+    /// the blueprint's name and FilePath without going through the folder at all, so a caller that
+    /// cares about name ordering has to invalidate on rename itself.
+    /// </summary>
+    public int ContentRevision { get; private set; }
+
+    /// <summary>
     /// Create a new blueprint folder with the given name.
     /// </summary>
     /// <param name="name">The name for the folder</param>
@@ -46,7 +63,16 @@ public sealed class BlueprintFolder : IEquatable<BlueprintFolder>
     public void AddBlueprint(Blueprint blueprint)
     {
         if (contents.Add(blueprint))
+        {
             contentsList.Add(blueprint);
+            Invalidate();
+        }
+    }
+
+    private void Invalidate()
+    {
+        indexLookup = null;
+        ++ContentRevision;
     }
 
 
@@ -59,6 +85,7 @@ public sealed class BlueprintFolder : IEquatable<BlueprintFolder>
     {
         contents.Remove(blueprint);
         contentsList.Remove(blueprint);
+        Invalidate();
 
         if (deleteIfEmpty && BlueprintCount == 0)
         {
@@ -88,11 +115,26 @@ public sealed class BlueprintFolder : IEquatable<BlueprintFolder>
         }
     }
 
+    /// <summary>
+    /// Creation order of <paramref name="blueprint"/> within this folder, or -1 if it isn't here.
+    ///
+    /// Dictionary-backed rather than the obvious <c>Contains</c>-then-<c>IndexOf</c> pair: the
+    /// selection screen uses this as a LINQ <c>OrderBy</c> key selector for its two date sorts
+    /// (creation-date-descending being the default), so two O(n) scans per element made listing a
+    /// folder O(n²) in <see cref="Blueprint"/> comparisons - and those compare FilePath strings.
+    /// </summary>
     public int GetBlueprintIndex(Blueprint? blueprint)
     {
-        if (blueprint == null || !contentsList.Contains(blueprint))
+        if (blueprint == null)
             return -1;
-        return contentsList.IndexOf(blueprint);
+
+        if (indexLookup == null)
+        {
+            indexLookup = new Dictionary<Blueprint, int>(contentsList.Count);
+            for (int i = 0; i < contentsList.Count; i++)
+                indexLookup[contentsList[i]] = i;
+        }
+        return indexLookup.TryGetValue(blueprint, out int index) ? index : -1;
     }
 
     public bool ContainsBlueprint(Blueprint blueprint) => contents.Contains(blueprint);

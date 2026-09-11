@@ -962,8 +962,23 @@ public class Blueprint : IEquatable<Blueprint>
     }
 
 
+    /// <summary>
+    /// Bumped by every <see cref="CacheCost"/> call - i.e. by every path that rewrites what this
+    /// blueprint contains: loading it from disk, a retake (<see cref="UpdateFrom"/>, which mutates
+    /// the existing instance in place rather than producing a new one), a material override.
+    ///
+    /// Lets a consumer that caches something derived from a blueprint - the selection screen's
+    /// preview - tell "same blueprint, unchanged" from "same object, different contents" without
+    /// auditing every writer. It deliberately over-signals: a material override changes no preview
+    /// geometry (tiles are drawn with <c>SimHashes.COMPOSITION</c> for the default look, and
+    /// building previews only read <c>BuildingDef.AnimFiles</c>) but still bumps this. A spurious
+    /// rebuild costs one redraw and is always correct; a missed one leaves stale geometry on screen.
+    /// </summary>
+    public int ContentRevision { get; private set; }
+
     public void CacheCost()
     {
+        ++ContentRevision;
         SanitizePositions();
         CalculateDimensions();
         BlueprintCost.Clear();

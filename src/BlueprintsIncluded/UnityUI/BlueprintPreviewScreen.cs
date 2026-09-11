@@ -37,6 +37,14 @@ internal class BlueprintPreviewScreen : FScreen
     LocText WarningText = null!;
     Blueprint? ScheduledToShow = null;
 
+    /// <summary>What <see cref="GeneratePreview"/> last actually drew, and at which
+    /// <see cref="Blueprint.ContentRevision"/> - the key <see cref="LoadBlueprintPreview"/> uses to
+    /// skip rebuilding a preview that is already on screen and still correct. Reference equality,
+    /// not <c>Blueprint</c>'s own FilePath-based equality: a file-watcher reload builds a *new*
+    /// instance for the same path, and that one has to redraw.</summary>
+    Blueprint? _loadedBlueprint = null;
+    int _loadedRevision = -1;
+
     //take priority consuming the scroll
     public override float GetSortKey()
     {
@@ -214,6 +222,11 @@ internal class BlueprintPreviewScreen : FScreen
 
         RefreshVisualizerVisibility();
 
+        // Set here rather than in LoadBlueprintPreview so the over-the-cutoff path - which shows a
+        // confirm prompt and only draws later, via ForceShowScheduledBp - marks itself loaded when
+        // it actually draws, and not before.
+        _loadedBlueprint = blueprint;
+        _loadedRevision = blueprint.ContentRevision;
     }
     void GeneratePreview_Buildings(Blueprint blueprint, Vector3 centerOffset)
     {
@@ -378,11 +391,32 @@ internal class BlueprintPreviewScreen : FScreen
         base.OnEndDrag(eventData);
     }
 
+    /// <summary>
+    /// Draws <paramref name="blueprint"/>, or leaves the existing drawing alone if it is already
+    /// showing exactly that.
+    ///
+    /// Worth the check because this runs on far more than a change of blueprint: every reopen of
+    /// the selection screen (ShowWindow -> ClearUIState -> SetMaterialState -> ShowInfo), every
+    /// material-override action, and every RefreshOnBpChanges tick. Each of those used to destroy
+    /// and re-instantiate one GameObject per building - measured as ~76% of an open, and the bulk
+    /// of it the raw per-building clone rather than anything anim-related (docs §7).
+    /// </summary>
     public void LoadBlueprintPreview(Blueprint? blueprint)
     {
         Init();
         BuildingCountWarning.SetActive(false);
+
+        if (blueprint != null && ReferenceEquals(blueprint, _loadedBlueprint) && blueprint.ContentRevision == _loadedRevision)
+        {
+            // Still owed the per-load filter reset that ClearExisting would have done - it also
+            // re-tints every visual on the way out, via RefreshVisualizerVisibility.
+            ResetPreviewFilters();
+            return;
+        }
+
         ClearExisting();
+        _loadedBlueprint = null;
+        _loadedRevision = -1;
         if (blueprint == null)
             return;
         int buildingCount = blueprint.BuildingConfigurations.Count;

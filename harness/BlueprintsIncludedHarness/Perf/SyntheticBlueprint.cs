@@ -18,19 +18,36 @@ internal static class SyntheticBlueprint
     /// <summary>Builds a blueprint with <paramref name="count"/> Tile buildings, laid out
     /// <see cref="RowWidth"/> wide. Used directly (in-memory) for placement-perf and via
     /// <see cref="BuildJson"/> (serialized) for import-perf.</summary>
-    internal static Blueprint Build(int count)
+    internal static Blueprint Build(int count) => Build(count, "Tile", "PerfSynthetic");
+
+    /// <summary>
+    /// <see cref="Build(int)"/> with the building type and name chosen by the caller.
+    ///
+    /// <paramref name="buildingId"/> matters for the selection-screen preview sweep: the preview
+    /// picks a visualizer per building from <c>ModAssets.GetVisualizerType</c>, and a Tile takes
+    /// the cheap <c>Vis_TilePreview</c> (one <c>Image</c>) path while everything else takes
+    /// <c>Vis_BuildingPreview</c> (a full <c>KBatchedAnimController</c> per building) - so an
+    /// all-Tile blueprint would measure the wrong half of that branch. "Ladder" is the 1x1
+    /// raw-mineral building used for the anim-backed side (its LadderTile TileLayer excludes it
+    /// from the tile branch).
+    ///
+    /// <paramref name="name"/> must be unique per blueprint when several go into one folder:
+    /// <see cref="Blueprint"/>'s identity is its FilePath, which is derived from the name, so
+    /// same-named blueprints collapse into one entry in the folder's HashSet.
+    /// </summary>
+    internal static Blueprint Build(int count, string buildingId, string name)
     {
-        var def = Assets.GetBuildingDef("Tile");
+        var def = Assets.GetBuildingDef(buildingId);
         var sandstone = ElementLoader.FindElementByHash(SimHashes.SandStone).tag;
 
-        var bp = new Blueprint("PerfSynthetic", "");
+        var bp = new Blueprint(name, "");
         for (int i = 0; i < count; i++)
         {
             var bc = new BuildingConfig
             {
                 Offset = new Vector2I(i % RowWidth, i / RowWidth),
                 BuildingDef = def,
-                BuildingDefId = "Tile",
+                BuildingDefId = buildingId,
                 Orientation = Orientation.Neutral,
             };
             bc.SelectedElements.Add(sandstone);
