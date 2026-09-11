@@ -75,6 +75,7 @@ internal static class HarnessCases
         new HarnessCase("planned-buildings-match-for-data-transfer", PlannedBuildingMatch),
         new HarnessCase("dig-placer-preview-filter-hides-digs", DigPlacerPreviewFilter),
         new HarnessCase("conduit-flags-ignore-captured-orientation", ConduitFlagsIgnoreCapturedOrientation),
+        new HarnessCase("tile-seating-map-tracks-the-drag", TileSeatingMapTracksTheDrag),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -338,6 +339,137 @@ internal static class HarnessCases
             Assert.True(f.temperature <= f.defTemperature + 0.5f,
                 $"{f.id} spawned at {f.temperature:F1}K, no hotter than its def temperature {f.defTemperature:F1}K");
         }
+    }
+
+    // ---- tile seating map ----------------------------------------
+
+    /// <summary>
+    /// The tile renderer's seating map (<c>TileVisual.ActiveTileVisuals</c>, read through
+    /// <c>HasTileAt</c>) must hold exactly the blueprint's footprint after a drag, and nothing after
+    /// the blueprint is put down.
+    ///
+    /// This exists because the per-frame path no longer unseats and re-seats every tile on every
+    /// cursor move: it records which cells changed and reconciles them against the renderer when the
+    /// update flushes (docs §7). That turns O(N) renderer work into O(perimeter), and its failure
+    /// mode is a map that drifts out of step with the blueprint - a tile left seated at a cell the
+    /// blueprint has moved off, or a cell never seated because a neighbour got there first.
+    ///
+    /// The map is the assertable half. The tile <i>art</i> - whether connection bits and seams look
+    /// right while dragging - is not: it is a human judgement, and it belongs to the smoke-test
+    /// checklist. What this case guarantees is that the data the art is computed from is correct.
+    /// </summary>
+    private static IEnumerator TileSeatingMapTracksTheDrag()
+    {
+        var xy = Grid.CellToXY(AnchorCell);
+        var start = new Vector2I(xy.x - 6, xy.y - 12);
+
+        // Pin the anchor to BottomLeft so "footprint" means origin + offset, with no half-width
+        // shift to model here. The default (BottomCenter) shifts a 3-wide blueprint one cell in x,
+        // which is what the first run of this case tripped over: all nine tiles were seated, one
+        // column from where it looked. _state has no public setter and RefreshAnchorState recomputes
+        // the shift from it on every CheckPermittedRotations, so the field is the only thing worth
+        // setting - same reflection PerfRunner uses for the placement sweep.
+        var st = BlueprintState.CurrentStateInfo(BlueprintState.PlayerId_DefaultTilePreviews);
+        var stateField = typeof(BlueprintState.BlueprintTransformationInfo)
+            .GetField("_state", BindingFlags.NonPublic | BindingFlags.Instance);
+        object? savedState = stateField?.GetValue(st);
+        stateField?.SetValue(st, BlueprintAnchorState.BottomLeft);
+        if (stateField == null)
+            Log?.Line("  _state field not found - footprint assertions may be off by the anchor shift");
+        try
+        {
+
+        // A small solid block of tiles: an interior cell (the one the reconciliation elides) only
+        // exists at 3x3 or bigger.
+        const int W = 3, H = 3;
+        var def = Assets.GetBuildingDef("Tile");
+        var sandstone = ElementLoader.FindElementByHash(SimHashes.SandStone).tag;
+
+        var bp = new Blueprint("seating-map", "");
+        for (int dx = 0; dx < W; dx++)
+            for (int dy = 0; dy < H; dy++)
+            {
+                var bc = new BuildingConfig
+                {
+                    Offset = new Vector2I(dx, dy),
+                    BuildingDef = def,
+                    BuildingDefId = "Tile",
+                    Orientation = Orientation.Neutral,
+                };
+                bc.SelectedElements.Add(sandstone);
+                bp.BuildingConfigurations.Add(bc);
+            }
+        bp.CacheCost();
+
+        BlueprintState.VisualizeBlueprint(start, bp);
+        yield return null;
+
+        AssertFootprintSeated(start, W, H, def, "after the initial draw");
+
+        // Drag it: one cell at a time (the case the reconciliation optimises), then a jump bigger
+        // than the footprint so old and new share no cells at all.
+        foreach (var origin in new[]
+                 {
+                     new Vector2I(start.x + 1, start.y),
+                     new Vector2I(start.x + 2, start.y),
+                     new Vector2I(start.x + 2, start.y - 1),
+                     new Vector2I(start.x + 12, start.y - 6),
+                 })
+        {
+            BlueprintState.UpdateVisual(BlueprintState.PlayerId_DefaultTilePreviews, origin, forcingRedraw: false);
+            yield return null;
+            AssertFootprintSeated(origin, W, H, def, $"after dragging to {origin.x},{origin.y}");
+        }
+
+        var last = new Vector2I(start.x + 12, start.y - 6);
+        BlueprintState.ClearVisuals();
+        yield return null;
+
+        int stillSeated = 0;
+        for (int dx = -1; dx <= W; dx++)
+            for (int dy = -1; dy <= H; dy++)
+                if (TileVisual.HasTileAt(BlueprintState.PlayerId_DefaultTilePreviews,
+                        Grid.XYToCell(last.x + dx, last.y + dy), out _))
+                    stillSeated++;
+        Assert.True(stillSeated == 0, $"no tiles left seated after ClearVisuals (found {stillSeated})");
+        Log?.Line("  seating map empty after ClearVisuals");
+        }
+        finally
+        {
+            if (stateField != null) stateField.SetValue(st, savedState);
+        }
+    }
+
+    /// <summary>Every cell of the footprint carries the blueprint's def, and the ring just outside
+    /// it carries nothing - the second half is what catches a tile left behind by a drag.</summary>
+    private static void AssertFootprintSeated(Vector2I origin, int w, int h, BuildingDef def, string when)
+    {
+        ulong player = BlueprintState.PlayerId_DefaultTilePreviews;
+        int seated = 0, wrongDef = 0, strays = 0;
+
+        for (int dx = 0; dx < w; dx++)
+            for (int dy = 0; dy < h; dy++)
+            {
+                if (!TileVisual.HasTileAt(player, Grid.XYToCell(origin.x + dx, origin.y + dy), out var seatedDef))
+                    continue;
+                seated++;
+                if (seatedDef != def)
+                    wrongDef++;
+            }
+
+        for (int dx = -1; dx <= w; dx++)
+            for (int dy = -1; dy <= h; dy++)
+            {
+                if (dx >= 0 && dx < w && dy >= 0 && dy < h)
+                    continue;
+                if (TileVisual.HasTileAt(player, Grid.XYToCell(origin.x + dx, origin.y + dy), out _))
+                    strays++;
+            }
+
+        Log?.Line($"  {when}: {seated}/{w * h} seated, {wrongDef} wrong def, {strays} stray neighbour(s)");
+        Assert.True(seated == w * h, $"{when}: every footprint cell is seated ({seated}/{w * h})");
+        Assert.True(wrongDef == 0, $"{when}: every seated cell carries the blueprint's def ({wrongDef} did not)");
+        Assert.True(strays == 0, $"{when}: no tile left seated outside the footprint ({strays} found)");
     }
 
     // ---- note visibility toggle ----------------------------------

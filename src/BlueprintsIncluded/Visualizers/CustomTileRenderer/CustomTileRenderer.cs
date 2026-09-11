@@ -170,6 +170,38 @@ internal class CustomTileRenderer : BlockTileRenderer
     static readonly HashSet<(ulong PlayerId, int Cell, ObjectLayer Layer)> pendingRefreshes = [];
     static int batchDepth;
 
+    /// <summary>
+    /// What <c>TileVisual.ActiveTileVisuals</c> held at each cell a batch has touched, captured the
+    /// first time that cell changed. The flush compares it against what the map holds now and only
+    /// touches the renderer where the two differ - see <see cref="NoteCellChanged"/>.
+    /// </summary>
+    static readonly Dictionary<(ulong PlayerId, int Cell), BuildingDef?> cellStateAtBatchStart = [];
+
+    /// <summary>
+    /// Records what <paramref name="cell"/> held before the caller changes it, so the flush can tell
+    /// a real change from a round trip. Called by <see cref="TileVisual"/> immediately <b>before</b>
+    /// it mutates the map.
+    ///
+    /// The point is the round trip. On a plain cursor move every tile unseats itself at the top of
+    /// the update and re-seats one cell over, so an interior cell of a translating blueprint is
+    /// vacated by one tile and re-filled by its neighbour <i>with the same def</i> - the map ends
+    /// exactly as it started, and the block removal, the re-add and both five-cell refresh crosses
+    /// were pure churn. Only the leading and trailing edges of the blueprint actually change, which
+    /// is why this turns O(N) renderer work into O(perimeter).
+    ///
+    /// Outside a batch this records nothing and the caller takes the immediate path, unchanged.
+    /// </summary>
+    public static bool NoteCellChanged(ulong playerId, int cell, BuildingDef? defBefore)
+    {
+        if (batchDepth == 0)
+            return false;
+
+        var key = (playerId, cell);
+        if (!cellStateAtBatchStart.ContainsKey(key))
+            cellStateAtBatchStart[key] = defBefore;
+        return true;
+    }
+
     /// <summary>Opens a batch (re-entrant). <b>Must</b> be paired with <see cref="EndBatch"/> in a
     /// finally - an unclosed batch would leave the art stale until the next flush.</summary>
     public static void BeginBatch() => batchDepth++;
@@ -178,12 +210,57 @@ internal class CustomTileRenderer : BlockTileRenderer
     {
         if (batchDepth > 0)
             batchDepth--;
-        if (batchDepth > 0 || pendingRefreshes.Count == 0)
+        if (batchDepth > 0)
             return;
+
+        ApplyCellChanges();
 
         foreach (var (playerId, cell, layer) in pendingRefreshes)
             RefreshCellInternal(playerId, cell, layer);
         pendingRefreshes.Clear();
+    }
+
+    /// <summary>
+    /// Reconciles the renderer with the map: for every cell a batch touched, compares what it held
+    /// when the batch started against what it holds now, and only where those differ removes the old
+    /// block, adds the new one and dirties the five-cell cross. A cell that ended as it started -
+    /// the common case for the interior of a blueprint that merely moved - costs nothing.
+    ///
+    /// Runs while <see cref="batchDepth"/> is already 0 so the Add/Remove calls below take the
+    /// immediate path for their own bookkeeping, with their refreshes still landing in
+    /// <see cref="pendingRefreshes"/> for the flush that follows.
+    /// </summary>
+    static void ApplyCellChanges()
+    {
+        if (cellStateAtBatchStart.Count == 0)
+            return;
+
+        batchDepth++;   // keep the refreshes these queue in the batch that is about to flush
+        try
+        {
+            foreach (var ((playerId, cell), before) in cellStateAtBatchStart)
+            {
+                TileVisual.HasTileAt(playerId, cell, out var after);
+                if (before == after)
+                    continue;
+
+                if (before != null)
+                {
+                    RemoveTileBlock(playerId, before, false, SimHashes.Void, cell);
+                    RefreshCell(playerId, cell, before.TileLayer, before.ReplacementLayer);
+                }
+                if (after != null)
+                {
+                    AddTileBlock(playerId, LayerMask.NameToLayer("Overlay"), after, false, SimHashes.Void, cell);
+                    RefreshCell(playerId, cell, after.TileLayer, after.ReplacementLayer);
+                }
+            }
+        }
+        finally
+        {
+            cellStateAtBatchStart.Clear();
+            batchDepth--;
+        }
     }
 
     public static void RefreshCell(ulong playerId, int cell, ObjectLayer tile_layer)

@@ -747,6 +747,10 @@ public static class BlueprintState
             ///already unregistered themselves from the renderer.
             CleanableVisuals[playerId].Clear();
 
+            ///see CleanDirtyVisuals: the colour cache outlives a single update, but not the
+            ///blueprint it describes.
+            ColoredCells[playerId].Clear();
+
             ClearOccupiedCells(playerId);
 
             if (LocalPlayerId(playerId))
@@ -787,15 +791,21 @@ public static class BlueprintState
         }
     }
 
+    /// <summary>
+    /// <c>ColoredCells</c> is deliberately <b>not</b> cleared here, only in <see cref="ClearVisuals"/>.
+    /// It is the cache <c>VisualsUtilities.SetTileColor</c> compares against to decide whether a
+    /// cell's art needs refreshing, so wiping it every update made every tile's colour look changed
+    /// and re-dirtied a five-cell cross per tile per cursor move - which is the same O(N) churn the
+    /// renderer-side reconciliation removes, arriving by a different route. Keeping it means a tile
+    /// that lands on a cell already showing that colour costs nothing.
+    ///
+    /// Stale entries for cells the blueprint has moved off are harmless: <c>GetCachedCellColor</c>
+    /// is only consulted for cells that carry a tile block, and a later tile landing on one compares
+    /// against it correctly. They are bounded by clearing on <see cref="ClearVisuals"/>, i.e. once
+    /// per blueprint put down.
+    /// </summary>
     public static void CleanDirtyVisuals(ulong playerId)
     {
-        var coloredCells = ColoredCells[playerId];
-        //foreach (int cell in coloredCells.Keys)
-        //{
-        //	CustomTileRenderer.RefreshCell(playerId, cell, ObjectLayer.FoundationTile);
-        //}
-
-        coloredCells.Clear();
         CleanableVisuals[playerId].ForEach(cleanableVisual => cleanableVisual.Clean());
     }
     #endregion

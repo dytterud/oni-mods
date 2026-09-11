@@ -1129,16 +1129,55 @@ hoisting it out of the loop would buy nothing.
 > measured delta. Compare attribution allocation only with another attribution run, and take
 > frame-level allocation from a normal `-Perf` run.
 
-**Three levers left, none of them small:**
+### Delta-seating the tiles — the tile surcharge is gone
+
+Lever 2 below, implemented. Two changes, because either one alone would have been cancelled out by
+the other:
+
+1. **The renderer reconciles instead of unseat-then-reseat.** `TileVisual` now tells
+   `CustomTileRenderer.NoteCellChanged` *that* a cell changed (recording what it held at first touch)
+   and updates `ActiveTileVisuals` eagerly; the batch flush compares each touched cell's before/after
+   def and only then removes/adds blocks and dirties crosses. On a cursor move every interior cell of
+   a translating blueprint is vacated by one tile and re-filled by its neighbour **with the same
+   def** — before == after, so it costs nothing. Only the leading and trailing edges do work.
+   O(N) → O(perimeter). Outside a batch the original immediate path is unchanged.
+2. **The colour cache outlives one update.** `CleanDirtyVisuals` was wiping `ColoredCells` every
+   frame, which made every tile's colour look changed to `VisualsUtilities.SetTileColor` and
+   re-dirtied a five-cell cross per tile per move — the same O(N) churn arriving by a different
+   route, and enough to cancel fix 1 completely. It is now cleared in `ClearVisuals` instead, i.e.
+   once per blueprint put down. Stale entries are harmless: `GetCachedCellColor` is only consulted
+   for cells that carry a tile block.
+
+| sweep | before | after | |
+|---|---:|---:|---|
+| `update-visual-tile` N=1000 | 11.70 ms / 596 KB | **6.86 ms / 68 KB** | −41% |
+| `update-visual-tile` N=2000 | 21.38 ms / 1,312 KB | **11.76 ms / 132 KB** | −45% time, −90% alloc |
+| `update-visual-tile-dense` N=1000 | 8.91 ms / 80 KB | **4.87 ms / ~0 KB** | −45% |
+| `visualize` N=2000 | 68.19 ms / 5,108 KB | **46.19 ms / 476 KB** | −32% time, −91% alloc |
+| `update-visual-ladder` N=2000 (control) | 11.82 ms | 11.89 ms | +1%, unchanged |
+
+The decisive pair is the last two rows: tiles now cost **11.76 ms against dependents' 11.89 ms** at
+the same N. The ~5.3 µs/visual tile surcharge that every measurement above carried is gone — tiles
+became as cheap as visuals that never touch the tile renderer at all, which is what "interior cells
+do nothing" predicts. The unchanged ladder control rules out a machine-wide drift.
+
+**What guards it:** `tile-seating-map-tracks-the-drag` (12th regression case) drags a 3x3 tile
+blueprint — the smallest footprint that *has* an interior cell — one cell at a time and then further
+than its own width, asserting after each step that every footprint cell is seated with the right def,
+that **the ring just outside it is empty** (the assertion that catches a tile left behind), and that
+nothing is seated after `ClearVisuals`. The map is the assertable half; whether the tile *art* looks
+right while dragging is a human judgement and belongs to the
+[smoke-test checklist](smoke-test-checklist.md). That case failed on its first run (`6/9 seated,
+3 stray`) because the default `BottomCenter` anchor shifts a 3-wide blueprint one cell in x — the
+case now pins `_state` to `BottomLeft`, the same reflection `PerfRunner` uses.
+
+**Two levers left:**
 
 1. **One shared parent transform.** Positioning is O(N) only because each visualizer is moved
    independently; parenting the non-tile visualizers under one GameObject would make a cursor move
-   one transform write. Tiles still need per-cell seating, and colour still needs per-visual
-   evaluation — but only when a cell's validity actually changes.
-2. **Delta-seat the tiles.** `ActiveTileVisuals` maps cell → `BuildingDef`, not cell → instance, so
-   when a solid blueprint translates by one cell the interior entries are already correct and only
-   the leading and trailing edges change. Diffing the desired map against the current one would make
-   renderer work O(perimeter) instead of O(N). Bounded by the ~5.3 µs tile surcharge.
+   one transform write. Now the largest remaining per-frame cost, and the only one that changes the
+   asymptotics: with the tile surcharge gone, tiles and dependents both sit at ~5.9 µs/visual, of
+   which the transform write and the colour evaluation are the two halves.
 3. ~~**The colour path.**~~ **Tried and rejected** — see *The colour path, measured properly* above.
    Its allocation was an instrumentation artifact, and a drag gives every visual a new cell each
    frame, so there is nothing safe to cache. What is left there is Klei's `IsValidPlaceLocation`
@@ -1215,14 +1254,18 @@ hoisting it out of the loop would buy nothing.
       rectangle `create` builds, so it costs no extra region). Added because every tile-renderer
       number before it came from a drag across empty dug-out space - the one condition in which the
       refresh work being optimised does not happen.
-- [ ] **Next for per-frame cost** — the levers are measured and ranked in §7 *Three levers left*.
-      Only the first changes the asymptotics:
-      1. one shared parent transform (cursor move becomes one transform write, not N);
-      2. delta-seat the tiles (renderer work O(perimeter) instead of O(N), bounded by the ~5.3 µs
-         per-tile surcharge).
-      The third (skip `GetVisualizerColor`) was **tried and rejected**: the ~460 KB/frame that
-      motivated it turned out to be the harness's own `Stopwatch` allocations, and a drag gives every
-      visual a new cell each frame so there is nothing safe to cache. See §7.
+- [x] Delta-seat the tiles: the per-frame path no longer unseats and re-seats every tile, it records
+      which cells changed and reconciles them at the batch flush, and the colour cache now outlives a
+      single update. `update-visual-tile` N=2000 **21.38 -> 11.76 ms and 1,312 -> 132 KB/frame**; the
+      tile surcharge over dependents is gone entirely (11.76 vs 11.89 ms). Guarded by a new
+      `tile-seating-map-tracks-the-drag` case; 12/12 green. See §7 *Delta-seating the tiles*.
+- [ ] **Next for per-frame cost** — one lever left, and it is the only one that changes the
+      asymptotics: **a shared parent transform**, so a cursor move is one transform write instead of
+      N. With the tile surcharge gone, tiles and dependents both sit at ~5.9 µs/visual, split between
+      that transform write and the colour evaluation. See §7.
+      Skipping `GetVisualizerColor` was **tried and rejected**: the ~460 KB/frame that motivated it
+      turned out to be the harness's own `Stopwatch` allocations, and a drag gives every visual a new
+      cell each frame so there is nothing safe to cache. See §7.
 - [ ] Optional follow-ups: more building types / layers, place-with-settings applied to the built
       object, replacement visualizers over occupied terrain, a committed perf baseline + diff.
 - [ ] `run-ingame.ps1` currently removes the dev `Blueprints Expanded` (`mods/dev/BlueprintsV2`)
