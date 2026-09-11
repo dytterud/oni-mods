@@ -1050,16 +1050,41 @@ of once per neighbour that moved past it. Batches wrap `UpdateVisual`, `ClearVis
 | `BlockTileRenderer.Rebuild` | 3,055,012 | 369,852 (−88%) |
 | `AddTileBlock` / `RemoveTileBlock` | 150,000 | 150,000 (unchanged by design) |
 
-**And it bought ~nothing.** `update-visual-tile` N=2000 went 23.26 → 22.76 ms (−2%) and its
-allocation 2,444 → 2,448 KB — both inside the ±10% noise floor. Removing 2.7M calls saved half a
-millisecond, because those calls were individually trivial. **The estimate that the fan-out was
-"about half the frame" was wrong, and the measurement is what says so** — recorded here because the
-next person to read that floor pointer deserves to know it was chased and came back empty.
+**First measurement: it bought ~nothing.** `update-visual-tile` N=2000 went 23.26 → 22.76 ms (−2%),
+allocation 2,444 → 2,448 KB — both inside the ±10% noise floor. It was kept anyway, on the argument
+that the fixture's tiles sit in dug-out space where a `Rebuild` is at its cheapest, with a note that
+the measurement to run before re-litigating it was a drag across *existing* tiles.
 
-Kept anyway, deliberately: it provably removes redundant work, and the fixture's tiles sit in dug-out
-space where a `Rebuild` is at its cheapest — a dense colony need not be so forgiving. If it ever
-needs re-litigating, the measurement to run first is a drag across *existing* tiles rather than
-empty space.
+**That measurement was then run, and it reverses the verdict: the batching is worth 25-31%.**
+Interleaved arms (a temporary `PerfSwitches.RefreshBatching` flipped every iteration — the method
+this section prescribes; scaffolding since deleted), one run:
+
+| drag | batch on | batch off | |
+|---|---:|---:|---|
+| empty space, N=1000 | 8.57 ms | 11.38 ms | **−24.7%** |
+| empty space, N=2000 | 15.41 ms | 20.91 ms | **−26.3%** |
+| over real finished tiles, N=1000 | 8.91 ms | 12.89 ms | **−30.8%** |
+
+Allocation is identical between arms (732 vs 736 KB at N=2000), confirming the refresh path is not
+where the per-frame garbage comes from.
+
+**Why the first measurement missed it — the lesson worth keeping.** The −2% sweep dragged a blueprint
+across *vacuum*. `RefreshCellInternal` looks up `Grid.Objects[cell, layer]`, finds nothing, and
+returns before reaching the `KAnimGraphTileVisualizer.Refresh()` that makes a refresh expensive: the
+2.7M eliminated calls were each nearly free. The A/B above ran after the `use` and `create` sweeps
+had left real build orders and finished tiles in those cells, so each surviving refresh does real
+work and cutting 9× of them pays. **The batching's value scales with how occupied the cells under the
+cursor are** — ~0 in empty space, ~30% over a real base, which is where players actually drag
+blueprints. A per-frame optimisation measured over empty terrain is measured in the one condition
+that cannot show it working.
+
+`update-visual-tile-dense` is a permanent sweep for exactly this reason (it reuses the finished tiles
+`create` already built, so it costs no extra region). Note it is *cheaper* than the sparse drag —
+8.91 vs 11.70 ms at N=1000, 80 vs 596 KB — because over an identical finished tile
+`SameBuildingAlreadyFinishedInPlace` short-circuits `GetVisualizerColor` before it reaches
+`ValidCell`. So the expensive per-frame case is **empty space**, where the game is asked whether a
+cell nobody occupies is a legal build location; the dense drag is the cheap one. Dense-vs-sparse is
+therefore not a single-variable comparison — only the interleaved A/B isolates the batching.
 
 **Where the per-frame time actually is**, from the same run: tiles cost ~11.4 µs/visual/frame,
 dependents ~6.1 µs. The ~6 µs both pay is `Visualizer.transform.SetPosition` (a native Unity write
@@ -1182,9 +1207,14 @@ hoisting it out of the loop would buy nothing.
       than left in hopefully. See §7 **Allocation**.
 - [x] Tile-renderer follow-up: found and fixed a real leak (`CleanableVisuals` never cleared - every
       `TileVisual` ever drawn stayed reachable and was walked on every cursor move, 8.0M `Clean()`
-      calls against 150k real re-seats), and batched the refresh fan-out (-89% `RefreshCellInternal`)
-      for **no measurable frame-time gain** - a negative result, recorded as one. 11/11 green.
-      See §7 *The tile-renderer follow-up*.
+      calls against 150k real re-seats), and batched the refresh fan-out (-89% `RefreshCellInternal`).
+      The batching first measured as a null result over empty terrain; an interleaved A/B over
+      occupied cells put it at **-25 to -31%**, because a refresh of an empty cell is nearly free.
+      11/11 green. See §7 *The tile-renderer follow-up*.
+- [x] `update-visual-tile-dense`: a permanent drag sweep over real finished tiles (reuses the
+      rectangle `create` builds, so it costs no extra region). Added because every tile-renderer
+      number before it came from a drag across empty dug-out space - the one condition in which the
+      refresh work being optimised does not happen.
 - [ ] **Next for per-frame cost** — the levers are measured and ranked in §7 *Three levers left*.
       Only the first changes the asymptotics:
       1. one shared parent transform (cursor move becomes one transform write, not N);
