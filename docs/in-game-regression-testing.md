@@ -178,11 +178,9 @@ drives it. Instead of asserting, `PerfRunner`
    (`new Blueprint(sb)`) and `full-import` (the clipboard-minus-clipboard path,
    `ModAssets.TryImportBlueprintFromString`, reflected since it's `internal`), each with a
    warmup batch then timed iterations.
-3. Records per iteration: `Stopwatch` elapsed and `GC.GetAllocatedBytesForCurrentThread()`
-   delta — **the latter reads ~0 on ONI's embedded Mono regardless of N**, confirmed even at
-   N=5000 where real allocation is unquestionably in the hundreds of KB. Not implemented
-   meaningfully on this runtime; time and call counts are reliable, allocation numbers are not
-   (left in for a future Unity/Mono upgrade).
+3. Records per iteration: `Stopwatch` elapsed plus two allocation counters and a GC guard
+   ([AllocProbe.cs](../harness/BlueprintsIncludedHarness/Perf/AllocProbe.cs)) — see
+   **Allocation** below.
 4. Also Harmony-patches `BuildingConfig.SanitizeSelectedTags` and `ModAssets.GetValidMaterials`
    ([PerfInstrumentation.cs](../harness/BlueprintsIncludedHarness/Perf/PerfInstrumentation.cs))
    to count calls + accumulate time, so the result directly attributes cost instead of leaving
@@ -190,6 +188,58 @@ drives it. Instead of asserting, `PerfRunner`
 5. Writes median / p95 / alloc-per-op plus the hotspot totals to `%TEMP%/bpi-harness/perf.json`
    ([PerfWriter.cs](../harness/BlueprintsIncludedHarness/Perf/PerfWriter.cs)). No committed
    baseline / regression-diff yet — this is investigation, not a gate.
+
+### Allocation
+
+`GC.GetAllocatedBytesForCurrentThread()` — what this mode used to record — reads **0 at every N**
+under Mono's Boehm GC, so for a long time the harness measured time only. Two counters that do work
+replaced it (measured over a full sweep, 2026-09-11):
+
+| counter | verdict |
+|---|---|
+| `GC.GetTotalMemory(false)` | **live**, scales with N on every sweep — the managed-heap number |
+| `Profiler.GetTotalAllocatedMemoryLong()` | **live**, and the only view of Unity *native* memory |
+| `Profiler.GetMonoUsedSizeLong()` | byte-for-byte identical to `GC.GetTotalMemory` in every row — **dropped as redundant** |
+| `GC.GetAllocatedBytesForCurrentThread()` | 0.0 in every row — **dropped** |
+
+The two survivors answer different questions and both are needed: the managed counter reads ~0 for
+`use` and the dialog's cold opens (their cost is `GameObject`s, which never touch the managed heap),
+while the native counter reads 0 for `deserialize` / `full-import` / `update-visual` (pure managed
+work). A zero in one column is a finding, not a dead counter.
+
+Sample numbers (medians, this machine, two consecutive runs):
+
+| op | managed | native |
+|---|---:|---:|
+| `deserialize` N=5000 | 36.6 MB | 0 |
+| `full-import` N=5000 | 67.7 MB | 0 |
+| `update-visual-tile` N=2000 (per frame) | 2 388 KB | 0 |
+| `update-visual-ladder` N=1000 (per frame) | 252 KB | 0 |
+| `use` N=1000 | 7.5 MB | 4.9 MB |
+| `create` N=1000 | 900 KB | 0 |
+| `open-list-cold` L=500 | 16.9 MB | 15.8 MB |
+| `idle-frame` (3 frames, noise floor) | 16 KB | 2.9 KB |
+
+Repeatability is much better than the timings': the per-frame and native figures reproduced
+**byte-for-byte** across both runs (`update-visual-tile` N=2000 2 388 KB, `use` N=1000 native
+4 903.4 KB), and the big import figures within ~6%. Small-N rows are the noisy ones — `deserialize`
+N=100 read 620 KB then 144 KB — so read allocation at the large end of a sweep, where the signal is
+well clear of the floor.
+
+**Reading the numbers:**
+
+- They are **heap deltas, not an allocation counter** — a collection inside the measured body makes
+  one meaningless (possibly negative). Each iteration therefore also brackets
+  `GC.CollectionCount(0)`, and `AllocStats` medians only the iterations where it didn't move,
+  reporting the rest as the `gc0` column. **`gc0 = n/n` means nothing could be excluded and that
+  row is noise** — the big `open-preview-*-fresh` rows routinely hit that.
+- No forced `GC.Collect` between iterations: cleaner deltas, but it would change the heap state each
+  body sees and make the timings incomparable with the baselines above. The collection count is the
+  guard instead.
+- `idle-frame` is the floor: the paused game allocates ~16 KB managed / ~2.9 KB native over the same
+  three frames with no harness work in them. A delta near that is not a measurement.
+- `-settled` rows deliberately carry no allocation (`-` in the table): the probe closes with the
+  synchronous timer, so the settle frames' unrelated game work isn't charged to the op.
 
 **Finding + fix (one real run, one machine, before/after — see limits below):** `GetValidMaterials`
 — an uncached scan of `ElementLoader.elements` plus a `List<Tag>` alloc and an `OrderBy` sort,
@@ -221,8 +271,8 @@ matters again.
   mean anything; sub-10% deltas are lost.
 - Numbers are machine-specific — a baseline is only valid on the machine that produced it,
   never across machines or CI.
-- Allocation tracking (`GC.GetAllocatedBytesForCurrentThread`) does not work on ONI's Mono —
-  see above.
+- Allocation is measured as heap deltas, not by an allocation counter — check the `gc0` column
+  before believing a row, and ignore anything near the `idle-frame` floor (see **Allocation**).
 
 **Complement — for CPU-only paths, prefer BenchmarkDotNet** in a test project against a
 real install's executable publicised DLLs (no game launch, portable, rigorous). That covers
@@ -965,9 +1015,71 @@ sweep"; a sub-sweep that throws should never be able to cost the run its other n
 **Not pursued.** Extending the deferred-colour fix to foundation visuals would be *more* correct —
 they currently colour before dependents are registered, so a foundation's colour can be stale with
 respect to dependent occupancy — but that is a visible behaviour change rather than a pure
-deduplication, and does not belong in a performance pass. The remaining foundation-path floor is
-`CustomTileRenderer`'s per-tile mesh work (`RefreshCell` alone: 1,335,096 calls at 1.0 µs), which is
-the next thing to look at if this matters again.
+deduplication, and does not belong in a performance pass.
+
+### The tile-renderer follow-up — one real bug, and a negative result
+
+The pointer that used to close this section ("the remaining floor is `CustomTileRenderer`'s per-tile
+mesh work — `RefreshCell` alone: 1,335,096 calls at 1.0 µs") was chased next, with the allocation
+counters now working and a new attribution mode (`run-ingame.ps1 -Attribution`, sentinel
+`perf-attribution`) that turns the per-visual hotspots on without a recompile and records **managed
+bytes per call** alongside time. Its call counts are honest; its timings are wrapper-dominated and
+may only be compared with another attribution run.
+
+**Found: `CleanableVisuals` was never cleared.** `AddVisual` files every `TileVisual` into it, but
+`ClearVisuals` emptied only `FoundationVisuals` / `DependentVisuals`. Since `CleanDirtyVisuals` walks
+that list at the top of *every* `UpdateVisual`, the per-frame cost grew with every blueprint picked
+up in the session, and every `TileVisual` ever drawn stayed reachable for the life of the world — a
+leak as well as a tax. The attribution run measured **8,031,000 `Clean()` calls against 150,000 real
+re-seats** (53 per re-seat, nearly all on long-destroyed visuals). Fixed by clearing the list in
+`ClearVisuals`, after `CleanDirtyVisuals` has let the live ones unregister themselves.
+
+**Tried: batching the refresh fan-out.** Each seat/unseat dirties a five-cell cross per layer
+(`RefreshCell` → 5 × `RefreshCellInternal`), and in a solid block those crosses overlap almost
+completely — 20 internal refreshes per tile per cursor step. `CustomTileRenderer.BeginBatch` /
+`EndBatch` now collect `(player, cell, layer)` into a `HashSet` and flush once. Deferring is safe: a
+refresh only reads the *current* tile map, every mutation dirties the cells it can affect, and the
+flush happens inside the same frame — so each cell is refreshed once from the finished state instead
+of once per neighbour that moved past it. Batches wrap `UpdateVisual`, `ClearVisuals` and
+`VisualizeBlueprint`.
+
+| hotspot | before | after |
+|---|---:|---:|
+| `TileVisual.Clean` | 8,031,000 | 300,000 (−96%) |
+| `RefreshCellInternal` | 3,006,720 | 321,560 (−89%) |
+| `BlockTileRenderer.Rebuild` | 3,055,012 | 369,852 (−88%) |
+| `AddTileBlock` / `RemoveTileBlock` | 150,000 | 150,000 (unchanged by design) |
+
+**And it bought ~nothing.** `update-visual-tile` N=2000 went 23.26 → 22.76 ms (−2%) and its
+allocation 2,444 → 2,448 KB — both inside the ±10% noise floor. Removing 2.7M calls saved half a
+millisecond, because those calls were individually trivial. **The estimate that the fan-out was
+"about half the frame" was wrong, and the measurement is what says so** — recorded here because the
+next person to read that floor pointer deserves to know it was chased and came back empty.
+
+Kept anyway, deliberately: it provably removes redundant work, and the fixture's tiles sit in dug-out
+space where a `Rebuild` is at its cheapest — a dense colony need not be so forgiving. If it ever
+needs re-litigating, the measurement to run first is a drag across *existing* tiles rather than
+empty space.
+
+**Where the per-frame time actually is**, from the same run: tiles cost ~11.4 µs/visual/frame,
+dependents ~6.1 µs. The ~6 µs both pay is `Visualizer.transform.SetPosition` (a native Unity write
+per visual) plus colour evaluation — `GetVisualizerColor` at **230 B/call × 240,000 calls**, i.e.
+~460 KB of the 2,448 KB allocated per frame, almost certainly the `failReason` string inside Klei's
+`IsValidPlaceLocation`. The extra ~5.3 µs tiles pay is the `AddTileBlock` / `RemoveTileBlock`
+dictionary churn itself, which neither change above touches.
+
+**Three levers left, none of them small:**
+
+1. **One shared parent transform.** Positioning is O(N) only because each visualizer is moved
+   independently; parenting the non-tile visualizers under one GameObject would make a cursor move
+   one transform write. Tiles still need per-cell seating, and colour still needs per-visual
+   evaluation — but only when a cell's validity actually changes.
+2. **Delta-seat the tiles.** `ActiveTileVisuals` maps cell → `BuildingDef`, not cell → instance, so
+   when a solid blueprint translates by one cell the interior entries are already correct and only
+   the leading and trailing edges change. Diffing the desired map against the current one would make
+   renderer work O(perimeter) instead of O(N). Bounded by the ~5.3 µs tile surcharge.
+3. **The colour path.** Avoid `GetVisualizerColor` when the cell's validity cannot have changed —
+   the win is the 460 KB/frame and part of the 6 µs; the invalidation condition is the hard part.
 
 ## 8. Decision checklist
 
@@ -1024,6 +1136,23 @@ the next thing to look at if this matters again.
       colouring, and a scoped per-`BuildingDef` memo: N=2000 goes 38.0 -> 23.5 ms (tile) and
       55.2 -> 12.8 ms (dependent), i.e. from three dropped frames per cursor step to under one.
       11/11 green on both arms. See §7.
+- [x] Allocation measurement: `GC.GetAllocatedBytesForCurrentThread` reads 0 under Mono's Boehm GC,
+      so it was replaced by `GC.GetTotalMemory` (managed heap) + `Profiler.GetTotalAllocatedMemoryLong`
+      (Unity native) with a gen-0 collection guard, and a `-Attribution` run mode that adds
+      per-visual hotspots and bytes-per-call. Both counters verified live and reproducible; the two
+      candidates that weren't (`GetMonoUsedSizeLong`, the per-thread counter) were deleted rather
+      than left in hopefully. See §7 **Allocation**.
+- [x] Tile-renderer follow-up: found and fixed a real leak (`CleanableVisuals` never cleared - every
+      `TileVisual` ever drawn stayed reachable and was walked on every cursor move, 8.0M `Clean()`
+      calls against 150k real re-seats), and batched the refresh fan-out (-89% `RefreshCellInternal`)
+      for **no measurable frame-time gain** - a negative result, recorded as one. 11/11 green.
+      See §7 *The tile-renderer follow-up*.
+- [ ] **Next for per-frame cost** — three levers, measured and ranked in §7 *Three levers left*.
+      Only the first changes the asymptotics:
+      1. one shared parent transform (cursor move becomes one transform write, not N);
+      2. delta-seat the tiles (renderer work O(perimeter) instead of O(N), bounded by the ~5.3 µs
+         per-tile surcharge);
+      3. skip `GetVisualizerColor` when a cell's validity cannot have changed (~460 KB/frame).
 - [ ] Optional follow-ups: more building types / layers, place-with-settings applied to the built
       object, replacement visualizers over occupied terrain, a committed perf baseline + diff.
 - [ ] `run-ingame.ps1` currently removes the dev `Blueprints Expanded` (`mods/dev/BlueprintsV2`)

@@ -28,12 +28,13 @@ internal static class PerfInstrumentation
     private static readonly Dictionary<string, Accumulator> byName = new(StringComparer.Ordinal);
     private static bool applied;
 
-    /// <summary>Flip to true for a one-off attribution run over the per-frame update path, then flip
-    /// back. See the comment at its use site: instrumenting methods that run once per visual costs
-    /// more than the methods do, so a run with this on reports call counts and relative shares
-    /// honestly but its <c>update-visual</c> medians must not be compared with a run without it.
-    /// </summary>
-    private const bool PerVisualHotspots = false;
+    /// <summary>On for an attribution run (<c>run-ingame.ps1 -Attribution</c>, i.e. sentinel mode
+    /// <c>perf-attribution</c>), off for a normal benchmark run. See the comment at its use site:
+    /// instrumenting methods that run once per visual costs more than the methods do, so a run with
+    /// this on reports call counts and allocation honestly but its <c>update-visual</c> medians must
+    /// not be compared with a run without it. Driven by the sentinel rather than a recompile so the
+    /// two runs are the same binary.</summary>
+    private static bool PerVisualHotspots => HarnessGate.Attribution;
 
     /// <summary>Applies every registered patch, logging (via <paramref name="log"/>) and skipping
     /// any single target that can't be resolved/patched rather than aborting the rest - one bad
@@ -123,6 +124,41 @@ internal static class PerfInstrumentation
                 () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.HasTech)));
             TryPatchOne(harmony, log, "AllowedInWorld",
                 () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.AllowedInWorld)));
+
+            // The tile path specifically. update-visual-tile costs ~2x update-visual-ladder per
+            // visual and allocates ~1.2 KB per tile per frame, and none of the hotspots above can
+            // see why: TileVisual overrides ApplyRotation and ApplyColorIfChanged without calling
+            // base, so tiles appear in neither count. What they do instead is re-seat themselves in
+            // the renderer on every move - Clean() (RemoveTileBlock + RefreshCell on the old cell)
+            // then AddTileBlock + RefreshCell on the new one - and each RefreshCell fans out to
+            // five cells per layer. These counts are the ones that say whether the fan-out, the
+            // re-seating, or the game-side Rebuild is the thing to attack.
+            TryPatchOne(harmony, log, "TileVisual.MoveVisualizerCore",
+                () => AccessTools.Method(typeof(TileVisual), "MoveVisualizerCore"));
+            TryPatchOne(harmony, log, "TileVisual.UpdateGrid",
+                () => AccessTools.Method(typeof(TileVisual), "UpdateGrid"));
+            TryPatchOne(harmony, log, "TileVisual.Clean",
+                () => AccessTools.Method(typeof(TileVisual), nameof(TileVisual.Clean)));
+            TryPatchOne(harmony, log, "TileVisual.ApplyColorIfChanged",
+                () => AccessTools.Method(typeof(TileVisual), nameof(TileVisual.ApplyColorIfChanged)));
+            if (customTileRendererType != null)
+            {
+                // RefreshCell itself is already patched above (always-on, both overloads under one
+                // accumulator - they forward to each other, so that count is inflated by design and
+                // only RefreshCellInternal's is the real fan-out figure). Don't re-register it here:
+                // a second harmony.Patch on the same method would count every call twice.
+                TryPatchOne(harmony, log, "RefreshCellInternal",
+                    () => AccessTools.Method(customTileRendererType, "RefreshCellInternal"));
+                TryPatchOne(harmony, log, "RemoveTileBlock",
+                    () => AccessTools.Method(customTileRendererType, "RemoveTileBlock"));
+                TryPatchOne(harmony, log, "GetVisualizerConnectionBits",
+                    () => AccessTools.Method(customTileRendererType, "GetVisualizerConnectionBits"));
+            }
+            // Game-side: what RefreshCellInternal actually asks the renderer to do. If the cost is
+            // here, no amount of mod-side dedup helps beyond calling it less often - which is
+            // exactly the question.
+            TryPatchOne(harmony, log, "BlockTileRenderer.Rebuild",
+                () => AccessTools.Method(typeof(Rendering.BlockTileRenderer), "Rebuild"));
         }
 
         // UpdateBlueprintButtons uses this as a LINQ OrderBy key selector for its date sorts, so
@@ -324,12 +360,27 @@ internal static class PerfInstrumentation
             postfix: new HarmonyMethod(typeof(PerfInstrumentation), nameof(TimerPostfix)));
     }
 
-    private static void TimerPrefix(out Stopwatch __state) => __state = Stopwatch.StartNew();
+    /// <summary>Managed-heap bytes as well as time: the counters that work on this runtime are in
+    /// <see cref="AllocProbe"/>, and per-hotspot allocation is what decides whether a per-frame path
+    /// is worth attacking with pooling or with plain arithmetic (docs §7).</summary>
+    private static void TimerPrefix(out CallState __state) => __state = new CallState(Stopwatch.StartNew(), GC.GetTotalMemory(false));
 
-    private static void TimerPostfix(Stopwatch __state, MethodBase __originalMethod)
+    private static void TimerPostfix(CallState __state, MethodBase __originalMethod)
     {
         if (byMethod.TryGetValue(__originalMethod, out var acc))
-            acc.Add(__state.Elapsed);
+            acc.Add(__state.Watch.Elapsed, GC.GetTotalMemory(false) - __state.HeapBefore);
+    }
+
+    private readonly struct CallState
+    {
+        public CallState(Stopwatch watch, long heapBefore)
+        {
+            Watch = watch;
+            HeapBefore = heapBefore;
+        }
+
+        public Stopwatch Watch { get; }
+        public long HeapBefore { get; }
     }
 
     public static void ResetAll()
@@ -348,37 +399,45 @@ internal static class PerfInstrumentation
         private readonly object gate = new();
         private long calls;
         private double totalMs;
+        private long totalBytes;
 
-        public void Add(TimeSpan elapsed)
+        public void Add(TimeSpan elapsed, long bytes)
         {
             lock (gate)
             {
                 calls++;
                 totalMs += elapsed.TotalMilliseconds;
+                // Summed as measured, negatives included: a collection inside one call subtracts
+                // there and the bytes it reclaimed were counted on the calls that allocated them,
+                // so the total stays the right order of magnitude. Read bytes/call, not the total.
+                totalBytes += bytes;
             }
         }
 
         public void Reset()
         {
-            lock (gate) { calls = 0; totalMs = 0; }
+            lock (gate) { calls = 0; totalMs = 0; totalBytes = 0; }
         }
 
         public Snapshot Snap()
         {
-            lock (gate) return new Snapshot(calls, totalMs);
+            lock (gate) return new Snapshot(calls, totalMs, totalBytes);
         }
 
         public readonly struct Snapshot
         {
-            public Snapshot(long calls, double totalMs)
+            public Snapshot(long calls, double totalMs, long totalBytes)
             {
                 Calls = calls;
                 TotalMs = totalMs;
+                TotalBytes = totalBytes;
             }
 
             public long Calls { get; }
             public double TotalMs { get; }
+            public long TotalBytes { get; }
             public double AvgUsPerCall => Calls == 0 ? 0 : TotalMs * 1000.0 / Calls;
+            public double AvgBytesPerCall => Calls == 0 ? 0 : (double)TotalBytes / Calls;
         }
     }
 }

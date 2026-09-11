@@ -154,16 +154,58 @@ internal class CustomTileRenderer : BlockTileRenderer
         }
     }
 
+    /// <summary>
+    /// Cells whose art is stale, collected instead of refreshed while a <see cref="BeginBatch"/>
+    /// scope is open. A tile's connection art depends on its four neighbours, so every seat and
+    /// unseat dirties a five-cell cross per layer - and in a solid block of tiles those crosses
+    /// overlap almost completely. Refreshing as we go meant a 2000-tile blueprint issued ~40,000
+    /// <see cref="RefreshCellInternal"/> calls per cursor step (harness attribution run: 3.0M calls
+    /// against 150k re-seats, docs §7) to touch a few thousand distinct cells.
+    ///
+    /// Deferring loses nothing: a refresh only ever reads the <i>current</i>
+    /// <c>ActiveTileVisuals</c> map, every mutation of that map dirties the cells it can affect, and
+    /// the flush happens inside the same frame - so each cell is refreshed once, from the finished
+    /// state, instead of once per neighbour that moved past it.
+    /// </summary>
+    static readonly HashSet<(ulong PlayerId, int Cell, ObjectLayer Layer)> pendingRefreshes = [];
+    static int batchDepth;
+
+    /// <summary>Opens a batch (re-entrant). <b>Must</b> be paired with <see cref="EndBatch"/> in a
+    /// finally - an unclosed batch would leave the art stale until the next flush.</summary>
+    public static void BeginBatch() => batchDepth++;
+
+    public static void EndBatch()
+    {
+        if (batchDepth > 0)
+            batchDepth--;
+        if (batchDepth > 0 || pendingRefreshes.Count == 0)
+            return;
+
+        foreach (var (playerId, cell, layer) in pendingRefreshes)
+            RefreshCellInternal(playerId, cell, layer);
+        pendingRefreshes.Clear();
+    }
+
     public static void RefreshCell(ulong playerId, int cell, ObjectLayer tile_layer)
     {
-        if (tile_layer != ObjectLayer.NumLayers)
+        if (tile_layer == ObjectLayer.NumLayers)
+            return;
+
+        if (batchDepth > 0)
         {
-            RefreshCellInternal(playerId, cell, tile_layer);
-            RefreshCellInternal(playerId, Grid.CellAbove(cell), tile_layer);
-            RefreshCellInternal(playerId, Grid.CellBelow(cell), tile_layer);
-            RefreshCellInternal(playerId, Grid.CellLeft(cell), tile_layer);
-            RefreshCellInternal(playerId, Grid.CellRight(cell), tile_layer);
+            pendingRefreshes.Add((playerId, cell, tile_layer));
+            pendingRefreshes.Add((playerId, Grid.CellAbove(cell), tile_layer));
+            pendingRefreshes.Add((playerId, Grid.CellBelow(cell), tile_layer));
+            pendingRefreshes.Add((playerId, Grid.CellLeft(cell), tile_layer));
+            pendingRefreshes.Add((playerId, Grid.CellRight(cell), tile_layer));
+            return;
         }
+
+        RefreshCellInternal(playerId, cell, tile_layer);
+        RefreshCellInternal(playerId, Grid.CellAbove(cell), tile_layer);
+        RefreshCellInternal(playerId, Grid.CellBelow(cell), tile_layer);
+        RefreshCellInternal(playerId, Grid.CellLeft(cell), tile_layer);
+        RefreshCellInternal(playerId, Grid.CellRight(cell), tile_layer);
     }
 
     public static void RefreshCell(ulong playerId, int cell, ObjectLayer tile_layer, ObjectLayer replacement_layer)

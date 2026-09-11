@@ -509,7 +509,27 @@ public static class BlueprintState
         BlueprintState.UpdateVisual(playerId, CurrentStateInfo(playerId).lastBlueprintPos, true, snapshot);
     }
     public static void VisualizeBlueprint(Vector2I topLeft, Blueprint? blueprint) => VisualizeBlueprint(PlayerId_DefaultTilePreviews, topLeft, blueprint);
+    /// <summary>
+    /// One tile-renderer batch around the whole build: every <see cref="TileVisual"/> seats itself
+    /// as it is constructed and the forced <see cref="UpdateVisual"/> at the end re-seats the lot,
+    /// each seat dirtying a five-cell cross of tile art. Batched, those overlapping crosses collapse
+    /// into a single flush of the cells that actually changed - see
+    /// <see cref="CustomTileRenderer.BeginBatch"/>.
+    /// </summary>
     public static void VisualizeBlueprint(ulong playerId, Vector2I topLeft, Blueprint? blueprint)
+    {
+        CustomTileRenderer.BeginBatch();
+        try
+        {
+            VisualizeBlueprintCore(playerId, topLeft, blueprint);
+        }
+        finally
+        {
+            CustomTileRenderer.EndBatch();
+        }
+    }
+
+    private static void VisualizeBlueprintCore(ulong playerId, Vector2I topLeft, Blueprint? blueprint)
     {
         if (blueprint == null)
         {
@@ -633,56 +653,68 @@ public static class BlueprintState
             return;
 
         transformData.lastBlueprintPos = origin;
-        CleanDirtyVisuals(playerId);
-        transformData.StoreDimensions(snapshotBp);
-        //VisualizerTargets.Clear();
-        ClearOccupiedCells(playerId);
-
-        ///rotation and flipping only ever change through a hotkey, and every path that changes
-        ///them redraws with forcingRedraw - so on a plain cursor move re-applying the same
-        ///orientation to every visual is pure work. Decided once per update rather than cached per
-        ///visual: three comparisons instead of N, and it covers implementations like UtilityVisual
-        ///whose ApplyRotation does work *around* its base call that a base-class early-return
-        ///would not suppress.
-        bool applyRotation = forcingRedraw || !transformData.RotationMatchesLastApplied();
-
-        var foundationVisuals = FoundationVisuals[playerId];
-        var dependentVisuals = DependentVisuals[playerId];
-
-        ///the per-def memo is only open across these loops: HasTech/AllowedInWorld/the buildable
-        ///state genuinely change as the colony runs, so they can be shared between the visuals of
-        ///one update but never cached beyond it.
-        BuildingVisual.BeginDefMemo();
+        ///every tile in the blueprint unseats itself here and re-seats one cell over below, and
+        ///each of those dirties a five-cell cross of tile art. Batched, the overlapping crosses
+        ///collapse to the set of cells that actually changed and are refreshed once, at the end,
+        ///from the finished state - see CustomTileRenderer.BeginBatch.
+        CustomTileRenderer.BeginBatch();
         try
         {
-            for (int i = 0; i < foundationVisuals.Count; i++)
+            CleanDirtyVisuals(playerId);
+            transformData.StoreDimensions(snapshotBp);
+            //VisualizerTargets.Clear();
+            ClearOccupiedCells(playerId);
+
+            ///rotation and flipping only ever change through a hotkey, and every path that changes
+            ///them redraws with forcingRedraw - so on a plain cursor move re-applying the same
+            ///orientation to every visual is pure work. Decided once per update rather than cached
+            ///per visual: three comparisons instead of N, and it covers implementations like
+            ///UtilityVisual whose ApplyRotation does work *around* its base call that a base-class
+            ///early-return would not suppress.
+            bool applyRotation = forcingRedraw || !transformData.RotationMatchesLastApplied();
+
+            var foundationVisuals = FoundationVisuals[playerId];
+            var dependentVisuals = DependentVisuals[playerId];
+
+            ///the per-def memo is only open across these loops: HasTech/AllowedInWorld/the buildable
+            ///state genuinely change as the colony runs, so they can be shared between the visuals of
+            ///one update but never cached beyond it.
+            BuildingVisual.BeginDefMemo();
+            try
             {
-                var foundationVisual = foundationVisuals[i];
-                transformData.ApplyRotatedCellAndMove(origin, foundationVisual, forcingRedraw, applyRotation, applyColor: true);
-                StoreOccupiedArea(playerId, foundationVisual);
+                for (int i = 0; i < foundationVisuals.Count; i++)
+                {
+                    var foundationVisual = foundationVisuals[i];
+                    transformData.ApplyRotatedCellAndMove(origin, foundationVisual, forcingRedraw, applyRotation, applyColor: true);
+                    StoreOccupiedArea(playerId, foundationVisual);
+                }
+                ///the RefreshColor pass below exists because a visual's colour depends on occupancy,
+                ///which is not complete until every visual has been placed and StoreOccupiedArea'd -
+                ///so colouring dependents during the move too only computes a value that pass
+                ///immediately overwrites. Foundations still colour on move (above), which is what
+                ///makes skipping it here a pure deduplication rather than a change in what any visual
+                ///ends up looking like.
+                for (int i = 0; i < dependentVisuals.Count; i++)
+                {
+                    var dependentVisual = dependentVisuals[i];
+                    transformData.ApplyRotatedCellAndMove(origin, dependentVisual, forcingRedraw, applyRotation, applyColor: false);
+                    StoreOccupiedArea(playerId, dependentVisual);
+                }
+                for (int i = 0; i < dependentVisuals.Count; i++)
+                    dependentVisuals[i].RefreshColor();
             }
-            ///the RefreshColor pass below exists because a visual's colour depends on occupancy,
-            ///which is not complete until every visual has been placed and StoreOccupiedArea'd -
-            ///so colouring dependents during the move too only computes a value that pass
-            ///immediately overwrites. Foundations still colour on move (above), which is what
-            ///makes skipping it here a pure deduplication rather than a change in what any visual
-            ///ends up looking like.
-            for (int i = 0; i < dependentVisuals.Count; i++)
+            finally
             {
-                var dependentVisual = dependentVisuals[i];
-                transformData.ApplyRotatedCellAndMove(origin, dependentVisual, forcingRedraw, applyRotation, applyColor: false);
-                StoreOccupiedArea(playerId, dependentVisual);
+                BuildingVisual.EndDefMemo();
             }
-            for (int i = 0; i < dependentVisuals.Count; i++)
-                dependentVisuals[i].RefreshColor();
+
+            if (applyRotation)
+                transformData.RecordAppliedRotation();
         }
         finally
         {
-            BuildingVisual.EndDefMemo();
+            CustomTileRenderer.EndBatch();
         }
-
-        if (applyRotation)
-            transformData.RecordAppliedRotation();
 
         OnBlueprintMoved(playerId, origin);
     }
@@ -690,20 +722,40 @@ public static class BlueprintState
 
     public static void ClearVisuals(ulong playerId = BlueprintState.PlayerId_DefaultTilePreviews)
     {
-        CleanDirtyVisuals(playerId);
+        ///same reason as UpdateVisual: unseating every tile dirties a cross per tile, and those
+        ///crosses overlap. Re-entrant, so nesting inside VisualizeBlueprint's batch is fine.
+        CustomTileRenderer.BeginBatch();
+        try
+        {
+            CleanDirtyVisuals(playerId);
 
+            var foundations = FoundationVisuals[playerId];
+            foundations.ForEach(foundationVis => foundationVis.DestroyVisualizer());
+            foundations.Clear();
 
-        var foundations = FoundationVisuals[playerId];
-        foundations.ForEach(foundationVis => foundationVis.DestroyVisualizer());
-        foundations.Clear();
+            var dependents = DependentVisuals[playerId];
+            dependents.ForEach(dependantVisual => dependantVisual.DestroyVisualizer());
+            dependents.Clear();
 
-        var dependents = DependentVisuals[playerId];
-        dependents.ForEach(dependantVisual => dependantVisual.DestroyVisualizer());
-        dependents.Clear();
-        ClearOccupiedCells(playerId);
+            ///the cleanable list is a subset of the two lists just emptied (AddVisual files every
+            ///ICleanableVisual into both), so leaving it populated kept every TileVisual ever drawn
+            ///alive for the life of the world - and made CleanDirtyVisuals, which runs at the top of
+            ///*every* UpdateVisual, walk all of them on every cursor move. Picking up a few large
+            ///blueprints was enough to make that list dwarf the blueprint actually on the cursor:
+            ///the perf harness's attribution run counted 8.0M Clean() calls against 150k real
+            ///re-seats (docs §7). Cleared after CleanDirtyVisuals above, so the live ones have
+            ///already unregistered themselves from the renderer.
+            CleanableVisuals[playerId].Clear();
 
-        if (LocalPlayerId(playerId))
-            CurrentStateInfo(playerId).ResetRotations();
+            ClearOccupiedCells(playerId);
+
+            if (LocalPlayerId(playerId))
+                CurrentStateInfo(playerId).ResetRotations();
+        }
+        finally
+        {
+            CustomTileRenderer.EndBatch();
+        }
 
         OnBlueprintCleared(playerId);
     }
