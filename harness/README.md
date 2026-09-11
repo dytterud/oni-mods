@@ -14,7 +14,9 @@ Background and rationale: [`docs/in-game-regression-testing.md`](../docs/in-game
   can't race the mod's in-place ILRepack.
 - Built and deployed only by [`test/run-ingame.ps1`](../test/run-ingame.ps1). Building the csproj
   by hand needs `-p:SolutionDir=<repo>\` (a solution build would supply it; the inherited
-  assembly-publicizer path needs it) and the mod must already be built (`<Reference>` points at
+  assembly-publicizer path needs it) — omit it and you get
+  `MSB3191: Unable to create directory "*Undefined*/PublicisedAssembly"`, which looks like a path
+  bug but is just the missing property — and the mod must already be built (`<Reference>` points at
   `src/BlueprintsIncluded/bin/Debug/netstandard2.1/BlueprintsIncluded.dll` directly, not a
   `ProjectReference` — a second build instance of the mod corrupts its incremental state and races
   its in-place ILRepack). At runtime it resolves `BlueprintsV2.*` against the merged
@@ -35,8 +37,10 @@ Background and rationale: [`docs/in-game-regression-testing.md`](../docs/in-game
 ## Running
 
 ```
-pwsh test/run-ingame.ps1
+pwsh test/run-ingame.ps1        # or: powershell test/run-ingame.ps1
 ```
+
+Use `powershell` (Windows PowerShell) if `pwsh` isn't on PATH — the script runs under both.
 
 Builds + deploys both mods, copies the fixture to `%TEMP%\bpi-harness\poc-colony.sav` (the harness
 loads that absolute path), writes the sentinel, launches ONI via Steam, polls

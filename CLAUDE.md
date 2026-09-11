@@ -12,14 +12,25 @@ History was squashed, so there is no merge-base with upstream — porting an ups
 ```
 dotnet build BlueprintsIncluded.slnx -c Release -p:OfflineBuild=true   # no game install needed
 dotnet test                                                            # from repo root, offline
+powershell test/run-ingame.ps1                                         # asserts inside a real colony
 ```
+
+**You can test in-game — don't assume otherwise.** `test/run-ingame.ps1` builds both mods, launches
+ONI via Steam, loads a fixture colony, runs assertion cases against the live blueprint pipeline,
+writes JUnit XML and quits on its own. It needs a real install configured
+(`Directory.Build.props.user`) and takes a few minutes with the game window up, so ask first if the
+user is at the machine — but it is the right tool whenever a change touches placement, visualizers,
+capture or UI, and it is how you verify things `dotnet test` structurally cannot reach. Add cases in
+`harness/BlueprintsIncludedHarness/HarnessCases.cs`; it can also capture screenshots. Use `powershell`
+if `pwsh` is not on PATH. See [harness/README.md](harness/README.md).
 
 Offline build auto-activates when no ONI install is configured; it compiles against the
 committed reference assemblies in `lib/`. For in-game testing against a real install, see
 [README.md](README.md) (`Directory.Build.props.user` + `dotnet tool restore` + `-c Debug`).
-Test details: [test/README.md](test/README.md). The blueprint pipeline needs a running
-colony, so it has a manual [smoke-test checklist](docs/smoke-test-checklist.md) — run it
-in-game after changes to blueprint data, tools, visualizers, or UI.
+Test details: [test/README.md](test/README.md). The blueprint pipeline needs a running colony;
+much of that is covered automatically by the harness above. The
+[smoke-test checklist](docs/smoke-test-checklist.md) is the human fallback for what it doesn't
+cover — anything that needs an eye on the screen rather than an assertion.
 
 ## Layout
 

@@ -46,18 +46,34 @@ everywhere. That is most of what is currently unit-testable — the production c
 seams between logic and game state. Widening coverage mostly means extracting plain
 functions / small interfaces, not more test infrastructure.
 
-## Manual smoke test
+## In-game testing
 
-The blueprint pipeline (create → save → reload → place, notes, folders, MP) needs a
-running colony, so it can't be unit-tested. Run [`docs/smoke-test-checklist.md`](../docs/smoke-test-checklist.md)
-in-game after any change to the blueprint data, tools, visualizers, or UI.
+The blueprint pipeline (create → save → reload → place, notes, folders, MP) needs a running
+colony, so it can't be unit-tested — but it **can** be tested automatically. Don't assume
+in-game verification is out of reach; it isn't, and that assumption has repeatedly led to
+changes shipping with "couldn't be verified" when they could have been.
 
-Automating that pass by launching the game and asserting inside a live colony is feasible
-on a dev machine (not in CI). A proof-of-concept harness exists in
-[`harness/`](../harness/README.md) — a separate dev-only mod; it's in the solution for the IDE but
-excluded from CLI solution builds and **not** run by `dotnet test`. Drive it with
-[`test/run-ingame.ps1`](run-ingame.ps1). Background:
+```
+powershell test/run-ingame.ps1
+```
+
+Builds both mods, launches ONI via Steam, loads a committed fixture colony, runs assertion
+cases against the live pipeline, writes JUnit XML and quits on its own. Needs a real install
+configured in `Directory.Build.props.user`; takes a few minutes with the game window up, so
+check with whoever is at the machine first. Use `powershell` if `pwsh` isn't on PATH.
+
+Add cases in `harness/BlueprintsIncludedHarness/HarnessCases.cs` — each is a coroutine that can
+let frames pass, and `PlaceAt` already drives dig → VisualizeBlueprint → [rotate] →
+UseBlueprint. It can capture screenshots too. Details:
+[`harness/README.md`](../harness/README.md); background:
 [`docs/in-game-regression-testing.md`](../docs/in-game-regression-testing.md).
+
+The harness is a separate dev-only mod: in the solution for the IDE, but excluded from CLI
+solution builds and **not** run by `dotnet test`, so it never races the mod's in-place ILRepack.
+
+What it can't do is judge whether something *looks* right — it asserts values and captures
+screenshots for a human to review. [`docs/smoke-test-checklist.md`](../docs/smoke-test-checklist.md)
+is the fallback for that.
 
 ## Shared config
 
