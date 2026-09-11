@@ -59,10 +59,26 @@ namespace UtilLibs
 			}
 		}
 
+		/// <summary>
+		/// Logs up to four values, space-separated, skipping the ones left null.
+		///
+		/// The expression this replaces parsed as <c>(a.ToString() + b) != null ? " " + b.ToString() : ...</c>
+		/// - <c>+</c> binds tighter than <c>!=</c>, which binds tighter than <c>?:</c> - so the
+		/// condition was a string concatenation compared against null, i.e. always true. Every call
+		/// therefore dropped <paramref name="a"/> entirely and dereferenced <paramref name="b"/>,
+		/// throwing a NullReferenceException for the single-argument case its own defaults invite.
+		/// Nothing in this repo reaches it (every call site passes a string, which binds to the
+		/// <c>debuglog(string, string)</c> overload below), so the bug was latent rather than live.
+		/// </summary>
 		public static void debuglog(object a, object b = null, object c = null, object d = null)
 		{
-			var message = a.ToString() + b != null ? " " + b.ToString() : string.Empty + c != null ? " " + c.ToString() : string.Empty + d != null ? " " + d.ToString() : string.Empty;
-
+			string message = Convert.ToString(a);
+			if (b != null)
+				message += " " + b;
+			if (c != null)
+				message += " " + c;
+			if (d != null)
+				message += " " + d;
 
 			string assemblyOverride = Assembly.GetExecutingAssembly().GetName().Name;
 			string messageToLog = string.Concat(TimeStamp()," [INFO] [" , assemblyOverride , "]: ", message);
