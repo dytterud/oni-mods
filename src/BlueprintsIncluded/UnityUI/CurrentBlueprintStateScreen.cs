@@ -165,13 +165,15 @@ internal class CurrentBlueprintStateScreen : KScreen
         ApplyBPSettings.SetCheckmark("Checkbox/Checkmark");
         ApplyBPSettings.SetOnFromCode(BlueprintState.CurrentStateInfo().ApplyBlueprintSettings);
         ApplyBPSettings.OnChange += (on) => BlueprintState.CurrentStateInfo().ApplyBlueprintSettings = on;
+        UIUtils.AddSimpleTooltipToObject(ApplyBPSettings.gameObject, APPLYSTOREDSETTINGS.TOOLTIP);
 
 
         ForceRebuildMismatchedBuildings = transform.Find("InfoItemsContainer/ForceRebuild").gameObject.AddOrGet<FToggle>();
         ForceRebuildMismatchedBuildings.SetCheckmark("Checkbox/Checkmark");
         ForceRebuildMismatchedBuildings.SetOnFromCode(BlueprintState.CurrentStateInfo().ForceBuild);
         ForceRebuildMismatchedBuildings.OnChange += (on) => BlueprintState.CurrentStateInfo().ForceBuild = on;
-        UIUtils.AddSimpleTooltipToObject(ForceRebuildMismatchedBuildings.gameObject, UI.FormatAsHotkey("[" + GameUtil.GetActionString(ModAssets.Actions.BlueprintsToggleForce.GetKAction()) + "]"));
+        UIUtils.AddSimpleTooltipToObject(ForceRebuildMismatchedBuildings.gameObject,
+            FORCEREBUILD.TOOLTIP + "\n" + UI.FormatAsHotkey("[" + GameUtil.GetActionString(ModAssets.Actions.BlueprintsToggleForce.GetKAction()) + "]"));
 
         EnableSnapshotMaterialOverrides = transform.Find("InfoItemsContainer/MaterialReplacement").gameObject.AddOrGet<FToggle>();
         EnableSnapshotMaterialOverrides.SetCheckmark("Checkbox/Checkmark");
@@ -189,13 +191,13 @@ internal class CurrentBlueprintStateScreen : KScreen
         ForceOverrideTransformations.SetCheckmark("Checkbox/Checkmark");
         ForceOverrideTransformations.SetOnFromCode(BlueprintState.CurrentStateInfo().ForceOverrideTransformations);
         ForceOverrideTransformations.OnChange += OnForceOverrideTransformationsChanged;
-        UIUtils.AddSimpleTooltipToObject(ForceOverrideTransformations.gameObject, APPLYSETTINGSTOEXISTING.TOOLTIP);
+        UIUtils.AddSimpleTooltipToObject(ForceOverrideTransformations.gameObject, FORCETRANSFORMATIONTOGGLE.TOOLTIP);
 
         ApplySettingsToExistingBuildings = transform.Find("InfoItemsContainer/ApplySettingsToExisting").gameObject.AddOrGet<FToggle>();
         ApplySettingsToExistingBuildings.SetCheckmark("Checkbox/Checkmark");
         ApplySettingsToExistingBuildings.SetOnFromCode(BlueprintState.CurrentStateInfo().ApplySettingsToExistingBuildings);
         ApplySettingsToExistingBuildings.OnChange += OnApplySettingsToExistingChanged;
-        UIUtils.AddSimpleTooltipToObject(ApplySettingsToExistingBuildings.gameObject, FORCETRANSFORMATIONTOGGLE.TOOLTIP);
+        UIUtils.AddSimpleTooltipToObject(ApplySettingsToExistingBuildings.gameObject, APPLYSETTINGSTOEXISTING.TOOLTIP);
 
         ChangeMaterialOverrides = transform.Find("InfoItemsContainer/MaterialOverrides/Button").gameObject.AddOrGet<FButton>();
         ChangeMaterialOverrides.OnClick += ShowMaterialReplacementList;
