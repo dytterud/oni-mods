@@ -1136,6 +1136,23 @@ dictionary churn itself, which neither change above touches.
       colouring, and a scoped per-`BuildingDef` memo: N=2000 goes 38.0 -> 23.5 ms (tile) and
       55.2 -> 12.8 ms (dependent), i.e. from three dropped frames per cursor step to under one.
       11/11 green on both arms. See §7.
+- [x] Allocation measurement: `GC.GetAllocatedBytesForCurrentThread` reads 0 under Mono's Boehm GC,
+      so it was replaced by `GC.GetTotalMemory` (managed heap) + `Profiler.GetTotalAllocatedMemoryLong`
+      (Unity native) with a gen-0 collection guard, and a `-Attribution` run mode that adds
+      per-visual hotspots and bytes-per-call. Both counters verified live and reproducible; the two
+      candidates that weren't (`GetMonoUsedSizeLong`, the per-thread counter) were deleted rather
+      than left in hopefully. See §7 **Allocation**.
+- [x] Tile-renderer follow-up: found and fixed a real leak (`CleanableVisuals` never cleared - every
+      `TileVisual` ever drawn stayed reachable and was walked on every cursor move, 8.0M `Clean()`
+      calls against 150k real re-seats), and batched the refresh fan-out (-89% `RefreshCellInternal`)
+      for **no measurable frame-time gain** - a negative result, recorded as one. 11/11 green.
+      See §7 *The tile-renderer follow-up*.
+- [ ] **Next for per-frame cost** — three levers, measured and ranked in §7 *Three levers left*.
+      Only the first changes the asymptotics:
+      1. one shared parent transform (cursor move becomes one transform write, not N);
+      2. delta-seat the tiles (renderer work O(perimeter) instead of O(N), bounded by the ~5.3 µs
+         per-tile surcharge);
+      3. skip `GetVisualizerColor` when a cell's validity cannot have changed (~460 KB/frame).
 - [ ] Optional follow-ups: more building types / layers, place-with-settings applied to the built
       object, replacement visualizers over occupied terrain, a committed perf baseline + diff.
 - [ ] `run-ingame.ps1` currently removes the dev `Blueprints Expanded` (`mods/dev/BlueprintsV2`)
