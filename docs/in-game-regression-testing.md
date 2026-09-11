@@ -792,7 +792,7 @@ generic definition) but **not re-measured** — it would only split the clone fr
 ### A/A noise measurement — what a perf delta here has to beat
 
 Prompted by the unsupportable "−8%" above. Two full perf passes were run on the **identical
-build**, no code change between them (`scratchpad/aa-run.ps1`), and their `perf.json` medians
+build**, no code change between them ([`test/aa-run.ps1`](../test/aa-run.ps1)), and their `perf.json` medians
 diffed. Anything that differs is harness/machine noise. Iteration counts were raised first
 (`SelectionScreenPerf`: cold 3 → 10, warm/preview 5 → 10).
 
@@ -833,6 +833,141 @@ the regression suite and by hand, never by a timing here.
 `BlueprintFolder`'s `HashSet` and the screen's `BlueprintEntries` dictionary. Renaming therefore
 mutates a live hash key. Pre-existing and out of scope for a performance pass, but it is why fix 1
 invalidates explicitly on rename rather than trusting the folder's revision counter.
+
+**Built last: `update-visual` — the only per-frame path in the mod.** Everything measured above is a
+*one-shot* action: importing a file, opening the dialog, selecting a blueprint, clicking to place,
+dragging a capture rectangle. `BlueprintState.UpdateVisual` is not. `UseBlueprintTool.OnMouseMove`
+calls it on **every cursor cell change** while a blueprint is on the cursor, and it walks every
+visual doing rotation, cell maths and colour evaluation. At 60 fps a frame is 16.7 ms; this sweep
+found a 2000-building blueprint costing **55 ms per cursor step** before the fixes below — three
+frames dropped per cell of mouse travel, which is what "dragging a large blueprint is a slideshow"
+actually is.
+
+**This is the first §7 measurement to use the interleaved method** the A/A section above prescribes,
+rather than comparing two runs. `PerfSwitches` (a temporary `internal static class` in the mod, one
+`bool` per fix, reached from the harness by reflection via `PerfSwitchAccess`) is flipped **between
+iterations of one sweep**, and the two arms are reported as separate operations
+(`update-visual-{variant}-opt` / `-base`). Both arms therefore see the same machine, the same
+process and the same thermal state, so the ~4-5% second-pass drift cannot apply by construction —
+which matters because three of the four fixes were individually expected to land under the ±10%
+single-run-pair floor. The switches and the interleaving were **scaffolding, and have since been
+deleted** — `PerfSwitches`, `PerfSwitchAccess` and the superseded code paths are gone, and the
+sweep now times the single (optimised) path as an ongoing `update-visual-{variant}` benchmark. They
+are described here because the numbers below cannot be reproduced without rebuilding them; the
+method is the reusable part, not the scaffolding.
+
+**Two variants, and why that is not optional.** `BlueprintState.AddVisual` files each visual under
+`FoundationVisuals` or `DependentVisuals` by `BuildingDef.IsFoundation`, and `UpdateVisual` treats
+the two lists differently — only the dependent list gets the second `RefreshColor` pass that fix 3
+deduplicates against. `SyntheticBlueprint`'s default all-`Tile` blueprint is **entirely
+foundations** (the sweep logs `2000 foundation, 0 dependent`), so a tile-only sweep would have
+measured the largest of the four fixes as exactly zero. The sweep runs `Tile` for the foundation
+path and `Ladder` for the dependent one (`0 foundation, 2000 dependent`), and logs the actual split
+rather than trusting that reasoning — the same instinct as `create`'s captured-count check.
+
+Other things that keep it honest: the cursor oscillates by one cell rather than sitting still
+(`UpdateVisual` early-returns when the origin equals `lastBlueprintPos`, so a fixed origin would
+time the early-out); it runs inside the already-dug **and revealed** region, since
+`BuildingVisual.ValidCell` short-circuits on `Grid.IsVisible` and outside it the colour evaluation —
+the bulk of the work — never runs, the trap that made `use` report plausible numbers while silently
+failing; and it takes no `settleFrames`, because `UpdateVisual` creates no `GameObject`s and its
+whole cost is synchronous. It consumes no region rows, like `visualize`.
+
+| N | tile base | tile opt | | ladder base | ladder opt | |
+|---:|---:|---:|---:|---:|---:|---:|
+| 100 | 4.30 ms | 3.57 ms | −17% | 5.25 ms | 3.16 ms | −40% |
+| 500 | 11.38 ms | 7.74 ms | −32% | 15.58 ms | 5.10 ms | −67% |
+| 1000 | 20.31 ms | 12.95 ms | −36% | 28.70 ms | 7.68 ms | −73% |
+| 2000 | 38.00 ms | **23.48 ms** | **−38%** | 55.19 ms | **12.83 ms** | **−77%** |
+
+Per visual at N=2000 the dependent path goes 27.6 → 6.4 µs. The dependent case gains most because
+it was paying for the duplicated colour evaluation (fix 3) on top of everything the foundation case
+pays; the foundation case keeps a floor the fixes don't touch, namely `CustomTileRenderer`'s
+`AddTileBlock`/`RefreshCell`/`SetTileColor` work per tile.
+
+**The four fixes**, all in [`BlueprintState.cs`](../src/BlueprintsIncluded/BlueprintData/BlueprintState.cs)
+and [`BuildingVisual.cs`](../src/BlueprintsIncluded/Visualizers/BuildingVisual.cs):
+
+1. **Rotation gating.** `ApplyRotatedCellAndMove` called `IVisual.ApplyRotation` for every visual on
+   every update, but rotation and flip only change via hotkey and every path that changes them
+   redraws with `forcingRedraw` — so on a plain cursor move it re-applied an orientation every
+   visual already had. Now decided **once per update** (three comparisons against the last-applied
+   triple) rather than cached per visual, which also covers implementations like `UtilityVisual`
+   whose `ApplyRotation` does work *around* its `base` call that a base-class early-return would
+   not suppress.
+2. **Integer rotation.** `GetRotatedCell` built a `Quaternion.Euler` → `Matrix4x4.Rotate` plus a
+   `Matrix4x4.Scale`, then two `MultiplyVector` calls and two `Mathf.Round`s — per visual, per
+   move — for a transform that is only ever four 90° steps and two sign flips. Every input is
+   already integral (`Offset` is a `Vector2I`, both origin shifts are `int` casts), so it is now a
+   swap and some negations. The `Mathf.Round` calls went with the floats: they existed to undo
+   float error the matrices themselves introduced. The bounds check stays exactly as it was — that
+   is the anchor-shift wraparound fix above.
+3. **Deferred dependent colour.** `UpdateVisual` moved each dependent visual (colouring it via
+   `MoveVisualizer` → `ApplyColorIfChanged`) and then immediately ran a second pass calling
+   `RefreshColor()`, colouring it again. The second pass exists for a real reason — colour depends
+   on occupancy, which isn't complete until every visual has been placed and `StoreOccupiedArea`'d —
+   so **the first call is the wasted one**. `GetVisualizerColor` is the heaviest per-visual call in
+   the path (9.1 µs/call: `UpdateRequirementsState`, `SameBuildingAlreadyFinishedInPlace`, and
+   `ValidCell` → `IsValidPlaceLocation`, which allocates a `failReason` string every call), so
+   halving it for dependents also halves that string churn. Foundations still colour on move, which
+   makes this provably a no-op behaviourally: the dependent's second colour call already overwrote
+   the first. `IVisual.MoveVisualizer` is public API and did **not** change shape — the optional
+   colour step lives on an `internal virtual MoveVisualizerCore`.
+4. **Per-`BuildingDef` memo.** `HasTech()`, `AllowedInWorld()` (→ `IsBuildable` → `AllowedByRules`,
+   which does a `BuildingComplete.HasTag(...)`, i.e. a `GetComponent<KPrefabID>`) and
+   `UpdateRequirementsState()` (→ `PlanScreen.GetBuildableStateForDef`) are functions of the
+   `BuildingDef` alone, but were asked once per *visual* — thousands of visuals across a few dozen
+   defs. Unlike `ModAssets.ValidMaterialsCache` these genuinely change as the colony runs (tech
+   completes, materials run out), so the memo is **explicitly scoped**: opened and closed around one
+   `UpdateVisual` pass, and every call from outside that window (`TryUse`, `IsPlaceable` at
+   placement time, the UI) computes fresh exactly as before. Staleness is impossible by
+   construction rather than by a generation counter that has to be got right.
+
+Incidentally: passing the new flags meant replacing `List.ForEach(lambda)` with indexed `for` loops
+in `UpdateVisual`, which also removes three closure allocations per mouse move.
+
+**Attribution run** (`PerfInstrumentation.PerVisualHotspots`, off by default — instrumenting
+methods that run once per visual costs more than the methods do, so a run with it on reports call
+counts honestly but **its medians must not be compared with a run without it**; the same run
+reported ladder N=2000 at 15.96 / 63.27 ms against 12.83 / 55.19 above). Hotspot totals mix both
+arms and every other sweep, so read the **call counts**, not the timings:
+
+| Hotspot | Calls | µs/call |
+|---|---:|---:|
+| `ApplyRotatedCellAndMove` | 346,800 | 10.0 |
+| `ApplyRotation` | **82,800** | 0.2 |
+| `ApplyColorIfChanged` | 241,200 | 10.9 |
+| `GetVisualizerColor` | 463,200 | 9.1 |
+| `ValidCell` | 468,000 | 2.6 |
+| `AllowedInWorld` | 465,384 | 2.8 |
+| `HasTech` | 465,384 | 0.2 |
+| `GetRotatedCell` | 351,600 | 0.4 |
+
+`ApplyRotation`'s count is the decisive one, and it lands **exactly** on the prediction: the ladder
+sweep is 3600 visuals summed over its four sizes × 44 iterations, of which only the 22 base-arm
+iterations should rotate (3600 × 22 = 79,200) plus one forced redraw per visual at each
+`VisualizeBlueprint` (3,600) — 82,800, against 346,800 `ApplyRotatedCellAndMove` calls. In the
+optimised arm `ApplyRotation` is called **zero** times during cursor movement. (`TileVisual`
+overrides `ApplyRotation` and `ApplyColorIfChanged` without calling `base`, so tiles do not appear
+in either count — which is why these two are ladder-only figures.)
+
+Regression suite re-verified **11/11 green on both arms** — the optimised default, and a build with
+all four switches forced off — so the A/B comparison is not measuring a broken baseline. 108 unit
+tests, 0 skipped.
+
+⚠️ One methodology note for next time: the first attempt at this sweep was lost to a
+`TypeInitializationException` in the harness itself (`PerfSwitchAccess`'s `switches` field
+initialised before the `ExpectedNames` array it reads — static initialisers run in declaration
+order). It aborted the whole benchmark coroutine after `visualize`, and the launcher then sat out
+its full 1800 s timeout before reporting. `Resolve()` is now total and a miss degrades to "skip this
+sweep"; a sub-sweep that throws should never be able to cost the run its other numbers.
+
+**Not pursued.** Extending the deferred-colour fix to foundation visuals would be *more* correct —
+they currently colour before dependents are registered, so a foundation's colour can be stale with
+respect to dependent occupancy — but that is a visible behaviour change rather than a pure
+deduplication, and does not belong in a performance pass. The remaining foundation-path floor is
+`CustomTileRenderer`'s per-tile mesh work (`RefreshCell` alone: 1,335,096 calls at 1.0 µs), which is
+the next thing to look at if this matters again.
 
 ## 8. Decision checklist
 
@@ -882,6 +1017,13 @@ invalidates explicitly on rename rather than trusting the folder's revision coun
       is 84-92% cheaper, 11/11 green. Second pass on the file list (cache the built list, stop
       double-building it after a search, de-O(n²) the default date sort): reopening a
       500-blueprint folder 126.1 -> 25.9 ms, 11/11 green. See §7.
+- [x] Perf mode, `update-visual`: the mod's only per-frame path (`UseBlueprintTool.OnMouseMove` ->
+      `BlueprintState.UpdateVisual`), swept over foundation (`Tile`) and dependent (`Ladder`)
+      blueprints and measured with A and B **interleaved inside one run**, the method the A/A
+      section prescribes. Four fixes — rotation gating, integer rotation maths, deferred dependent
+      colouring, and a scoped per-`BuildingDef` memo: N=2000 goes 38.0 -> 23.5 ms (tile) and
+      55.2 -> 12.8 ms (dependent), i.e. from three dropped frames per cursor step to under one.
+      11/11 green on both arms. See §7.
 - [ ] Optional follow-ups: more building types / layers, place-with-settings applied to the built
       object, replacement visualizers over occupied terrain, a committed perf baseline + diff.
 - [ ] `run-ingame.ps1` currently removes the dev `Blueprints Expanded` (`mods/dev/BlueprintsV2`)

@@ -638,20 +638,51 @@ public static class BlueprintState
         //VisualizerTargets.Clear();
         ClearOccupiedCells(playerId);
 
-        FoundationVisuals[playerId].ForEach(foundationVisual =>
+        ///rotation and flipping only ever change through a hotkey, and every path that changes
+        ///them redraws with forcingRedraw - so on a plain cursor move re-applying the same
+        ///orientation to every visual is pure work. Decided once per update rather than cached per
+        ///visual: three comparisons instead of N, and it covers implementations like UtilityVisual
+        ///whose ApplyRotation does work *around* its base call that a base-class early-return
+        ///would not suppress.
+        bool applyRotation = forcingRedraw || !transformData.RotationMatchesLastApplied();
+
+        var foundationVisuals = FoundationVisuals[playerId];
+        var dependentVisuals = DependentVisuals[playerId];
+
+        ///the per-def memo is only open across these loops: HasTech/AllowedInWorld/the buildable
+        ///state genuinely change as the colony runs, so they can be shared between the visuals of
+        ///one update but never cached beyond it.
+        BuildingVisual.BeginDefMemo();
+        try
         {
-            transformData.ApplyRotatedCellAndMove(origin, foundationVisual, forcingRedraw);
-            StoreOccupiedArea(playerId, foundationVisual);
-        });
-        DependentVisuals[playerId].ForEach(dependentVisual =>
+            for (int i = 0; i < foundationVisuals.Count; i++)
+            {
+                var foundationVisual = foundationVisuals[i];
+                transformData.ApplyRotatedCellAndMove(origin, foundationVisual, forcingRedraw, applyRotation, applyColor: true);
+                StoreOccupiedArea(playerId, foundationVisual);
+            }
+            ///the RefreshColor pass below exists because a visual's colour depends on occupancy,
+            ///which is not complete until every visual has been placed and StoreOccupiedArea'd -
+            ///so colouring dependents during the move too only computes a value that pass
+            ///immediately overwrites. Foundations still colour on move (above), which is what
+            ///makes skipping it here a pure deduplication rather than a change in what any visual
+            ///ends up looking like.
+            for (int i = 0; i < dependentVisuals.Count; i++)
+            {
+                var dependentVisual = dependentVisuals[i];
+                transformData.ApplyRotatedCellAndMove(origin, dependentVisual, forcingRedraw, applyRotation, applyColor: false);
+                StoreOccupiedArea(playerId, dependentVisual);
+            }
+            for (int i = 0; i < dependentVisuals.Count; i++)
+                dependentVisuals[i].RefreshColor();
+        }
+        finally
         {
-            transformData.ApplyRotatedCellAndMove(origin, dependentVisual, forcingRedraw);
-            StoreOccupiedArea(playerId, dependentVisual);
-        });
-        DependentVisuals[playerId].ForEach(dependentVisual =>
-        {
-            dependentVisual.RefreshColor();
-        });
+            BuildingVisual.EndDefMemo();
+        }
+
+        if (applyRotation)
+            transformData.RecordAppliedRotation();
 
         OnBlueprintMoved(playerId, origin);
     }
@@ -815,6 +846,28 @@ public static class BlueprintState
 
         internal Vector2I lastBlueprintPos, lastBlueprintDimensions;
 
+        ///the rotation/flip state the visuals were last actually rotated to, so UpdateVisual can
+        ///tell a plain cursor move (nothing to re-apply) from a real rotation. Starts deliberately
+        ///mismatched with the neutral initial state so the first update always applies.
+        Orientation lastAppliedOrientation = (Orientation)(-1);
+        bool lastAppliedFlippedX, lastAppliedFlippedY;
+
+        internal bool RotationMatchesLastApplied() =>
+            BlueprintOrientation == lastAppliedOrientation
+            && FlippedX == lastAppliedFlippedX
+            && FlippedY == lastAppliedFlippedY;
+
+        internal void RecordAppliedRotation()
+        {
+            lastAppliedOrientation = BlueprintOrientation;
+            lastAppliedFlippedX = FlippedX;
+            lastAppliedFlippedY = FlippedY;
+        }
+
+        ///a fresh blueprint gets fresh visuals that have never been rotated, so whatever the last
+        ///set carried must not count as already applied to them.
+        void InvalidateAppliedRotation() => lastAppliedOrientation = (Orientation)(-1);
+
         public void CheckPermittedRotations()
         {
             Permitted = All;
@@ -864,58 +917,82 @@ public static class BlueprintState
             FlippedX = false;
             FlippedY = false;
             BlueprintOrientation = Orientation.Neutral;
+            InvalidateAppliedRotation();
 
             RefreshAnchorState();
         }
         public void ApplyRotatedCellAndMove(Vector2I origin, IVisual bpEntryVis, bool forcingRedraw)
+            => ApplyRotatedCellAndMove(origin, bpEntryVis, forcingRedraw, applyRotation: true, applyColor: true);
+
+        /// <param name="applyRotation">false when the blueprint's orientation has not changed since
+        /// the last update, so every visual already carries it - see UpdateVisual.</param>
+        /// <param name="applyColor">false when a RefreshColor pass follows and would only recompute
+        /// what this call produced. Only honoured for BuildingVisual; the other IVisual
+        /// implementations do not colour on move at all.</param>
+        internal void ApplyRotatedCellAndMove(Vector2I origin, IVisual bpEntryVis, bool forcingRedraw, bool applyRotation, bool applyColor)
         {
-            bpEntryVis.ApplyRotation(BlueprintOrientation, FlippedX, FlippedY);
-            bpEntryVis.MoveVisualizer(GetRotatedCell(origin, bpEntryVis), forcingRedraw);
+            if (applyRotation)
+                bpEntryVis.ApplyRotation(BlueprintOrientation, FlippedX, FlippedY);
+
+            int cell = GetRotatedCell(origin, bpEntryVis);
+            if (!applyColor && bpEntryVis is BuildingVisual buildingVisual)
+                buildingVisual.MoveVisualizerCore(cell, forcingRedraw, applyColor: false);
+            else
+                bpEntryVis.MoveVisualizer(cell, forcingRedraw);
         }
         public int GetRotatedCell(Vector2I originI, IVisual bpEntryVis)
         {
-            Vector2 visPos = bpEntryVis.Offset; //the original bp offset
-            Vector2 origin = originI;
+            var offset = bpEntryVis.Offset; //the original bp offset
 
             ///origin shift
-            int shiftX = (int)(lastBlueprintDimensions.X * originShiftX);
-            int shiftY = (int)(lastBlueprintDimensions.Y * originShiftY);
-            visPos.x -= shiftX;
-            visPos.y -= shiftY;
+            int x = offset.x - (int)(lastBlueprintDimensions.X * originShiftX);
+            int y = offset.y - (int)(lastBlueprintDimensions.Y * originShiftY);
 
-
-            ///rotation
-            Matrix4x4 rotationMatrix = default;
+            ///rotation. This used to build a Quaternion.Euler -> Matrix4x4.Rotate plus a
+            ///Matrix4x4.Scale and multiply the offset through both, per visual per mouse move. The
+            ///angles were only ever 0/-90/-180/-270, i.e. (x cos0 - y sin0, x sin0 + y cos0) with
+            ///cos/sin taking only 0 and +-1, so the whole transform is a swap and some sign
+            ///changes. Every input is integral (Offset is a Vector2I and both shifts are int
+            ///casts), which is also why the old path needed a Mathf.Round afterwards and this one
+            ///does not: that rounding undid float error the matrices themselves introduced (it
+            ///fixed tiles landing one cell off when rotated - ty StuffyDoll for finding that; the
+            ///integer form makes the error it corrected unrepresentable rather than correcting it).
+            int rotatedX, rotatedY;
             switch (BlueprintOrientation)
             {
-                case Orientation.Neutral:
-                    rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, 0, 0));
-                    break;
                 case Orientation.R90:
-                    rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, 0, -90));
+                    rotatedX = y;
+                    rotatedY = -x;
                     break;
                 case Orientation.R180:
-                    rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, 0, -180));
+                    rotatedX = -x;
+                    rotatedY = -y;
                     break;
                 case Orientation.R270:
-                    rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, 0, -270));
+                    rotatedX = -y;
+                    rotatedY = x;
+                    break;
+                default: ///Orientation.Neutral, and anything the old matrix path left unrotated
+                    rotatedX = x;
+                    rotatedY = y;
                     break;
             }
-            visPos = rotationMatrix.MultiplyVector(visPos);
 
             ///flipping
-            var flipMatrix = Matrix4x4.Scale(new Vector3(FlippedX ? -1 : 1, FlippedY ? -1 : 1, 1));
-            visPos = flipMatrix.MultiplyVector(visPos);
+            if (FlippedX)
+                rotatedX = -rotatedX;
+            if (FlippedY)
+                rotatedY = -rotatedY;
 
-            ///Fixes some tiles going offset by 1 cell when rotated, ty StuffyDoll for finding this fix
-            visPos.x = Mathf.Round(visPos.x);
-            visPos.y = Mathf.Round(visPos.y);
+            int finalX = originI.x + rotatedX;
+            int finalY = originI.y + rotatedY;
 
-            Vector2 finalPos = origin + visPos;
-            if (finalPos.x < 0 || finalPos.x >= Grid.WidthInCells || finalPos.y < 0 || finalPos.y >= Grid.HeightInCells)
+            ///a negative x would otherwise wrap into the previous row at a huge x through
+            ///PosToCell's linear index rather than failing cleanly - see docs §7.
+            if (finalX < 0 || finalX >= Grid.WidthInCells || finalY < 0 || finalY >= Grid.HeightInCells)
                 return Grid.InvalidCell;
 
-            return Grid.PosToCell(finalPos);
+            return Grid.XYToCell(finalX, finalY);
         }
 
         public void FlipVertical()
