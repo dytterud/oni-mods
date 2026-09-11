@@ -69,5 +69,7 @@ internal static class PerfWriter
         ["totalCalls"] = s.Calls,
         ["totalMs"] = s.TotalMs,
         ["avgUsPerCall"] = s.AvgUsPerCall,
+        ["totalBytes"] = s.TotalBytes,
+        ["avgBytesPerCall"] = s.AvgBytesPerCall,
     };
 }

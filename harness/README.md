@@ -55,6 +55,15 @@ Same build/deploy/launch, but runs the perf benchmarks instead (docs §7) — po
 `%TEMP%\bpi-harness\perf.json`, prints a size-sweep table + hotspot totals, always exits 0 (a
 benchmark run has no pass/fail). Default timeout is longer (900s) since the size sweep takes a while.
 
+```
+pwsh test/run-ingame.ps1 -Attribution
+```
+
+Implies `-Perf` and additionally instruments the per-visual methods of the per-frame update path
+(sentinel mode `perf-attribution`). Those Harmony wrappers cost more than the methods they measure,
+so such a run is honest about **call counts and allocation** but inflates every timing in it: read
+its hotspot table, and never compare its medians with a run without it.
+
 Artifacts in `%TEMP%\bpi-harness\`: `results.xml` (JUnit) or `perf.json`, `harness.log` (plain text
 trace either way).
 
@@ -74,7 +83,8 @@ diagnose a hang.
 | `Assert.cs` / `JUnitWriter.cs` | tiny assertion + JUnit report helpers |
 | `Perf/SyntheticBlueprint.cs` | builds an N-building blueprint in code - `Build` (in-memory, used by placement-perf) and `BuildJson` (serialized, used by import-perf) |
 | `Perf/PerfRunner.cs` | warmup + timed iterations per (operation, size): `deserialize`/`full-import` (import), `visualize`/`use` (placement, real `GameObject`s + a once-dug-and-revealed region), `create` (`RunCreateSweep`, `CreateBlueprint` over real finished buildings) |
-| `Perf/PerfInstrumentation.cs` | generic manual-Harmony-patch registry (patch by name, one prefix/postfix pair) for call-count + cumulative-time hotspot attribution — import (`GetValidMaterials`/`SanitizeSelectedTags`), visualize (`TileVisual` ctor, `KInstantiate`, tile-block registration, coloring), use (`TryUse`/`IsPlaceable`/`PlacePlannedBuilding`, `BuildingDef.Instantiate`, `ApplyBuildingData`, `UpdateConduitConnectionBits`), and create (`StoreAdditionalBuildingData`/`GetAdditionalBuildingData`, `NaturalBuildingCell`) targets |
+| `Perf/PerfInstrumentation.cs` | generic manual-Harmony-patch registry (patch by name, one prefix/postfix pair) for call-count + cumulative-time + allocated-bytes hotspot attribution — import (`GetValidMaterials`/`SanitizeSelectedTags`), visualize (`TileVisual` ctor, `KInstantiate`, tile-block registration, coloring), use (`TryUse`/`IsPlaceable`/`PlacePlannedBuilding`, `BuildingDef.Instantiate`, `ApplyBuildingData`, `UpdateConduitConnectionBits`), and create (`StoreAdditionalBuildingData`/`GetAdditionalBuildingData`, `NaturalBuildingCell`) targets |
+| `Perf/AllocProbe.cs` | the allocation counters that work on ONI's Mono (`GC.GetTotalMemory` + Unity's native `Profiler` total), with a gen-0 collection guard - see docs §7 |
 | `Perf/PerfWriter.cs` | writes `perf.json` |
 
 ## Adding a regression case

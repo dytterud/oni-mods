@@ -1015,9 +1015,71 @@ sweep"; a sub-sweep that throws should never be able to cost the run its other n
 **Not pursued.** Extending the deferred-colour fix to foundation visuals would be *more* correct —
 they currently colour before dependents are registered, so a foundation's colour can be stale with
 respect to dependent occupancy — but that is a visible behaviour change rather than a pure
-deduplication, and does not belong in a performance pass. The remaining foundation-path floor is
-`CustomTileRenderer`'s per-tile mesh work (`RefreshCell` alone: 1,335,096 calls at 1.0 µs), which is
-the next thing to look at if this matters again.
+deduplication, and does not belong in a performance pass.
+
+### The tile-renderer follow-up — one real bug, and a negative result
+
+The pointer that used to close this section ("the remaining floor is `CustomTileRenderer`'s per-tile
+mesh work — `RefreshCell` alone: 1,335,096 calls at 1.0 µs") was chased next, with the allocation
+counters now working and a new attribution mode (`run-ingame.ps1 -Attribution`, sentinel
+`perf-attribution`) that turns the per-visual hotspots on without a recompile and records **managed
+bytes per call** alongside time. Its call counts are honest; its timings are wrapper-dominated and
+may only be compared with another attribution run.
+
+**Found: `CleanableVisuals` was never cleared.** `AddVisual` files every `TileVisual` into it, but
+`ClearVisuals` emptied only `FoundationVisuals` / `DependentVisuals`. Since `CleanDirtyVisuals` walks
+that list at the top of *every* `UpdateVisual`, the per-frame cost grew with every blueprint picked
+up in the session, and every `TileVisual` ever drawn stayed reachable for the life of the world — a
+leak as well as a tax. The attribution run measured **8,031,000 `Clean()` calls against 150,000 real
+re-seats** (53 per re-seat, nearly all on long-destroyed visuals). Fixed by clearing the list in
+`ClearVisuals`, after `CleanDirtyVisuals` has let the live ones unregister themselves.
+
+**Tried: batching the refresh fan-out.** Each seat/unseat dirties a five-cell cross per layer
+(`RefreshCell` → 5 × `RefreshCellInternal`), and in a solid block those crosses overlap almost
+completely — 20 internal refreshes per tile per cursor step. `CustomTileRenderer.BeginBatch` /
+`EndBatch` now collect `(player, cell, layer)` into a `HashSet` and flush once. Deferring is safe: a
+refresh only reads the *current* tile map, every mutation dirties the cells it can affect, and the
+flush happens inside the same frame — so each cell is refreshed once from the finished state instead
+of once per neighbour that moved past it. Batches wrap `UpdateVisual`, `ClearVisuals` and
+`VisualizeBlueprint`.
+
+| hotspot | before | after |
+|---|---:|---:|
+| `TileVisual.Clean` | 8,031,000 | 300,000 (−96%) |
+| `RefreshCellInternal` | 3,006,720 | 321,560 (−89%) |
+| `BlockTileRenderer.Rebuild` | 3,055,012 | 369,852 (−88%) |
+| `AddTileBlock` / `RemoveTileBlock` | 150,000 | 150,000 (unchanged by design) |
+
+**And it bought ~nothing.** `update-visual-tile` N=2000 went 23.26 → 22.76 ms (−2%) and its
+allocation 2,444 → 2,448 KB — both inside the ±10% noise floor. Removing 2.7M calls saved half a
+millisecond, because those calls were individually trivial. **The estimate that the fan-out was
+"about half the frame" was wrong, and the measurement is what says so** — recorded here because the
+next person to read that floor pointer deserves to know it was chased and came back empty.
+
+Kept anyway, deliberately: it provably removes redundant work, and the fixture's tiles sit in dug-out
+space where a `Rebuild` is at its cheapest — a dense colony need not be so forgiving. If it ever
+needs re-litigating, the measurement to run first is a drag across *existing* tiles rather than
+empty space.
+
+**Where the per-frame time actually is**, from the same run: tiles cost ~11.4 µs/visual/frame,
+dependents ~6.1 µs. The ~6 µs both pay is `Visualizer.transform.SetPosition` (a native Unity write
+per visual) plus colour evaluation — `GetVisualizerColor` at **230 B/call × 240,000 calls**, i.e.
+~460 KB of the 2,448 KB allocated per frame, almost certainly the `failReason` string inside Klei's
+`IsValidPlaceLocation`. The extra ~5.3 µs tiles pay is the `AddTileBlock` / `RemoveTileBlock`
+dictionary churn itself, which neither change above touches.
+
+**Three levers left, none of them small:**
+
+1. **One shared parent transform.** Positioning is O(N) only because each visualizer is moved
+   independently; parenting the non-tile visualizers under one GameObject would make a cursor move
+   one transform write. Tiles still need per-cell seating, and colour still needs per-visual
+   evaluation — but only when a cell's validity actually changes.
+2. **Delta-seat the tiles.** `ActiveTileVisuals` maps cell → `BuildingDef`, not cell → instance, so
+   when a solid blueprint translates by one cell the interior entries are already correct and only
+   the leading and trailing edges change. Diffing the desired map against the current one would make
+   renderer work O(perimeter) instead of O(N). Bounded by the ~5.3 µs tile surcharge.
+3. **The colour path.** Avoid `GetVisualizerColor` when the cell's validity cannot have changed —
+   the win is the 460 KB/frame and part of the 6 µs; the invalidation condition is the hard part.
 
 ## 8. Decision checklist
 

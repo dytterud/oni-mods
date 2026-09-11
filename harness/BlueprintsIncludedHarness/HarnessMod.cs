@@ -77,28 +77,40 @@ internal static class HarnessGate
     public static Harmony? HarmonyInstance { get; set; }
 
     /// <summary>
-    /// The sentinel's first line selects the mode ("perf" or anything else = "run"); the rest of the
-    /// file is just a human-readable timestamp. BPI_HARNESS=1 or =perf works the same way without a
-    /// sentinel, for a quick manual launch.
+    /// The sentinel's first line selects the mode ("perf" / "perf-attribution", anything else =
+    /// "run"); the rest of the file is just a human-readable timestamp. BPI_HARNESS=1 / =perf /
+    /// =perf-attribution works the same way without a sentinel, for a quick manual launch.
     /// </summary>
-    public static HarnessMode Mode
+    public static HarnessMode Mode => FirstLine() switch
     {
-        get
-        {
-            string? env = Environment.GetEnvironmentVariable(EnvVar);
-            if (env == "perf") return HarnessMode.Perf;
-            if (env == "1" || env == "run") return HarnessMode.Run;
+        "perf" or PerfAttribution => HarnessMode.Perf,
+        "1" or "run" => HarnessMode.Run,
+        null => HarnessMode.None,
+        _ => HarnessMode.Run,
+    };
 
-            if (File.Exists(SentinelPath))
-            {
-                string first = File.ReadLines(SentinelPath).FirstOrDefault() ?? "";
-                return first.Trim().Equals("perf", StringComparison.OrdinalIgnoreCase)
-                    ? HarnessMode.Perf
-                    : HarnessMode.Run;
-            }
+    /// <summary>
+    /// Turns on <c>PerfInstrumentation</c>'s per-visual hotspots: they measure methods whose bodies
+    /// are cheaper than the Harmony wrapper around them, so they are honest about <i>call counts and
+    /// allocation</i> but inflate every timing in the run. A run with this on must never have its
+    /// medians compared against one without it (docs §7).
+    /// </summary>
+    public static bool Attribution =>
+        string.Equals(FirstLine(), PerfAttribution, StringComparison.OrdinalIgnoreCase);
 
-            return HarnessMode.None;
-        }
+    private const string PerfAttribution = "perf-attribution";
+
+    /// <summary>The env var if set, else the sentinel's first line, else null for "not active".</summary>
+    private static string? FirstLine()
+    {
+        string? env = Environment.GetEnvironmentVariable(EnvVar);
+        if (!string.IsNullOrWhiteSpace(env))
+            return env!.Trim().ToLowerInvariant();
+
+        if (File.Exists(SentinelPath))
+            return (File.ReadLines(SentinelPath).FirstOrDefault() ?? "").Trim().ToLowerInvariant();
+
+        return null;
     }
 
     public static bool Active => Mode != HarnessMode.None;

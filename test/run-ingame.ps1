@@ -17,6 +17,11 @@
   import operations, with no pass/fail semantics - it always exits 0. Without -Perf this runs the
   regression assertion cases (JUnit results, exit code = failure count).
 
+  -Attribution implies -Perf and additionally instruments the per-visual methods of the per-frame
+  update path. Those wrappers cost more than the methods they measure, so such a run is honest
+  about call counts and allocation but inflates every timing in it: read its hotspot table, and
+  never compare its medians against a run without it.
+
   The harness only acts when it finds the sentinel this script writes, so leaving it in mods/dev
   between runs is harmless.
 #>
@@ -24,6 +29,7 @@
 param(
     [int]$TimeoutSeconds,
     [switch]$Perf,
+    [switch]$Attribution,
     [switch]$SkipBuild,
     [switch]$KeepSentinel,
     [switch]$NoModConfig,
@@ -32,6 +38,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
+if ($Attribution) { $Perf = $true }   # an attribution run is a perf run with extra instrumentation
 if (-not $PSBoundParameters.ContainsKey('TimeoutSeconds')) {
     # perf's size sweep runs longer - 1800s covers import + the placement sweep's real
     # GameObject instantiation; dial back down once real numbers show the actual cost.
@@ -126,7 +133,7 @@ try {
     Copy-Item $fixtureSrc $fixtureDst -Force
     Write-Host "==> copied fixture to $fixtureDst"
 
-    $mode = if ($Perf) { 'perf' } else { 'run' }
+    $mode = if ($Attribution) { 'perf-attribution' } elseif ($Perf) { 'perf' } else { 'run' }
     Set-Content -Path $sentinel -Value @($mode, (Get-Date -Format o))
     Write-Host "==> wrote sentinel $sentinel (mode=$mode)"
 
@@ -170,9 +177,9 @@ try {
             Write-Host ''
         }
         Write-Host '==> hotspots'
-        "{0,-30} {1,10} {2,10} {3,14}" -f 'method', 'calls', 'totalMs', 'avgUsPerCall' | Write-Host
+        "{0,-30} {1,10} {2,10} {3,14} {4,14}" -f 'method', 'calls', 'totalMs', 'avgUsPerCall', 'avgBytes/call' | Write-Host
         foreach ($h in $report.hotspots) {
-            "{0,-30} {1,10} {2,10:F1} {3,14:F1}" -f $h.name, $h.totalCalls, $h.totalMs, $h.avgUsPerCall | Write-Host
+            "{0,-30} {1,10} {2,10:F1} {3,14:F1} {4,14:F0}" -f $h.name, $h.totalCalls, $h.totalMs, $h.avgUsPerCall, $h.avgBytesPerCall | Write-Host
         }
         if (Test-Path $harnessLog) { Write-Host ''; Write-Host '--- harness.log ---'; Get-Content $harnessLog }
         $exitCode = 0   # a benchmark run has no pass/fail - see docs §7
