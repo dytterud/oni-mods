@@ -105,9 +105,8 @@ internal static class PerfInstrumentation
                 new[] { typeof(Vector2I), typeof(IVisual), typeof(bool), typeof(bool), typeof(bool) }));
 
         // The rest of that path runs once PER VISUAL - 2000x per call at N=2000 - on bodies that are
-        // a handful of arithmetic ops. A Harmony wrapper plus Stopwatch.StartNew() costs more than
-        // the method it measures there, which would flatten exactly the improvement the integer
-        // rotation work is chasing. So: off for the timing runs, on for one attribution run, and
+        // a handful of arithmetic ops. A Harmony wrapper costs more than the method it measures
+        // there, which would flatten exactly the improvement the integer rotation work is chasing. So: off for the timing runs, on for one attribution run, and
         // the two must never be compared against each other (the same caveat §7 already carries
         // about the iteration bump).
         if (PerVisualHotspots)
@@ -159,6 +158,21 @@ internal static class PerfInstrumentation
             // exactly the question.
             TryPatchOne(harmony, log, "BlockTileRenderer.Rebuild",
                 () => AccessTools.Method(typeof(Rendering.BlockTileRenderer), "Rebuild"));
+
+            // Inside GetVisualizerColor. It allocates ~230 B/call over 240,000 calls - ~460 KB of
+            // the 2,448 KB a 2000-tile frame allocates - but its instrumented children only account
+            // for ~31 B of that (ValidCell 13, UpdateRequirementsState 11, AllowedInWorld 7). So the
+            // bytes are in its own body or in these four, which nothing has measured yet. The first
+            // line it runs is LocalPlayerId, which reaches SessionInfoAPI.LocalUserID - an external
+            // mod API called once per visual per frame, and the prime suspect.
+            TryPatchOne(harmony, log, "LocalPlayerId",
+                () => AccessTools.Method(typeof(BlueprintState), nameof(BlueprintState.LocalPlayerId)));
+            TryPatchOne(harmony, log, "IsMultiplayerVisualizer",
+                () => AccessTools.Method(typeof(BlueprintState), nameof(BlueprintState.IsMultiplayerVisualizer)));
+            TryPatchOne(harmony, log, "SameBuildingAlreadyFinishedInPlace",
+                () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.SameBuildingAlreadyFinishedInPlace)));
+            TryPatchOne(harmony, log, "CanForceRebuild",
+                () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.CanForceRebuild)));
         }
 
         // UpdateBlueprintButtons uses this as a LINQ OrderBy key selector for its date sorts, so
@@ -360,26 +374,40 @@ internal static class PerfInstrumentation
             postfix: new HarmonyMethod(typeof(PerfInstrumentation), nameof(TimerPostfix)));
     }
 
-    /// <summary>Managed-heap bytes as well as time: the counters that work on this runtime are in
+    /// <summary>
+    /// Managed-heap bytes as well as time: the counters that work on this runtime are in
     /// <see cref="AllocProbe"/>, and per-hotspot allocation is what decides whether a per-frame path
-    /// is worth attacking with pooling or with plain arithmetic (docs §7).</summary>
-    private static void TimerPrefix(out CallState __state) => __state = new CallState(Stopwatch.StartNew(), GC.GetTotalMemory(false));
+    /// is worth attacking with pooling or with plain arithmetic (docs §7).
+    ///
+    /// <b><c>Stopwatch.GetTimestamp()</c>, never <c>Stopwatch.StartNew()</c>.</b> A <c>Stopwatch</c>
+    /// is a class, so starting one allocates ~40 bytes - and a child hotspot's prefix runs *inside*
+    /// its parent's measured window, so every patched child charged its wrapper's allocation to its
+    /// parent. That made a method's reported bytes/call grow as its children were instrumented
+    /// (<c>GetVisualizerColor</c>: 230 B/call, then 368 B/call once four more children were patched)
+    /// and it was measuring the harness, not the mod. A timestamp is a long: no allocation, so the
+    /// bytes belong to the code under test.
+    /// </summary>
+    private static void TimerPrefix(out CallState __state) => __state = new CallState(Stopwatch.GetTimestamp(), GC.GetTotalMemory(false));
 
     private static void TimerPostfix(CallState __state, MethodBase __originalMethod)
     {
+        long ticks = Stopwatch.GetTimestamp() - __state.StartTimestamp;
+        long heapAfter = GC.GetTotalMemory(false);
         if (byMethod.TryGetValue(__originalMethod, out var acc))
-            acc.Add(__state.Watch.Elapsed, GC.GetTotalMemory(false) - __state.HeapBefore);
+            acc.Add(ticks * TicksToMs, heapAfter - __state.HeapBefore);
     }
+
+    private static readonly double TicksToMs = 1000.0 / Stopwatch.Frequency;
 
     private readonly struct CallState
     {
-        public CallState(Stopwatch watch, long heapBefore)
+        public CallState(long startTimestamp, long heapBefore)
         {
-            Watch = watch;
+            StartTimestamp = startTimestamp;
             HeapBefore = heapBefore;
         }
 
-        public Stopwatch Watch { get; }
+        public long StartTimestamp { get; }
         public long HeapBefore { get; }
     }
 
@@ -401,12 +429,12 @@ internal static class PerfInstrumentation
         private double totalMs;
         private long totalBytes;
 
-        public void Add(TimeSpan elapsed, long bytes)
+        public void Add(double elapsedMs, long bytes)
         {
             lock (gate)
             {
                 calls++;
-                totalMs += elapsed.TotalMilliseconds;
+                totalMs += elapsedMs;
                 // Summed as measured, negatives included: a collection inside one call subtracts
                 // there and the bytes it reclaimed were counted on the calls that allocated them,
                 // so the total stays the right order of magnitude. Read bytes/call, not the total.

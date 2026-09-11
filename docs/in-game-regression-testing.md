@@ -1063,10 +1063,46 @@ empty space.
 
 **Where the per-frame time actually is**, from the same run: tiles cost ~11.4 µs/visual/frame,
 dependents ~6.1 µs. The ~6 µs both pay is `Visualizer.transform.SetPosition` (a native Unity write
-per visual) plus colour evaluation — `GetVisualizerColor` at **230 B/call × 240,000 calls**, i.e.
-~460 KB of the 2,448 KB allocated per frame, almost certainly the `failReason` string inside Klei's
-`IsValidPlaceLocation`. The extra ~5.3 µs tiles pay is the `AddTileBlock` / `RemoveTileBlock`
-dictionary churn itself, which neither change above touches.
+per visual) plus colour evaluation; the extra ~5.3 µs tiles pay is the `AddTileBlock` /
+`RemoveTileBlock` dictionary churn itself, which neither change above touches.
+
+> ⚠️ **An earlier revision of this section attributed ~460 KB of the per-frame allocation to
+> `GetVisualizerColor` (230 B/call) and blamed the `failReason` string in Klei's
+> `IsValidPlaceLocation`. That was the harness measuring itself** — `TimerPrefix` called
+> `Stopwatch.StartNew()`, and a `Stopwatch` is a class, so every instrumented call allocated ~40
+> bytes. A child hotspot's prefix runs *inside* its parent's measured window, so each patched child
+> charged its wrapper's allocation to its parent: the same method read 230 B/call, then 368 B/call
+> once four more of its children were patched, with no code change in between. The wrapper now uses
+> `Stopwatch.GetTimestamp()` (a `long`, no allocation). Corrected figures below.
+
+**The colour path, measured properly** (`-Attribution`, allocation-free wrappers):
+
+| hotspot | calls | µs/call | bytes/call |
+|---|---:|---:|---:|
+| `GetVisualizerColor` | 240,000 | 5.79 | **56** |
+| ↳ `ValidCell` (Klei's `IsValidPlaceLocation`) | 244,800 | 2.53 | 44 |
+| ↳ `UpdateRequirementsState` | 277,200 | 1.18 | 11 |
+| ↳ `AllowedInWorld` / `HasTech` / `LocalPlayerId` / `SameBuildingAlreadyFinishedInPlace` / `CanForceRebuild` | ~240,000 each | ~0.2 | 0 |
+
+A wrapper costs ~0.2 µs, which is the floor those trivial methods are reading, so treat anything near
+it as unmeasured rather than free.
+
+**Why the colour path was not optimised.** Two reasons, both from this table. Its allocation is ~56
+B/call — roughly 112 KB of a 2000-tile frame, under 10%, not the 460 KB the retracted figure claimed.
+And there is no safe cache key: on a drag **every visual gets a new cell every frame**, so a
+per-(visual, cell) colour memo never hits in the one case that matters. Caching across frames by
+(def, cell, orientation) *would* hit — a translating blueprint reuses its neighbours' cells — but the
+answer depends on world state at that cell and on the blueprint's own occupancy map, which differ at
+the fringe; the failure mode is a mis-tinted preview, which is a visible behaviour change and does
+not belong in a performance pass. The per-frame multiplayer check (`LocalPlayerId` → external
+`SessionInfoAPI.LocalUserID`, once per visual per frame) was a suspect and measured **0 B, 0.19 µs**:
+hoisting it out of the loop would buy nothing.
+
+> ⚠️ **Attribution-mode allocation is perturbed, like its timings.** The same mod code reports
+> 2,448 KB/frame (`update-visual-tile` N=2000) in a normal run and 1,316 KB/frame under
+> `-Attribution`: millions of `GC.GetTotalMemory` probes change GC behaviour enough to halve the
+> measured delta. Compare attribution allocation only with another attribution run, and take
+> frame-level allocation from a normal `-Perf` run.
 
 **Three levers left, none of them small:**
 
@@ -1078,8 +1114,10 @@ dictionary churn itself, which neither change above touches.
    when a solid blueprint translates by one cell the interior entries are already correct and only
    the leading and trailing edges change. Diffing the desired map against the current one would make
    renderer work O(perimeter) instead of O(N). Bounded by the ~5.3 µs tile surcharge.
-3. **The colour path.** Avoid `GetVisualizerColor` when the cell's validity cannot have changed —
-   the win is the 460 KB/frame and part of the 6 µs; the invalidation condition is the hard part.
+3. ~~**The colour path.**~~ **Tried and rejected** — see *The colour path, measured properly* above.
+   Its allocation was an instrumentation artifact, and a drag gives every visual a new cell each
+   frame, so there is nothing safe to cache. What is left there is Klei's `IsValidPlaceLocation`
+   (~2.5 µs/call), reachable only by reimplementing the game's own validity rules.
 
 ## 8. Decision checklist
 
@@ -1147,12 +1185,14 @@ dictionary churn itself, which neither change above touches.
       calls against 150k real re-seats), and batched the refresh fan-out (-89% `RefreshCellInternal`)
       for **no measurable frame-time gain** - a negative result, recorded as one. 11/11 green.
       See §7 *The tile-renderer follow-up*.
-- [ ] **Next for per-frame cost** — three levers, measured and ranked in §7 *Three levers left*.
+- [ ] **Next for per-frame cost** — the levers are measured and ranked in §7 *Three levers left*.
       Only the first changes the asymptotics:
       1. one shared parent transform (cursor move becomes one transform write, not N);
       2. delta-seat the tiles (renderer work O(perimeter) instead of O(N), bounded by the ~5.3 µs
-         per-tile surcharge);
-      3. skip `GetVisualizerColor` when a cell's validity cannot have changed (~460 KB/frame).
+         per-tile surcharge).
+      The third (skip `GetVisualizerColor`) was **tried and rejected**: the ~460 KB/frame that
+      motivated it turned out to be the harness's own `Stopwatch` allocations, and a drag gives every
+      visual a new cell each frame so there is nothing safe to cache. See §7.
 - [ ] Optional follow-ups: more building types / layers, place-with-settings applied to the built
       object, replacement visualizers over occupied terrain, a committed perf baseline + diff.
 - [ ] `run-ingame.ps1` currently removes the dev `Blueprints Expanded` (`mods/dev/BlueprintsV2`)
