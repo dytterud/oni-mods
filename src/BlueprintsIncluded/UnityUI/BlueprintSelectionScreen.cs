@@ -161,8 +161,12 @@ internal class BlueprintSelectionScreen : FScreen, IRender1000ms
 
         //blueprint files
         BlueprintSearchbar = transform.Find("FileHierarchy/SearchBar/Input").gameObject.AddOrGet<FInputField2>();
-        BlueprintSearchbar.OnValueChanged.AddListener(ApplyBlueprintFilter);
-        BlueprintSearchbar.Text = string.Empty;
+        ///AddListener, not OnValueChanged.AddListener: only the former honours FInputField2's
+        ///DataTextUpdate guard, so a programmatic clear via SetTextFromData (see ClearSearchbars)
+        ///doesn't re-enter the filter. Subscribing to OnValueChanged directly bypassed the guard
+        ///and made every open that followed a search rebuild the file list twice.
+        BlueprintSearchbar.AddListener(ApplyBlueprintFilter);
+        BlueprintSearchbar.SetTextFromData(string.Empty);
 
         ImportBlueprintButton = transform.Find("FileHierarchy/ImportButton").gameObject.AddOrGet<FButton>();
         ImportBlueprintButton.OnClick += TryImportBlueprint;
@@ -253,8 +257,8 @@ internal class BlueprintSelectionScreen : FScreen, IRender1000ms
 
         ///material override selection
         ReplacementElementSearchbar = transform.Find("MaterialReplacer/SearchBar/Input").gameObject.AddOrGet<FInputField2>();
-        ReplacementElementSearchbar.OnValueChanged.AddListener(ApplyElementsFilter);
-        ReplacementElementSearchbar.Text = string.Empty;
+        ReplacementElementSearchbar.AddListener(ApplyElementsFilter);
+        ReplacementElementSearchbar.SetTextFromData(string.Empty);
 
         ClearReplacementElementSearchbar = transform.Find("MaterialReplacer/SearchBar/DeleteButton").gameObject.AddOrGet<FButton>();
         ClearReplacementElementSearchbar.OnClick += () => ReplacementElementSearchbar.Text = string.Empty;
@@ -425,10 +429,13 @@ internal class BlueprintSelectionScreen : FScreen, IRender1000ms
         Instance.CreateNewBlueprintFromOverrides.SetInteractable(showBlueprintList);
         Instance.BlueprintsList.gameObject.SetActive(showBlueprintList);
     }
+    /// <summary>Clears both search boxes without firing their filter callbacks - ClearUIState
+    /// rebuilds the lists itself immediately afterwards, and letting the clear trigger a rebuild
+    /// too just did the work twice.</summary>
     private void ClearSearchbars()
     {
-        BlueprintSearchbar.Text = string.Empty;
-        ReplacementElementSearchbar.Text = string.Empty;
+        BlueprintSearchbar.SetTextFromData(string.Empty);
+        ReplacementElementSearchbar.SetTextFromData(string.Empty);
     }
 
     private bool init;
@@ -627,8 +634,54 @@ internal class BlueprintSelectionScreen : FScreen, IRender1000ms
         NoBuildingsInfo.SetActive(!buildingIds.Any());
     }
 
+    /// <summary>What the file list currently on screen was built from. Compared on every rebuild
+    /// request so an open that changes none of it can skip the work - see
+    /// <see cref="UpdateBlueprintButtons"/>.</summary>
+    BlueprintFolder? _builtFolder;
+    OrderBy _builtSortBy = OrderBy.Invalid;
+    int _builtFolderRevision = -1, _builtRootSubfolderCount = -1, _builtEntryCount = -1;
+    Blueprint? _builtSelection;
+    bool _listDirty = true;
+
+    /// <summary>Forces the next <see cref="UpdateBlueprintButtons"/> to do a full rebuild. For the
+    /// changes the cache key can't see: a rename (which alters name ordering and FilePath without
+    /// touching the folder) and a search filter (which hides entries behind the list builder's
+    /// back).</summary>
+    void InvalidateBlueprintList() => _listDirty = true;
+
+    /// <summary>
+    /// Rebuilds the file list - hide every cached entry, then show, order and highlight the ones in
+    /// the current folder - or does nothing if the list on screen already reflects all of that.
+    ///
+    /// The check earns its keep because this runs on every open of the screen, not just on an
+    /// actual change: at a 500-blueprint library a rebuild with nothing left to instantiate still
+    /// cost ~126 ms of SetActive/SetAsLastSibling churn (docs §7). Everything the output depends on
+    /// is in the key - folder, sort order, the folder's <see cref="BlueprintFolder.ContentRevision"/>,
+    /// the root's subfolder count, and the entry-cache count (which also covers entries being
+    /// dropped from underneath us) - plus <see cref="InvalidateBlueprintList"/> for the rest.
+    /// </summary>
     void UpdateBlueprintButtons()
     {
+        bool isRoot = ModAssets.SelectedFolder == null;
+        var targetFolder = ModAssets.SelectedFolder ?? ModAssets.BlueprintFileHandling.RootFolder;
+        int rootSubfolderCount = isRoot ? ModAssets.BlueprintFileHandling.BlueprintFolders.Count : -1;
+
+        if (!_listDirty
+            && ReferenceEquals(targetFolder, _builtFolder)
+            && _builtSortBy == SortBlueprintsBy
+            && _builtFolderRevision == targetFolder.ContentRevision
+            && _builtRootSubfolderCount == rootSubfolderCount
+            && _builtEntryCount == BlueprintEntries.Count)
+        {
+            // Same list; only which row is highlighted can have moved.
+            if (!ReferenceEquals(_builtSelection, TargetBlueprint))
+            {
+                RefreshEntryHighlight();
+                _builtSelection = TargetBlueprint;
+            }
+            return;
+        }
+
         foreach (var kvp in BlueprintEntries)
         {
             if (kvp.Value != null)
@@ -643,11 +696,9 @@ internal class BlueprintSelectionScreen : FScreen, IRender1000ms
                 kvp.Value.gameObject.SetActive(false);
         }
 
-        bool root = ModAssets.SelectedFolder == null;
-        var targetFolder = ModAssets.SelectedFolder ?? ModAssets.BlueprintFileHandling.RootFolder;
-        FolderUpBtn.SetInteractable(!root);
+        FolderUpBtn.SetInteractable(!isRoot);
         //SgtLogger.l("rebuilding folders");
-        if (root)
+        if (isRoot)
         {
             var folders = ModAssets.BlueprintFileHandling.BlueprintFolders.OrderBy(f => f.Name);
             foreach (var folder in folders)
@@ -680,6 +731,14 @@ internal class BlueprintSelectionScreen : FScreen, IRender1000ms
             uiEntry.gameObject.SetActive(true);
             uiEntry.SetSelected(bp == TargetBlueprint);
         }
+
+        _builtFolder = targetFolder;
+        _builtSortBy = SortBlueprintsBy;
+        _builtFolderRevision = targetFolder.ContentRevision;
+        _builtRootSubfolderCount = rootSubfolderCount;
+        _builtEntryCount = BlueprintEntries.Count;
+        _builtSelection = TargetBlueprint;
+        _listDirty = false;
         //StartCoroutine(ToggleCamLock(true));
     }
 
@@ -780,8 +839,8 @@ internal class BlueprintSelectionScreen : FScreen, IRender1000ms
             bpEntry.blueprint = blueprint;
             //folderEntry.Name = folder.Name;
             //folderEntry.OnSelectFolder = OnSelectFolder(folder);
-            bpEntry.OnRenamed = (_) => UpdateBlueprintButtons();
-            bpEntry.OnMoved = (_) => OnBlueprintMoved();
+            bpEntry.OnRenamed = (_) => { InvalidateBlueprintList(); UpdateBlueprintButtons(); };
+            bpEntry.OnMoved = (_) => { InvalidateBlueprintList(); OnBlueprintMoved(); };
             bpEntry.OnDeleted = OnBlueprintDeleted;
             bpEntry.OnDialogueToggled = DialogueOpen;
             bpEntry.OnSelectBlueprint = OnSelectBlueprintForDetails; //OnSelectBlueprint;
@@ -888,6 +947,7 @@ internal class BlueprintSelectionScreen : FScreen, IRender1000ms
             UnityEngine.Object.Destroy(uientry.gameObject);
             BlueprintEntries.Remove(bp);
         }
+        InvalidateBlueprintList();
         ModAssets.BlueprintFileHandling.DeleteBlueprint(bp);
 
         if (bp == TargetBlueprint)
@@ -1030,6 +1090,9 @@ internal class BlueprintSelectionScreen : FScreen, IRender1000ms
             return;
         }
 
+        // Hides entries without going through the list builder, so the built-list cache no longer
+        // describes what's on screen - the next rebuild request has to actually rebuild.
+        InvalidateBlueprintList();
         foreach (var go in BlueprintEntries)
         {
             go.Value.gameObject.SetActive(filterstring == string.Empty ? true : ShowInFilter(filterstring, go.Key.FriendlyName));

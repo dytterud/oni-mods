@@ -75,6 +75,7 @@ internal static class PerfRunner
         }
 
         yield return RunPlacementSweep(report, log);
+        yield return SelectionScreenPerf.Run(report, log);
 
         var hotspots = PerfInstrumentation.SnapshotAll();
         foreach (var (name, snap) in hotspots)
@@ -340,9 +341,17 @@ internal static class PerfRunner
     /// <paramref name="setup"/>, if given, runs immediately before every call to
     /// <paramref name="body"/> (warmup included) but outside the stopwatch - for an operation
     /// like <c>UseBlueprint</c> that mutates state and needs fresh input each call (e.g. a new
-    /// target cell) rather than being safely repeatable in place.</summary>
-    private static IEnumerator TimeOp(PerfReport report, HarnessLog log, string opName, int n,
-        int warmup, int iterations, SysAction body, SysAction? setup = null)
+    /// target cell) rather than being safely repeatable in place.
+    ///
+    /// <paramref name="settleFrames"/> &gt; 0 additionally reports <c>{opName}-settled</c>: the
+    /// same call measured through the following N rendered frames instead of stopping at its
+    /// return. Needed for anything that builds Unity objects rather than plain data - a
+    /// <c>KMonoBehaviour</c>'s <c>OnSpawn</c> (and with it a <c>KBatchedAnimController</c>'s first
+    /// <c>Play</c>) runs from Unity's <c>Start</c>, i.e. *after* the call that instantiated it has
+    /// already returned, so the synchronous number alone would credit that work to nobody. Compare
+    /// against the <c>idle-frame</c> baseline op - the same frames with no work in them.</summary>
+    internal static IEnumerator TimeOp(PerfReport report, HarnessLog log, string opName, int n,
+        int warmup, int iterations, SysAction body, SysAction? setup = null, int settleFrames = 0)
     {
         for (int i = 0; i < warmup; i++)
         {
@@ -352,6 +361,7 @@ internal static class PerfRunner
         }
 
         var timesMs = new List<double>(iterations);
+        var settledMs = new List<double>(iterations);
         var allocBytes = new List<long>(iterations);
         for (int i = 0; i < iterations; i++)
         {
@@ -359,18 +369,36 @@ internal static class PerfRunner
             long before = GC.GetAllocatedBytesForCurrentThread();
             var sw = Stopwatch.StartNew();
             body();
-            sw.Stop();
+            double syncMs = sw.Elapsed.TotalMilliseconds;
             long after = GC.GetAllocatedBytesForCurrentThread();
 
-            timesMs.Add(sw.Elapsed.TotalMilliseconds);
+            for (int f = 0; f < settleFrames; f++)
+                yield return null;
+            sw.Stop();
+
+            timesMs.Add(syncMs);
+            settledMs.Add(sw.Elapsed.TotalMilliseconds);
             allocBytes.Add(after - before);
-            yield return null;
+            if (settleFrames == 0)
+                yield return null;
         }
 
+        double meanAlloc = allocBytes.Count == 0 ? 0 : allocBytes.Average();
+        Record(report, log, opName, n, iterations, timesMs, meanAlloc);
+        if (settleFrames > 0)
+            Record(report, log, opName + "-settled", n, iterations, settledMs, 0);
+    }
+
+    /// <summary>Sorts <paramref name="timesMs"/>, then logs and files its median/p95 under
+    /// <paramref name="opName"/>. Split out of <see cref="TimeOp"/> so a caller that has to drive
+    /// its own iteration loop - <see cref="SelectionScreenPerf"/>'s cold opens need a teardown
+    /// whose <c>Destroy</c>s only take effect a frame later - still reports identically.</summary>
+    internal static void Record(PerfReport report, HarnessLog log, string opName, int n,
+        int iterations, List<double> timesMs, double meanAlloc)
+    {
         timesMs.Sort();
         double median = Percentile(timesMs, 0.5);
         double p95 = Percentile(timesMs, 0.95);
-        double meanAlloc = allocBytes.Count == 0 ? 0 : allocBytes.Average();
 
         log.Line($"  {opName}-N{n}: median={median:F2}ms p95={p95:F2}ms alloc={meanAlloc / 1024.0:F1}KB");
         report.Add(opName, n, iterations, median, p95, meanAlloc);

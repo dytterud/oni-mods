@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
   Build + deploy BlueprintsIncluded and the dev-only in-game test harness, launch ONI, wait for
@@ -160,9 +160,9 @@ try {
             Write-Host ''
         }
         Write-Host '==> hotspots'
-        "{0,-22} {1,10} {2,10} {3,14}" -f 'method', 'calls', 'totalMs', 'avgUsPerCall' | Write-Host
+        "{0,-30} {1,10} {2,10} {3,14}" -f 'method', 'calls', 'totalMs', 'avgUsPerCall' | Write-Host
         foreach ($h in $report.hotspots) {
-            "{0,-22} {1,10} {2,10:F1} {3,14:F1}" -f $h.name, $h.totalCalls, $h.totalMs, $h.avgUsPerCall | Write-Host
+            "{0,-30} {1,10} {2,10:F1} {3,14:F1}" -f $h.name, $h.totalCalls, $h.totalMs, $h.avgUsPerCall | Write-Host
         }
         if (Test-Path $harnessLog) { Write-Host ''; Write-Host '--- harness.log ---'; Get-Content $harnessLog }
         $exitCode = 0   # a benchmark run has no pass/fail - see docs §7
