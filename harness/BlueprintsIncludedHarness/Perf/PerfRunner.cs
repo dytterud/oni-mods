@@ -451,15 +451,17 @@ internal static class PerfRunner
 
         var timesMs = new List<double>(iterations);
         var settledMs = new List<double>(iterations);
-        var allocBytes = new List<long>(iterations);
+        var allocSamples = new List<AllocSample>(iterations);
         for (int i = 0; i < iterations; i++)
         {
             setup?.Invoke();
-            long before = GC.GetAllocatedBytesForCurrentThread();
+            var alloc = AllocProbe.Begin();
             var sw = Stopwatch.StartNew();
             body();
             double syncMs = sw.Elapsed.TotalMilliseconds;
-            long after = GC.GetAllocatedBytesForCurrentThread();
+            // Closed with the synchronous timer, not after settleFrames: the settle frames run
+            // arbitrary unrelated game work, whose allocation would otherwise be charged to this op.
+            var sample = alloc.End();
 
             for (int f = 0; f < settleFrames; f++)
                 yield return null;
@@ -467,15 +469,14 @@ internal static class PerfRunner
 
             timesMs.Add(syncMs);
             settledMs.Add(sw.Elapsed.TotalMilliseconds);
-            allocBytes.Add(after - before);
+            allocSamples.Add(sample);
             if (settleFrames == 0)
                 yield return null;
         }
 
-        double meanAlloc = allocBytes.Count == 0 ? 0 : allocBytes.Average();
-        Record(report, log, opName, n, iterations, timesMs, meanAlloc);
+        Record(report, log, opName, n, iterations, timesMs, AllocStats.From(allocSamples));
         if (settleFrames > 0)
-            Record(report, log, opName + "-settled", n, iterations, settledMs, 0);
+            Record(report, log, opName + "-settled", n, iterations, settledMs);
     }
 
     /// <summary>Sorts <paramref name="timesMs"/>, then logs and files its median/p95 under
@@ -483,17 +484,18 @@ internal static class PerfRunner
     /// its own iteration loop - <see cref="SelectionScreenPerf"/>'s cold opens need a teardown
     /// whose <c>Destroy</c>s only take effect a frame later - still reports identically.</summary>
     internal static void Record(PerfReport report, HarnessLog log, string opName, int n,
-        int iterations, List<double> timesMs, double meanAlloc)
+        int iterations, List<double> timesMs, AllocStats? alloc = null)
     {
         timesMs.Sort();
         double median = Percentile(timesMs, 0.5);
         double p95 = Percentile(timesMs, 0.95);
 
-        log.Line($"  {opName}-N{n}: median={median:F2}ms p95={p95:F2}ms alloc={meanAlloc / 1024.0:F1}KB");
-        report.Add(opName, n, iterations, median, p95, meanAlloc);
+        string allocText = alloc == null ? "alloc=not sampled" : alloc.Describe();
+        log.Line($"  {opName}-N{n}: median={median:F2}ms p95={p95:F2}ms {allocText}");
+        report.Add(opName, n, iterations, median, p95, alloc);
     }
 
-    private static double Percentile(List<double> sortedAscending, double p)
+    internal static double Percentile(List<double> sortedAscending, double p)
     {
         if (sortedAscending.Count == 0)
             return 0;

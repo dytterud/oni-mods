@@ -123,15 +123,20 @@ internal static class SelectionScreenPerf
     private static IEnumerator MeasureIdleFrame(PerfReport report, HarnessLog log)
     {
         var spans = new List<double>(IdleBaselineFrames);
+        var alloc = new List<AllocSample>(IdleBaselineFrames);
         for (int i = 0; i < IdleBaselineFrames; i++)
         {
+            // Doubles as the allocation noise floor: whatever the game allocates in these frames
+            // by itself is the amount any other op's alloc delta has to beat to mean anything.
+            var probe = AllocProbe.Begin();
             var sw = System.Diagnostics.Stopwatch.StartNew();
             for (int f = 0; f < SettleFrames; f++)
                 yield return null;
             sw.Stop();
             spans.Add(sw.Elapsed.TotalMilliseconds);
+            alloc.Add(probe.End());
         }
-        PerfRunner.Record(report, log, "idle-frame", SettleFrames, IdleBaselineFrames, spans, 0);
+        PerfRunner.Record(report, log, "idle-frame", SettleFrames, IdleBaselineFrames, spans, AllocStats.From(alloc));
     }
 
     /// <summary>Library-size axis, preview suppressed. Cold runs its own iteration loop rather than
@@ -150,22 +155,27 @@ internal static class SelectionScreenPerf
 
             var coldTimes = new List<double>(ColdIterations);
             var coldSettled = new List<double>(ColdIterations);
+            var coldAlloc = new List<AllocSample>(ColdIterations);
             for (int i = 0; i < ColdIterations; i++)
             {
                 CloseScreen();
                 ClearEntryCache();
                 yield return null;  // let the Destroys take effect before we time an open
 
+                var probe = AllocProbe.Begin();
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 OpenScreen(target, withPreview: false);
                 coldTimes.Add(sw.Elapsed.TotalMilliseconds);
+                // Closed with the synchronous timer, like TimeOp's - the settle frames below are
+                // the game's own work, not this open's.
+                coldAlloc.Add(probe.End());
                 for (int f = 0; f < SettleFrames; f++)
                     yield return null;
                 sw.Stop();
                 coldSettled.Add(sw.Elapsed.TotalMilliseconds);
             }
-            PerfRunner.Record(report, log, "open-list-cold", l, ColdIterations, coldTimes, 0);
-            PerfRunner.Record(report, log, "open-list-cold-settled", l, ColdIterations, coldSettled, 0);
+            PerfRunner.Record(report, log, "open-list-cold", l, ColdIterations, coldTimes, AllocStats.From(coldAlloc));
+            PerfRunner.Record(report, log, "open-list-cold-settled", l, ColdIterations, coldSettled);
 
             yield return PerfRunner.TimeOp(report, log, "open-list-warm", l, Warmup, Iterations,
                 body: () => OpenScreen(target, withPreview: false),

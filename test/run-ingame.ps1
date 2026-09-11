@@ -149,13 +149,23 @@ try {
     if ($Perf) {
         $report = Get-Content $perfJson -Raw | ConvertFrom-Json
         Write-Host ''
-        Write-Host 'NOTE: allocKB reads ~0 on ONI''s embedded Mono - GC.GetAllocatedBytesForCurrentThread' -ForegroundColor DarkYellow
-        Write-Host '      is not meaningfully implemented there. Time + hotspot call counts are reliable.' -ForegroundColor DarkYellow
+        Write-Host 'Alloc columns are medians of per-iteration deltas: managedKB = GC.GetTotalMemory (managed' -ForegroundColor DarkGray
+        Write-Host 'heap), nativeKB = Profiler.GetTotalAllocatedMemoryLong (Unity native, where GameObjects live).' -ForegroundColor DarkGray
+        Write-Host 'gc0 = iterations excluded because a gen-0 collection landed inside them; at gc0=n/n nothing' -ForegroundColor DarkGray
+        Write-Host 'could be excluded and that row is noise. "-" = not sampled or counter unavailable.' -ForegroundColor DarkGray
+        # "-" for an unavailable counter or an op that never sampled, so neither is confused with a
+        # real measured 0 - telling those apart is the point of these columns.
+        $kb = { param($bytes) if ($null -eq $bytes) { '-' } else { '{0:F1}' -f ($bytes / 1024.0) } }
         foreach ($op in $report.operations) {
             Write-Host "==> $($op.name)"
-            "{0,8} {1,10} {2,10} {3,10} {4,12}" -f 'N', 'iters', 'medianMs', 'p95Ms', 'allocKB' | Write-Host
+            "{0,8} {1,7} {2,10} {3,10} {4,11} {5,11} {6,7}" -f `
+                'N', 'iters', 'medianMs', 'p95Ms', 'managedKB', 'nativeKB', 'gc0' | Write-Host
             foreach ($r in $op.results) {
-                "{0,8} {1,10} {2,10:F2} {3,10:F2} {4,12:F1}" -f $r.n, $r.iterations, $r.medianMs, $r.p95Ms, ($r.meanAllocBytes / 1024.0) | Write-Host
+                $a = $r.alloc
+                $gc0 = if ($null -eq $a) { '-' } else { "$($a.gen0Poisoned)/$($a.iterations)" }
+                "{0,8} {1,7} {2,10:F2} {3,10:F2} {4,11} {5,11} {6,7}" -f `
+                    $r.n, $r.iterations, $r.medianMs, $r.p95Ms, `
+                    (& $kb $a.managedBytes), (& $kb $a.nativeBytes), $gc0 | Write-Host
             }
             Write-Host ''
         }

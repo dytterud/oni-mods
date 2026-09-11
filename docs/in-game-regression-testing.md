@@ -178,11 +178,9 @@ drives it. Instead of asserting, `PerfRunner`
    (`new Blueprint(sb)`) and `full-import` (the clipboard-minus-clipboard path,
    `ModAssets.TryImportBlueprintFromString`, reflected since it's `internal`), each with a
    warmup batch then timed iterations.
-3. Records per iteration: `Stopwatch` elapsed and `GC.GetAllocatedBytesForCurrentThread()`
-   delta — **the latter reads ~0 on ONI's embedded Mono regardless of N**, confirmed even at
-   N=5000 where real allocation is unquestionably in the hundreds of KB. Not implemented
-   meaningfully on this runtime; time and call counts are reliable, allocation numbers are not
-   (left in for a future Unity/Mono upgrade).
+3. Records per iteration: `Stopwatch` elapsed plus two allocation counters and a GC guard
+   ([AllocProbe.cs](../harness/BlueprintsIncludedHarness/Perf/AllocProbe.cs)) — see
+   **Allocation** below.
 4. Also Harmony-patches `BuildingConfig.SanitizeSelectedTags` and `ModAssets.GetValidMaterials`
    ([PerfInstrumentation.cs](../harness/BlueprintsIncludedHarness/Perf/PerfInstrumentation.cs))
    to count calls + accumulate time, so the result directly attributes cost instead of leaving
@@ -190,6 +188,58 @@ drives it. Instead of asserting, `PerfRunner`
 5. Writes median / p95 / alloc-per-op plus the hotspot totals to `%TEMP%/bpi-harness/perf.json`
    ([PerfWriter.cs](../harness/BlueprintsIncludedHarness/Perf/PerfWriter.cs)). No committed
    baseline / regression-diff yet — this is investigation, not a gate.
+
+### Allocation
+
+`GC.GetAllocatedBytesForCurrentThread()` — what this mode used to record — reads **0 at every N**
+under Mono's Boehm GC, so for a long time the harness measured time only. Two counters that do work
+replaced it (measured over a full sweep, 2026-09-11):
+
+| counter | verdict |
+|---|---|
+| `GC.GetTotalMemory(false)` | **live**, scales with N on every sweep — the managed-heap number |
+| `Profiler.GetTotalAllocatedMemoryLong()` | **live**, and the only view of Unity *native* memory |
+| `Profiler.GetMonoUsedSizeLong()` | byte-for-byte identical to `GC.GetTotalMemory` in every row — **dropped as redundant** |
+| `GC.GetAllocatedBytesForCurrentThread()` | 0.0 in every row — **dropped** |
+
+The two survivors answer different questions and both are needed: the managed counter reads ~0 for
+`use` and the dialog's cold opens (their cost is `GameObject`s, which never touch the managed heap),
+while the native counter reads 0 for `deserialize` / `full-import` / `update-visual` (pure managed
+work). A zero in one column is a finding, not a dead counter.
+
+Sample numbers (medians, this machine, two consecutive runs):
+
+| op | managed | native |
+|---|---:|---:|
+| `deserialize` N=5000 | 36.6 MB | 0 |
+| `full-import` N=5000 | 67.7 MB | 0 |
+| `update-visual-tile` N=2000 (per frame) | 2 388 KB | 0 |
+| `update-visual-ladder` N=1000 (per frame) | 252 KB | 0 |
+| `use` N=1000 | 7.5 MB | 4.9 MB |
+| `create` N=1000 | 900 KB | 0 |
+| `open-list-cold` L=500 | 16.9 MB | 15.8 MB |
+| `idle-frame` (3 frames, noise floor) | 16 KB | 2.9 KB |
+
+Repeatability is much better than the timings': the per-frame and native figures reproduced
+**byte-for-byte** across both runs (`update-visual-tile` N=2000 2 388 KB, `use` N=1000 native
+4 903.4 KB), and the big import figures within ~6%. Small-N rows are the noisy ones — `deserialize`
+N=100 read 620 KB then 144 KB — so read allocation at the large end of a sweep, where the signal is
+well clear of the floor.
+
+**Reading the numbers:**
+
+- They are **heap deltas, not an allocation counter** — a collection inside the measured body makes
+  one meaningless (possibly negative). Each iteration therefore also brackets
+  `GC.CollectionCount(0)`, and `AllocStats` medians only the iterations where it didn't move,
+  reporting the rest as the `gc0` column. **`gc0 = n/n` means nothing could be excluded and that
+  row is noise** — the big `open-preview-*-fresh` rows routinely hit that.
+- No forced `GC.Collect` between iterations: cleaner deltas, but it would change the heap state each
+  body sees and make the timings incomparable with the baselines above. The collection count is the
+  guard instead.
+- `idle-frame` is the floor: the paused game allocates ~16 KB managed / ~2.9 KB native over the same
+  three frames with no harness work in them. A delta near that is not a measurement.
+- `-settled` rows deliberately carry no allocation (`-` in the table): the probe closes with the
+  synchronous timer, so the settle frames' unrelated game work isn't charged to the op.
 
 **Finding + fix (one real run, one machine, before/after — see limits below):** `GetValidMaterials`
 — an uncached scan of `ElementLoader.elements` plus a `List<Tag>` alloc and an `OrderBy` sort,
@@ -221,8 +271,8 @@ matters again.
   mean anything; sub-10% deltas are lost.
 - Numbers are machine-specific — a baseline is only valid on the machine that produced it,
   never across machines or CI.
-- Allocation tracking (`GC.GetAllocatedBytesForCurrentThread`) does not work on ONI's Mono —
-  see above.
+- Allocation is measured as heap deltas, not by an allocation counter — check the `gc0` column
+  before believing a row, and ignore anything near the `idle-frame` floor (see **Allocation**).
 
 **Complement — for CPU-only paths, prefer BenchmarkDotNet** in a test project against a
 real install's executable publicised DLLs (no game launch, portable, rigorous). That covers
