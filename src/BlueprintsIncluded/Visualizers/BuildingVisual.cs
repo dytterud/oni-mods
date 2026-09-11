@@ -158,6 +158,14 @@ public class BuildingVisual : IVisual
     }
     public virtual void ForceRedraw() => MoveVisualizer(cell, true);
     public virtual void MoveVisualizer(int cellParam, bool forceRedraw = false)
+        => MoveVisualizerCore(cellParam, forceRedraw, applyColor: true);
+
+    /// <summary><see cref="MoveVisualizer"/>, with the colour step made optional for callers that
+    /// already run a <see cref="RefreshColor"/> pass afterwards - recomputing a colour that pass
+    /// immediately overwrites is the single most expensive redundancy in the per-frame update
+    /// (see BlueprintState.UpdateVisual). Kept off the public <see cref="IVisual"/> surface so the
+    /// interface other mods implement does not change shape.</summary>
+    internal virtual void MoveVisualizerCore(int cellParam, bool forceRedraw, bool applyColor)
     {
         if (cell != cellParam || forceRedraw)
         {
@@ -165,7 +173,8 @@ public class BuildingVisual : IVisual
             ///would just be one visual stomping on another's.
             if (!usesSharedVisualizer)
                 Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, BuildingDef.SceneLayer));
-            ApplyColorIfChanged(cellParam);
+            if (applyColor)
+                ApplyColorIfChanged(cellParam);
             cell = cellParam;
         }
     }
@@ -818,19 +827,72 @@ public class BuildingVisual : IVisual
     //	UpdateConduitConnectionBits(builtItem);
     //}
 
+    #region per-def memo
+
+    ///Whether a building is buildable here, has its tech, and what its requirements state is are
+    ///all functions of the BuildingDef alone - but they are asked once per *visual*, and a large
+    ///blueprint holds thousands of visuals across a few dozen defs. They are not cacheable for the
+    ///process lifetime the way ModAssets.ValidMaterialsCache is (tech completes, materials run
+    ///out), so the memo is opened and closed around one UpdateVisual pass by BeginDefMemo /
+    ///EndDefMemo. Outside that window every call computes fresh, which is what placement
+    ///(TryUse/IsPlaceable) and the UI rely on.
+    static readonly Dictionary<BuildingDef, bool> memoAllowedInWorld = [];
+    static readonly Dictionary<BuildingDef, bool> memoHasTech = [];
+    static readonly Dictionary<BuildingDef, PlanScreen.RequirementsState> memoRequirementsState = [];
+    ///depth rather than a bool so a nested open cannot close the outer scope's memo early. Nothing
+    ///nests today; this just keeps that from becoming a silent correctness bug if something ever
+    ///does, since a prematurely closed memo fails safe (slower) but a prematurely *opened* one
+    ///would not.
+    static int defMemoDepth;
+    static bool defMemoOpen => defMemoDepth > 0;
+
+    internal static void BeginDefMemo()
+    {
+        if (defMemoDepth == 0)
+        {
+            memoAllowedInWorld.Clear();
+            memoHasTech.Clear();
+            memoRequirementsState.Clear();
+        }
+        defMemoDepth++;
+    }
+
+    internal static void EndDefMemo()
+    {
+        if (defMemoDepth > 0)
+            defMemoDepth--;
+    }
+
+    #endregion
+
     public virtual bool AllowedInWorld()
     {
-        return API_Methods.IsBuildable(BuildingDef);
+        var def = BuildingDef;
+        if (!defMemoOpen)
+            return API_Methods.IsBuildable(def);
+
+        if (!memoAllowedInWorld.TryGetValue(def, out bool allowed))
+            memoAllowedInWorld[def] = allowed = API_Methods.IsBuildable(def);
+        return allowed;
     }
 
     public virtual bool HasTech()
     {
-        return BlueprintState.InstantBuild || !Config.Instance.RequireConstructable_Tech || Db.Get().TechItems.IsTechItemComplete(BuildingDef.PrefabID);
+        var def = BuildingDef;
+        if (!defMemoOpen)
+            return HasTechUncached(def);
+
+        if (!memoHasTech.TryGetValue(def, out bool hasTech))
+            memoHasTech[def] = hasTech = HasTechUncached(def);
+        return hasTech;
     }
+
+    static bool HasTechUncached(BuildingDef def) =>
+        BlueprintState.InstantBuild || !Config.Instance.RequireConstructable_Tech || Db.Get().TechItems.IsTechItemComplete(def.PrefabID);
+
     public virtual bool ValidCell(int cellParam, out bool replacement)
     {
         replacement = false;
-        var pos = Grid.CellToPos(cellParam);
         if (Grid.IsValidCellInWorld(cellParam, ClusterManager.Instance.activeWorldId)
             && Grid.IsVisible(cellParam))
         {
@@ -859,7 +921,19 @@ public class BuildingVisual : IVisual
 
     public virtual void UpdateRequirementsState()
     {
-        API_Methods.BuildableStateValid(BuildingDef, out var state);
+        var def = BuildingDef;
+        if (!defMemoOpen)
+        {
+            API_Methods.BuildableStateValid(def, out var freshState);
+            RequirementsState = freshState;
+            return;
+        }
+
+        if (!memoRequirementsState.TryGetValue(def, out var state))
+        {
+            API_Methods.BuildableStateValid(def, out state);
+            memoRequirementsState[def] = state;
+        }
         RequirementsState = state;
     }
     public virtual void ApplyColorIfChanged(int cellParam)

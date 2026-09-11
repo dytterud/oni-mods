@@ -33,6 +33,7 @@ internal static class PerfRunner
     private const int UseWarmup = 1, UseIterations = 2;               // mutating - kept small
     private const int VisualizeWarmup = 2, VisualizeIterations = 5;   // non-mutating - redrawable
     private const int CreateWarmup = 2, CreateIterations = 5;         // non-mutating - redrawable
+    private const int UpdateVisualWarmup = 4, UpdateVisualIterations = 20;  // per-frame op, cheap per call
     private const int RegionEdgeMargin = 10;                          // cells kept clear of the map border
     private const int RegionGapFromAnchor = 20;                       // cells kept clear of the small regression-case footprint near the pod
 
@@ -176,6 +177,8 @@ internal static class PerfRunner
                 BlueprintState.ClearVisuals();
             }
 
+            yield return RunUpdateVisualSweep(report, log, fixedOrigin);
+
             int rowCursor = 0;
             foreach (int n in UseCreateSizes)
             {
@@ -217,6 +220,92 @@ internal static class PerfRunner
         }
 
         yield return RunCreateSweep(report, log, x0, y0 + useRows, Math.Max(0, regionRows - useRows));
+    }
+
+    /// <summary>
+    /// Times <c>BlueprintState.UpdateVisual</c> - the redraw the Use Blueprint tool runs from
+    /// <c>OnMouseMove</c> on every cursor cell change. Unlike every other operation in this file
+    /// this one is <i>per frame</i>, so its cost is what decides whether dragging a large blueprint
+    /// is smooth; it is also the only sweep that drives the path with <c>forcingRedraw: false</c>
+    /// (<c>visualize</c>/<c>use</c> both force), which is the branch real mouse movement takes.
+    ///
+    /// Three things keep it honest:
+    /// <list type="bullet">
+    /// <item>The cursor <b>must move every call</b> - <c>UpdateVisual</c> early-returns when the
+    /// origin equals <c>lastBlueprintPos</c>, so a fixed origin would time the early-out. It
+    /// oscillates by one cell, which is both sufficient and exactly what a slow drag does.</item>
+    /// <item>It runs <b>inside the dug and revealed region</b>. <c>BuildingVisual.ValidCell</c>
+    /// short-circuits on <c>Grid.IsVisible</c>, so outside it the colour evaluation - the bulk of
+    /// the work - would never run, the same trap that made <c>use</c> report plausible numbers
+    /// while silently failing (docs §7). It consumes no region rows, like <c>visualize</c>.</item>
+    /// <item>No <c>settleFrames</c>: <c>UpdateVisual</c> creates no <c>GameObject</c>s, so unlike
+    /// <c>visualize</c> its whole cost is synchronous and the plain median is the real number.</item>
+    /// </list>
+    /// </summary>
+    private static IEnumerator RunUpdateVisualSweep(PerfReport report, HarnessLog log, Vector2I regionOrigin)
+    {
+        foreach (var (buildingId, label) in UpdateVisualVariants)
+        {
+            foreach (int n in PlacementSizes)
+            {
+                log.Line($"update-visual [{label}] N={n}");
+                var bp = SyntheticBlueprint.Build(n, buildingId, $"PerfUpdateVisual{label}{n}");
+                BlueprintState.VisualizeBlueprint(regionOrigin, bp);
+                log.Line($"  visuals: {VisualCounts()}");
+
+                int step = 0;
+                var cursor = regionOrigin;
+                yield return TimeOp(report, log, $"update-visual-{label}", n,
+                    warmup: UpdateVisualWarmup, iterations: UpdateVisualIterations,
+                    setup: () => cursor = new Vector2I(regionOrigin.x + (step++ % 2), regionOrigin.y),
+                    body: () => BlueprintState.UpdateVisual(BlueprintState.PlayerId_DefaultTilePreviews, cursor, forcingRedraw: false));
+
+                BlueprintState.ClearVisuals();
+            }
+        }
+    }
+
+    /// <summary>
+    /// <c>BlueprintState.AddVisual</c> files a visual under <c>FoundationVisuals</c> or
+    /// <c>DependentVisuals</c> by <c>BuildingDef.IsFoundation</c>, and <c>UpdateVisual</c> treats
+    /// the two lists differently - only the dependent list gets the second <c>RefreshColor</c> pass
+    /// that the deferred-colour optimisation deduplicates against. An all-<c>Tile</c> blueprint is
+    /// therefore <i>entirely</i> foundations and would measure that optimisation as exactly zero,
+    /// so the sweep runs both: <c>Tile</c> for the foundation path and <c>Ladder</c> (1x1, raw
+    /// mineral, not a foundation) for the dependent one. <see cref="VisualCounts"/> logs the actual
+    /// split rather than trusting this comment.
+    /// </summary>
+    private static readonly (string BuildingId, string Label)[] UpdateVisualVariants =
+    {
+        ("Tile", "tile"),
+        ("Ladder", "ladder"),
+    };
+
+    // FoundationVisuals/DependentVisuals are private statics on BlueprintState; read them by
+    // reflection purely to report the split, so a variant that silently lands entirely in the wrong
+    // list shows up in the log instead of as a timing that quietly measures the other path.
+    private static string VisualCounts()
+    {
+        try
+        {
+            int foundation = VisualListCount("FoundationVisuals");
+            int dependent = VisualListCount("DependentVisuals");
+            return $"{foundation} foundation, {dependent} dependent";
+        }
+        catch (Exception e)
+        {
+            return "unavailable: " + e.Message;
+        }
+    }
+
+    private static int VisualListCount(string fieldName)
+    {
+        var field = AccessTools.Field(typeof(BlueprintState), fieldName);
+        if (field?.GetValue(null) is not System.Collections.IDictionary byPlayer)
+            return -1;
+        return byPlayer[BlueprintState.PlayerId_DefaultTilePreviews] is System.Collections.ICollection list
+            ? list.Count
+            : -1;
     }
 
     /// <summary>

@@ -82,7 +82,7 @@ public class TileVisual : BuildingVisual, ICleanableVisual
         }
     }
 
-    public override void MoveVisualizer(int cellParam, bool forceRedraw)
+    internal override void MoveVisualizerCore(int cellParam, bool forceRedraw, bool applyColor)
     {
         if (cellParam != cell || forceRedraw)
         {
@@ -91,7 +91,8 @@ public class TileVisual : BuildingVisual, ICleanableVisual
             if (!usesSharedVisualizer)
                 Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, BuildingDef.SceneLayer));
             UpdateGrid(cellParam);
-            ApplyColorIfChanged(cellParam);
+            if (applyColor)
+                ApplyColorIfChanged(cellParam);
             cell = cellParam;
         }
     }

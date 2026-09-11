@@ -28,6 +28,13 @@ internal static class PerfInstrumentation
     private static readonly Dictionary<string, Accumulator> byName = new(StringComparer.Ordinal);
     private static bool applied;
 
+    /// <summary>Flip to true for a one-off attribution run over the per-frame update path, then flip
+    /// back. See the comment at its use site: instrumenting methods that run once per visual costs
+    /// more than the methods do, so a run with this on reports call counts and relative shares
+    /// honestly but its <c>update-visual</c> medians must not be compared with a run without it.
+    /// </summary>
+    private const bool PerVisualHotspots = false;
+
     /// <summary>Applies every registered patch, logging (via <paramref name="log"/>) and skipping
     /// any single target that can't be resolved/patched rather than aborting the rest - one bad
     /// target (a renamed method, a shifted overload set) should cost that one hotspot's numbers,
@@ -84,6 +91,39 @@ internal static class PerfInstrumentation
             TryPatchOne(harmony, log, "GetAdditionalBuildingData", () => AccessTools.Method(apiMethodsType, "GetAdditionalBuildingData"));
         }
         TryPatchAllOverloads(harmony, log, "NaturalBuildingCell", typeof(GameUtil));
+
+        // update-visual hotspots (docs §7): the per-frame redraw the Use Blueprint tool runs from
+        // OnMouseMove. These three run once per update (or once per visual on an already-expensive
+        // body), so their wrapper overhead is proportionally negligible and they stay always-on.
+        TryPatchOne(harmony, log, "UpdateVisual",
+            () => AccessTools.Method(typeof(BlueprintState), nameof(BlueprintState.UpdateVisual)));
+        TryPatchOne(harmony, log, "StoreOccupiedArea",
+            () => AccessTools.Method(typeof(BlueprintState), "StoreOccupiedArea"));
+        TryPatchOne(harmony, log, "ApplyRotatedCellAndMove",
+            () => AccessTools.Method(typeof(BlueprintState.BlueprintTransformationInfo), "ApplyRotatedCellAndMove",
+                new[] { typeof(Vector2I), typeof(IVisual), typeof(bool), typeof(bool), typeof(bool) }));
+
+        // The rest of that path runs once PER VISUAL - 2000x per call at N=2000 - on bodies that are
+        // a handful of arithmetic ops. A Harmony wrapper plus Stopwatch.StartNew() costs more than
+        // the method it measures there, which would flatten exactly the improvement the integer
+        // rotation work is chasing. So: off for the timing runs, on for one attribution run, and
+        // the two must never be compared against each other (the same caveat §7 already carries
+        // about the iteration bump).
+        if (PerVisualHotspots)
+        {
+            TryPatchOne(harmony, log, "GetRotatedCell",
+                () => AccessTools.Method(typeof(BlueprintState.BlueprintTransformationInfo), nameof(BlueprintState.BlueprintTransformationInfo.GetRotatedCell)));
+            TryPatchOne(harmony, log, "ApplyRotation",
+                () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.ApplyRotation)));
+            TryPatchOne(harmony, log, "ApplyColorIfChanged",
+                () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.ApplyColorIfChanged)));
+            TryPatchOne(harmony, log, "ValidCell",
+                () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.ValidCell)));
+            TryPatchOne(harmony, log, "HasTech",
+                () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.HasTech)));
+            TryPatchOne(harmony, log, "AllowedInWorld",
+                () => AccessTools.Method(typeof(BuildingVisual), nameof(BuildingVisual.AllowedInWorld)));
+        }
 
         // UpdateBlueprintButtons uses this as a LINQ OrderBy key selector for its date sorts, so
         // it runs once per blueprint per listing - it is the O(n) half of what used to make that

@@ -43,7 +43,7 @@ public sealed class UtilityVisual : BuildingVisual
                 kbac.Play(animation);
         }
     }
-    public override void MoveVisualizer(int cellParam, bool forceRedraw)
+    internal override void MoveVisualizerCore(int cellParam, bool forceRedraw, bool applyColor)
     {
         if (cellParam != cell || forceRedraw)
         {
@@ -52,7 +52,8 @@ public sealed class UtilityVisual : BuildingVisual
             if (!usesSharedVisualizer)
                 Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, Grid.SceneLayer.Building));
             cell = cellParam;
-            ApplyColorIfChanged(cell);
+            if (applyColor)
+                ApplyColorIfChanged(cell);
         }
     }
     public override void RefreshColor()
