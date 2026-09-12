@@ -9,9 +9,15 @@
   See docs/in-game-regression-testing.md and harness/README.md.
 
   Patches mods.json for the run (restored afterward): enables BlueprintsIncluded + the harness in
-  load order, and disables any other mod that shares the BlueprintsV2 staticID (e.g. the upstream
-  "Blueprints Expanded") so its patches don't collide. -NoModConfig skips this - enable/disable and
-  order the mods yourself in ONI's Mods screen and re-run with -SkipBuild.
+  load order, and disables the upstream "Blueprints Expanded" so its patches don't collide.
+
+  Note the staticIDs are distinct - ours is BlueprintsIncluded, upstream's is BlueprintsV2 - so ONI
+  will happily load both at once. They must not run together for a different reason: this mod is a
+  fork of that one, so both carry the same BlueprintsV2 root namespace and Harmony-patch the same
+  game methods. Two copies of every patch is what would be measured, not a clean run.
+
+  -NoModConfig skips this - enable/disable and order the mods yourself in ONI's Mods screen and
+  re-run with -SkipBuild.
 
   -Perf switches to the harness's opt-in benchmark mode (docs §7): a blueprint-size sweep timing
   import operations, with no pass/fail semantics - it always exits 0. Without -Perf this runs the
@@ -111,7 +117,9 @@ if (-not $NoModConfig) {
             Write-Warning "expected both dev mods in mods.json (found $(@($picked).Count)) - launch ONI once so it registers them, then re-run."
         } else {
             foreach ($m in $picked) { $m.enabled = $true; $m.enabledForDlc = @($Dlc) }
-            # disable anything else claiming the BlueprintsV2 / BlueprintsIncluded staticID
+            # Disable every other copy of this mod or its upstream. Matching on both staticIDs
+            # rather than only BlueprintsV2: a second BlueprintsIncluded (a Steam install alongside
+            # this dev build) collides just as badly as the fork it came from.
             foreach ($m in $j.mods) {
                 if (($mine -notcontains $m.label.id) -and ($m.staticID -in 'BlueprintsV2', 'BlueprintsIncluded')) {
                     $m.enabled = $false
