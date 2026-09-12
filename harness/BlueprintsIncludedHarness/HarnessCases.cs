@@ -76,6 +76,7 @@ internal static class HarnessCases
         new HarnessCase("dig-placer-preview-filter-hides-digs", DigPlacerPreviewFilter),
         new HarnessCase("conduit-flags-ignore-captured-orientation", ConduitFlagsIgnoreCapturedOrientation),
         new HarnessCase("tile-seating-map-tracks-the-drag", TileSeatingMapTracksTheDrag),
+        new HarnessCase("preview-follows-the-cursor", PreviewFollowsTheCursor),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -338,6 +339,108 @@ internal static class HarnessCases
                 $"{f.id} spawned at {f.temperature:F1}K, below its {f.minMeltingPoint:F1}K melting point");
             Assert.True(f.temperature <= f.defTemperature + 0.5f,
                 $"{f.id} spawned at {f.temperature:F1}K, no hotter than its def temperature {f.defTemperature:F1}K");
+        }
+    }
+
+    // ---- preview follows the cursor ------------------------------
+
+    /// <summary>
+    /// A dragged preview's anim-backed visuals must actually be where the cursor is.
+    ///
+    /// This exists because the per-frame path no longer writes each visual's transform on a plain
+    /// cursor move: every anim-backed visualizer is parented to one root per player and the root is
+    /// translated once (docs §7). A <c>KBatchedAnimController</c> caches its position for the anim
+    /// batch, so the open question that no assertion elsewhere can reach is whether it notices a
+    /// <i>parent</i> move at all - if it does not, the previews render at stale positions while the
+    /// blueprint appears to move, and every other case still passes.
+    ///
+    /// Asserted on the world position of the visualizer itself (which is what the batch renders
+    /// from), not on the cell field - the cell updates either way, so it would pass even when the
+    /// art is wrong. The screenshots either side are for the human half: whether it *looks* right.
+    /// </summary>
+    private static IEnumerator PreviewFollowsTheCursor()
+    {
+        var xy = Grid.CellToXY(AnchorCell);
+        var start = new Vector2I(xy.x - 10, xy.y - 3);
+
+        // Ladder: 1x1, raw mineral, and its preview carries a KBatchedAnimController - so unlike a
+        // Tile it keeps its own clone, is parented to the root, and is rendered from its transform.
+        var def = Assets.GetBuildingDef("Ladder");
+        var sandstone = ElementLoader.FindElementByHash(SimHashes.SandStone).tag;
+        var bp = new Blueprint("preview-follows", "");
+        for (int dy = 0; dy < 3; dy++)
+        {
+            var bc = new BuildingConfig
+            {
+                Offset = new Vector2I(0, dy),
+                BuildingDef = def,
+                BuildingDefId = "Ladder",
+                Orientation = Orientation.Neutral,
+            };
+            bc.SelectedElements.Add(sandstone);
+            bp.BuildingConfigurations.Add(bc);
+        }
+        bp.CacheCost();
+
+        BlueprintState.VisualizeBlueprint(start, bp);
+        for (int i = 0; i < 3; i++) yield return null;
+
+        var before = VisualizerWorldPositions();
+        Assert.True(before.Count >= 3, $"the ladder preview produced visualizers ({before.Count})");
+        yield return Screenshot.Capture("preview-at-start", Log);
+
+        const int DragCells = 6;
+        var moved = new Vector2I(start.x + DragCells, start.y);
+        BlueprintState.UpdateVisual(BlueprintState.PlayerId_DefaultTilePreviews, moved, forcingRedraw: false);
+        for (int i = 0; i < 3; i++) yield return null;
+
+        var after = VisualizerWorldPositions();
+        yield return Screenshot.Capture("preview-after-drag", Log);
+
+        Assert.True(after.Count == before.Count,
+            $"the same visualizers exist after the drag ({before.Count} -> {after.Count})");
+
+        int followed = 0, stale = 0;
+        for (int i = 0; i < before.Count; i++)
+        {
+            float dx = after[i].x - before[i].x;
+            if (Mathf.Abs(dx - DragCells) < 0.01f)
+                followed++;
+            else
+                stale++;
+            Log?.Line($"  visualizer {i}: x {before[i].x:F2} -> {after[i].x:F2} (moved {dx:F2}, expected {DragCells})");
+        }
+
+        Assert.True(stale == 0,
+            $"every anim-backed visualizer moved with the cursor ({followed} did, {stale} did not - " +
+            "a stale one means the shared parent move is not reaching the KBatchedAnimController)");
+    }
+
+    /// <summary>World positions of the live preview visualizers, in list order - read from the
+    /// transform the anim batch renders from.</summary>
+    private static List<Vector3> VisualizerWorldPositions()
+    {
+        var positions = new List<Vector3>();
+        foreach (var visual in LiveVisuals())
+            if (visual is BuildingVisual bv && bv.Visualizer != null)
+                positions.Add(bv.Visualizer.transform.GetPosition());
+        return positions;
+    }
+
+    /// <summary>The foundation + dependent visual lists, which are private statics on
+    /// BlueprintState - same reflection PerfRunner uses to report their split.</summary>
+    private static IEnumerable<IVisual> LiveVisuals()
+    {
+        foreach (string fieldName in new[] { "FoundationVisuals", "DependentVisuals" })
+        {
+            var field = typeof(BlueprintState).GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Static);
+            if (field?.GetValue(null) is not IDictionary byPlayer)
+                continue;
+            if (byPlayer[BlueprintState.PlayerId_DefaultTilePreviews] is not IEnumerable list)
+                continue;
+            foreach (var item in list)
+                if (item is IVisual visual)
+                    yield return visual;
         }
     }
 

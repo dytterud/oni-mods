@@ -82,13 +82,13 @@ public class TileVisual : BuildingVisual, ICleanableVisual
         }
     }
 
-    internal override void MoveVisualizerCore(int cellParam, bool forceRedraw, bool applyColor)
+    internal override void MoveVisualizerCore(int cellParam, bool forceRedraw, bool applyColor, bool moveTransform = true)
     {
         if (cellParam != cell || forceRedraw)
         {
             ///see BuildingVisual.usesSharedVisualizer - a shared placeholder is never rendered or
             ///read by position, so moving it would only stomp on other tiles sharing it.
-            if (!usesSharedVisualizer)
+            if (moveTransform && !usesSharedVisualizer)
                 Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, BuildingDef.SceneLayer));
             UpdateGrid(cellParam);
             if (applyColor)

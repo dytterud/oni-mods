@@ -1171,13 +1171,48 @@ right while dragging is a human judgement and belongs to the
 3 stray`) because the default `BottomCenter` anchor shifts a 3-wide blueprint one cell in x — the
 case now pins `_state` to `BottomLeft`, the same reflection `PerfRunner` uses.
 
-**Two levers left:**
+### The shared parent transform — 3-5%, not the headline it was billed as
 
-1. **One shared parent transform.** Positioning is O(N) only because each visualizer is moved
-   independently; parenting the non-tile visualizers under one GameObject would make a cursor move
-   one transform write. Now the largest remaining per-frame cost, and the only one that changes the
-   asymptotics: with the tile surcharge gone, tiles and dependents both sit at ~5.9 µs/visual, of
-   which the transform write and the colour evaluation are the two halves.
+Lever 1, implemented. Every anim-backed visualizer is parented to one root per player
+(`BuildingVisual.VisualRoots`); a plain cursor move translates **the root once** and passes
+`moveTransform: false` down, so each visual still updates its cell for validity and colour but writes
+no transform. Rotation and flip change the offsets themselves and fall back to per-visual writes,
+gated by the `applyRotation` flag that already existed. Visuals on the shared placeholder are never
+parented (nothing reads their position, and moving one would drag every tile sharing it), and
+`DigVisual` / the note visuals are not `BuildingVisual`s, so they position themselves as before.
+
+Interleaved A/B, one run:
+
+| | on | off | |
+|---|---:|---:|---|
+| `shared-parent-ladder` N=2000 (anim-backed, parented) | 7.30 ms | 7.67 ms | **−4.7%** |
+| `shared-parent-ladder` N=1000 | 4.62 ms | 4.78 ms | **−3.3%** |
+| `shared-parent-tile` N=2000 (control — shared placeholder, no transform) | 6.98 ms | 6.94 ms | +0.6% |
+| `shared-parent-tile` N=1000 | 4.45 ms | 4.45 ms | +0.1% |
+
+**A between-run pair had read −11% / −9% for ladder and −6% for tile. The interleaved arms put the
+real figures at −4.7% / −3.3% and the tile control at zero** — so most of that apparent win, and all
+of the tile's, was drift. This is the third change in this section predicted to be large that
+measured small (the refresh batching read as nothing and was worth 25-31%; the colour path's
+allocation was an instrumentation artifact), and the only reason any of the three is stated correctly
+here is that the number was checked rather than reasoned about.
+
+Why it is small: N `SetPosition` calls were never the bottleneck. Unity still propagates the parent's
+move to N children in native code, so the saving is the managed interop, not the work. The dominant
+per-visual cost is the colour evaluation.
+
+**What guards it:** `preview-follows-the-cursor` (13th case) drags a 3-tall `Ladder` blueprint —
+whose preview carries a `KBatchedAnimController`, so it is parented and rendered from its transform —
+and asserts every visualizer's **world position** moved by exactly the drag distance. Asserting the
+cell field instead would have passed even with the art frozen, since the cell updates either way. The
+open question this answers is whether a `KBatchedAnimController` notices a *parent* move at all: it
+caches its position for the anim batch, and if it did not, previews would render at stale positions
+while every other assertion still passed. It does, confirmed by the assertion and by the screenshots
+either side.
+
+**One lever left:**
+
+1. ~~**One shared parent transform.**~~ Done, above.
 3. ~~**The colour path.**~~ **Tried and rejected** — see *The colour path, measured properly* above.
    Its allocation was an instrumentation artifact, and a drag gives every visual a new cell each
    frame, so there is nothing safe to cache. What is left there is Klei's `IsValidPlaceLocation`
@@ -1259,13 +1294,19 @@ case now pins `_state` to `BottomLeft`, the same reflection `PerfRunner` uses.
       single update. `update-visual-tile` N=2000 **21.38 -> 11.76 ms and 1,312 -> 132 KB/frame**; the
       tile surcharge over dependents is gone entirely (11.76 vs 11.89 ms). Guarded by a new
       `tile-seating-map-tracks-the-drag` case; 12/12 green. See §7 *Delta-seating the tiles*.
-- [ ] **Next for per-frame cost** — one lever left, and it is the only one that changes the
-      asymptotics: **a shared parent transform**, so a cursor move is one transform write instead of
-      N. With the tile surcharge gone, tiles and dependents both sit at ~5.9 µs/visual, split between
-      that transform write and the colour evaluation. See §7.
-      Skipping `GetVisualizerColor` was **tried and rejected**: the ~460 KB/frame that motivated it
-      turned out to be the harness's own `Stopwatch` allocations, and a drag gives every visual a new
-      cell each frame so there is nothing safe to cache. See §7.
+- [x] Shared parent transform: every anim-backed visualizer is parented to one root per player, so
+      a plain cursor move is one transform write instead of N. Interleaved A/B: **−4.7% / −3.3%** on
+      anim-backed visuals, ~0 on the tile control (a between-run pair had read −11%, nearly all
+      drift). Guarded by `preview-follows-the-cursor`, which asserts world positions rather than
+      cells — a `KBatchedAnimController` caches its position for the anim batch, and whether it
+      notices a *parent* move was the one thing no other assertion could reach. See §7.
+- [ ] **Per-frame cost from here.** All three levers are done or rejected; the path is no longer
+      obvious, so measure before choosing. What the numbers now say: the dominant per-visual cost is
+      the colour evaluation, and the expensive case is a drag over **empty space**, where
+      `ValidCell` → Klei's `IsValidPlaceLocation` asks whether a cell nobody occupies is a legal
+      build location. Caching that needs an invalidation condition nobody has found a safe one for
+      (§7, *The colour path*) — the remaining idea is to reimplement the parts of the game's validity
+      rules that apply to a 1x1 tile, which is a correctness risk, not a perf trick.
 - [ ] Optional follow-ups: more building types / layers, place-with-settings applied to the built
       object, replacement visualizers over occupied terrain, a committed perf baseline + diff.
 - [ ] `run-ingame.ps1` currently removes the dev `Blueprints Expanded` (`mods/dev/BlueprintsV2`)
