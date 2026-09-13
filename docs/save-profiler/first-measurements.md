@@ -70,40 +70,46 @@ a range of 189 ms on a mean of 3814 — about **±2.5%**. Serialize is ±3%, com
 tighter than the ±10% the sibling mod measured for its own sweeps, and it means a Fast Save
 comparison needs to beat roughly 190 ms on the total to mean anything.
 
-## RETRACTED: "`Sim.Save` costs 50× more on an autosave"
+## RETRACTED, then partly reinstated: the `Sim.Save` finding
 
-**What was published** (from the first two runs): `Sim.Save` cost 529 ms on an autosave against
-10.3 ms on a manual save, a 50× difference that accounted for the entire autosave-versus-manual gap.
-It was written up as the run's one surprise.
+Worth reading as a sequence, because both mistakes are instructive.
 
-**What a repeat run measured:** 12.1 ms, on an autosave. And the *first* autosave had already
-measured 10.3 ms — the same as the manual save.
+**First claim (2 runs):** `Sim.Save` costs 529 ms on an autosave against 10.3 ms on a manual save —
+a 50× difference, attributed to autosave-versus-manual.
 
-**Why the two differed:** the comparison was drawn from a single pair of runs that happened to
-straddle the anomaly, and the one autosave that disagreed with the other two was treated as the rule.
-Three autosaves now read 10.3, 529.0 and 12.1 ms. Run 18:39 is the outlier, not the pattern.
+**First retraction (3 runs):** a repeat autosave measured 12.1 ms, and the *first* autosave had
+already measured 10.3 ms. Two of three autosaves were cheap, so 529 ms was written off as an
+outlier and the whole finding was retracted.
 
-This is the failure docs/perf-method.md describes: "almost every wrong conclusion came from believing
-something plausible instead of measuring it." The mechanism offered — an autosave blocking on a
-mid-frame sim thread — was plausible, was flagged as unestablished, and was still wrong about which
-runs behaved which way.
+**What a fifth run showed:** 528.1 ms. Reproducible to within 1 ms of the original 529.0, in a
+different session.
 
-## What replaced it
+| run | session | save # in session | kind | `Sim.Save` |
+|---|---|---|---|---:|
+| 18:24 | 1 | 1st | auto | 10.3 |
+| 18:36 | 1 | 2nd | manual | 10.3 |
+| 18:39 | 1 | 3rd | auto | **529.0** |
+| 18:51 | 2 | 1st | auto | 12.1 |
+| 18:54 | 2 | 2nd | auto | **528.1** |
 
-The column that *is* stable is `Sim.Save` **plus** unaccounted, taken together:
+**So the retraction was also wrong.** The numbers were never noise — they are bimodal, and the
+distinguishing variable was one nobody had varied on purpose: how many saves had already happened
+since the colony was loaded. Three cheap readings and two expensive ones looked like 3-versus-1
+noise only because the runs were not labelled by it.
 
-- autosaves: **1102.0, 1099.8, 1120.5 ms** (±1%)
-- manual save: **581.9 ms**
+The lesson is narrower than "measure more". Both errors came from the same place: a variable that was
+moving was not in the table. The first pass compared autosave-versus-manual because that was the
+column that existed; the retraction called 529 an outlier because position-in-session was still not
+a column. Counting runs does not help if the axis is missing.
 
-So the autosave-versus-manual difference is real and reproducible — about **520 ms** — but it does
-not belong to `Sim.Save`. It belongs to a combined bucket of sim-wait plus file write, and in run
-18:39 roughly 500 ms of it happened to land inside `Sim.Save`'s window instead of outside every
-measured phase. The two move inversely and sum to a constant.
+**What can be claimed now:** the first save after loading a colony pays ~10 ms in `Sim.Save`; a later
+autosave pays ~528 ms. The single manual save was also the 2nd save of its session, so "manual saves
+never pay it" and "the first save after load never pays it" both fit all five runs and cannot be
+separated without a manual save taken later in a session.
 
-**Mechanism still not established**, and this time the shape of the ignorance is clearer: there is a
-~520 ms cost specific to autosaves that the current phase set cannot locate, because it lands in
-different places on different runs. Locating it needs a finer phase inside the outer `SaveLoader.Save`
-— not more reasoning about sim threads.
+**What is unchanged by any of it:** `Sim.Save` + unaccounted, together, is ~1,080–1,120 ms on every
+autosave (1102.0, 1099.8, 1120.5, 1078.3). The ~520 ms is always paid. Loading a colony only moves
+where it lands — into `Sim.Save` on later saves, into the unmeasured remainder on the first.
 
 ## Not measured
 
