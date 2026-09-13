@@ -134,6 +134,28 @@ public class PatchTargetResolutionTests
     }
 
     [RequiresGameInstallFact]
+    public void TheCycleBoundaryTargets_AllStillExist()
+    {
+        // Work outside SaveLoader.Save that the player still feels as part of the same hitch.
+        Assert.NotNull(PatchInstaller.WidestOverload(typeof(ReportManager), "OnNightTime"));
+        Assert.NotNull(PatchInstaller.WidestOverload(typeof(Timelapser), "OnNewDay"));
+        Assert.NotNull(PatchInstaller.WidestOverload(typeof(Timelapser), "RenderAndPrint"));
+    }
+
+    [RequiresGameInstallFact]
+    public void TimelapserRender_IsACoroutineAndIsDeliberatelyNotPatched()
+    {
+        // Render() returns an IEnumerator, so a prefix/postfix pair would time the construction of
+        // the coroutine rather than the work, and report microseconds as though they were the
+        // screenshot. RenderAndPrint is patched instead. If this ever stops returning an
+        // IEnumerator, that decision is worth revisiting.
+        var render = PatchInstaller.WidestOverload(typeof(Timelapser), "Render") as MethodInfo;
+
+        Assert.NotNull(render);
+        Assert.True(typeof(System.Collections.IEnumerator).IsAssignableFrom(render!.ReturnType));
+    }
+
+    [RequiresGameInstallFact]
     public void WidestOverload_ReturnsNullForAMethodThatIsNotThere()
     {
         // The contract PatchInstaller.TryPatch relies on to record an unresolved target instead of

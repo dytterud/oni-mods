@@ -56,8 +56,10 @@ internal static class SavePhasePatches
         // registered as ordinary phases, so if they turn out to run outside the save instead they
         // simply never appear rather than being mis-attributed.
         RegisterPhase(harmony, "SaveLoader.PrepSaveFile", typeof(SaveLoader), "PrepSaveFile");
+        // SaveColonyPreview stays here - it does run inside the save (measured at 0.0 ms).
+        // SaveScreenshot moved to CycleBoundaryPatches: it recorded zero calls in every run,
+        // because it happens at the cycle boundary rather than in the save.
         RegisterPhase(harmony, "Timelapser.SaveColonyPreview", typeof(Timelapser), "SaveColonyPreview");
-        RegisterPhase(harmony, "Timelapser.SaveScreenshot", typeof(Timelapser), "SaveScreenshot");
         RegisterPhase(harmony, "SaveManager.Save", typeof(SaveManager), nameof(SaveManager.Save));
         RegisterPhase(harmony, "Game.Save", typeof(Game), nameof(Game.Save));
 

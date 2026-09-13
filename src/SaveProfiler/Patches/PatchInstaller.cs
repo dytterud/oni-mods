@@ -35,6 +35,7 @@ public static class PatchInstaller
 
         SavePhasePatches.Register(harmony);
         ComponentSerializationPatches.Register(harmony);
+        CycleBoundaryPatches.Register(harmony);
 
         var unresolved = SaveProfileRecorder.Unresolved;
         if (unresolved.Count > 0)

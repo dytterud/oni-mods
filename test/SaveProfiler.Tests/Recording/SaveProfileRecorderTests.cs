@@ -239,6 +239,56 @@ public class SaveProfileRecorderTests
     }
 
     [Fact]
+    public void AmbientWork_SurvivesBeginBecauseItStraddlesTheSave()
+    {
+        // The timelapse is a coroutine: its frames land after SaveLoader.Save has returned and the
+        // report has been written. Clearing ambient per-save would drop exactly that half.
+        SaveProfileRecorder.AddAmbient("Timelapser.RenderAndPrint", 120);
+
+        SaveProfileRecorder.Begin();
+        SaveProfileRecorder.EnterPhase(SaveProfileReport.RootPhase);
+        SaveProfileRecorder.ExitPhase(SaveProfileReport.RootPhase, 1000);
+
+        var report = SaveProfileRecorder.BuildReport();
+        var row = Assert.Single(report.Ambient);
+
+        Assert.Equal("Timelapser.RenderAndPrint", row.TypeName);
+        Assert.Equal(120, row.Snap.TotalMs, 9);
+    }
+
+    [Fact]
+    public void AmbientWork_IsClaimedByTheReportSoTheNextOneCoversTheNextWindow()
+    {
+        SaveProfileRecorder.Begin();
+        SaveProfileRecorder.AddAmbient("ReportManager.OnNightTime", 40);
+
+        Assert.Single(SaveProfileRecorder.BuildReport().Ambient);
+
+        // Claimed. A second report must not re-bill the same 40 ms on top of its own window.
+        Assert.Empty(SaveProfileRecorder.BuildReport().Ambient);
+    }
+
+    [Fact]
+    public void AmbientWork_IsNotFoldedIntoTheSaveTotal()
+    {
+        SaveProfileRecorder.Begin();
+        SaveProfileRecorder.EnterPhase(SaveProfileReport.RootPhase);
+        SaveProfileRecorder.ExitPhase(SaveProfileReport.RootPhase, 1000);
+        SaveProfileRecorder.AddAmbient("Timelapser.OnNewDay", 500);
+
+        var report = SaveProfileRecorder.BuildReport();
+
+        // The save is still 1000 ms. The cycle boundary cost 1500 - that distinction is the whole
+        // point of the section, and collapsing it would overstate the save.
+        Assert.Equal(1000, report.TotalMs);
+        // The root has no child phases here, so all 1000 ms is unaccounted - and the ambient 500 ms
+        // is not part of it. Ambient must never leak into the save's own arithmetic.
+        Assert.Equal(1000, report.UnaccountedMs);
+        Assert.Contains("Outside the save", report.ToMarkdown());
+        Assert.Contains("1500.0 ms", report.ToMarkdown());
+    }
+
+    [Fact]
     public void UnresolvedTargets_AreRecordedOnceAndSurviveANewRecording()
     {
         SaveProfileRecorder.AddUnresolved("Sim.Save");

@@ -56,6 +56,10 @@ public sealed class SaveProfileReport
     public PhaseRow? Root { get; set; }
     public List<PhaseRow> Phases { get; } = [];
     public List<TypeRow> Types { get; } = [];
+
+    /// <summary>Cycle-boundary work measured outside <c>SaveLoader.Save</c>, covering the window
+    /// since the previous report rather than this save.</summary>
+    public List<TypeRow> Ambient { get; } = [];
     public List<string> ActiveMods { get; } = [];
 
     /// <summary>Patch targets that could not be bound. These are exactly the rows that will read
@@ -120,6 +124,7 @@ public sealed class SaveProfileReport
         AppendUnresolved(sb);
         AppendPhases(sb);
         AppendTypes(sb);
+        AppendAmbient(sb);
         AppendMods(sb);
 
         return sb.ToString();
@@ -245,6 +250,39 @@ public sealed class SaveProfileReport
         sb.AppendLine();
     }
 
+    private void AppendAmbient(StringBuilder sb)
+    {
+        if (Ambient.Count == 0)
+            return;
+
+        double total = Ambient.Sum(a => a.Snap.TotalMs);
+
+        sb.AppendLine("## Outside the save, same cycle boundary");
+        sb.AppendLine();
+        sb.AppendLine("Work that is **not** part of the save and is **not** included in any total above,");
+        sb.AppendLine("but which the player feels as part of the same hitch.");
+        sb.AppendLine();
+        sb.AppendLine("Read the window carefully: this covers everything measured **since the previous");
+        sb.AppendLine("report**, not this save. Some of it runs before the save and some after — the");
+        sb.AppendLine("timelapse is a coroutine, so its frames land once the save has already returned.");
+        sb.AppendLine("With an autosave every cycle, that window is the previous cycle boundary.");
+        sb.AppendLine();
+        sb.AppendLine("| Outside the save | Calls | Total ms |");
+        sb.AppendLine("|---|---:|---:|");
+
+        foreach (var row in Ambient.OrderByDescending(a => a.Snap.TotalMs))
+        {
+            sb.Append("| `").Append(row.TypeName).Append("` | ").Append(row.Snap.Calls)
+              .Append(" | ").Append(Ms(row.Snap.TotalMs)).AppendLine(" |");
+        }
+
+        sb.Append("| **outside-save total** | | **").Append(Ms(total)).AppendLine("** |");
+        sb.AppendLine();
+        sb.Append("Save (").Append(Ms(TotalMs)).Append(" ms) plus the above is **")
+          .Append(Ms(TotalMs + total)).AppendLine(" ms** of cycle-boundary work.");
+        sb.AppendLine();
+    }
+
     private void AppendMods(StringBuilder sb)
     {
         if (ActiveMods.Count == 0)
@@ -293,6 +331,9 @@ public sealed class SaveProfileReport
             ["compressedBytes"] = CompressedBytes,
             ["phases"] = phases,
             ["types"] = types,
+            ["ambient"] = new JArray(Ambient.OrderByDescending(a => a.Snap.TotalMs)
+                .Select(a => (object)SnapJson(a.TypeName, a.Snap))),
+            ["ambientTotalMs"] = Ambient.Sum(a => a.Snap.TotalMs),
             ["unresolvedTargets"] = new JArray(UnresolvedTargets),
             ["activeMods"] = new JArray(ActiveMods),
         };
