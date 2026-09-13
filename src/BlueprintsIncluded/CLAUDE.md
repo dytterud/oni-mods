@@ -1,4 +1,4 @@
-# CLAUDE.md — Blueprints Included
+﻿# CLAUDE.md — Blueprints Included
 
 Mod-specific instructions. The repo-wide ones (build, conventions, Harmony, adding a mod) are in
 the root [CLAUDE.md](../../CLAUDE.md) — read both.
@@ -37,6 +37,11 @@ an assertion, tile art while dragging being the standing example.
 - `ScreenReferenceBindingTests` (game-gated) reflects over every `KMonoBehaviour` and fails if a
   non-nullable `Component`/`GameObject` field is only ever `= null!` and never bound in code —
   it catches "declared a widget, forgot to wire it in `Init()`".
+- The mod detects upstream **Blueprints Expanded** at load and queues a main-menu warning, but
+  **do not rely on that warning being seen**: measured 2026-09-13, the pair crashes inside
+  `Assets.OnPrefabInit` (upstream's `SpritePatch` prefix) and ONI's crash handler replaces the main
+  menu, so the queued dialog is never drained. The dependable signal is the log line `incompatible
+  mod found: BlueprintsV2`.
 - Do not run this mod alongside upstream **Blueprints Expanded**. The `staticID`s differ
   (`BlueprintsIncluded` vs `BlueprintsV2`) so ONI will happily load both, but they share the
   `BlueprintsV2` root namespace and Harmony-patch the same methods.

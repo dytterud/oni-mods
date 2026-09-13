@@ -163,12 +163,20 @@ namespace UtilLibs
 			if (PRegistry.GetData<Dictionary<string, string>>(CompatibilityDataKey) != null)
 				return;
 
-			var current = new List<Tuple<string, string>>();
-			PRegistry.PutData(CompatibilityDataKey, current);
+			// Was a List<Tuple<string,string>> under a key every other method here reads as a
+			// Dictionary<string,string>. The mistyped read just returned null and
+			// AddIncompatibleToList rebuilt the dictionary, so the seed write was dead - the code
+			// worked by accident and read as though it did not.
+			PRegistry.PutData(CompatibilityDataKey, new Dictionary<string, string>());
 		}
 
 
-		static void AddIncompatibleToList(string modName, string conflictingModName)
+		/// <summary>
+		/// Queues one conflict for the next main-menu dialog. Public so a mod can report a conflict
+		/// it detected for itself - <see cref="CheckAndAddIncompatibles"/> only finds mods that
+		/// carry a distinguishable assembly name, which a second copy of the *same* mod does not.
+		/// </summary>
+		public static void AddIncompatibleToList(string modName, string conflictingModName)
 
 		{
 			Dictionary<string, string> current = PRegistry.GetData<Dictionary<string, string>>(CompatibilityDataKey);
