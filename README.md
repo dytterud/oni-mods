@@ -5,7 +5,7 @@ repo with shared build machinery.
 
 | Mod | What it does | Status |
 |-----|--------------|--------|
-| [Blueprints Included](src/BlueprintsIncluded/README.md) | Design, store and re-place your favourite builds, including building settings | unreleased |
+| [Blueprints Included](src/BlueprintsIncluded/README.md) | Design, store and re-place your favourite builds, including building settings | [0.1.0](https://github.com/dytterud/oni-mods/releases/tag/blueprints-included%2Fv0.1.0) |
 
 Each mod keeps its own `README.md`, `CHANGELOG.md` and `CLAUDE.md` next to its project, and its
 own docs under `docs/<mod-slug>/`.
