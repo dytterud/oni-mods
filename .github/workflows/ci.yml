@@ -20,7 +20,9 @@ jobs:
     # mod-packaging targets use backslash paths. Nothing here needs the game itself.
     runs-on: windows-latest
 
-    # Serialised on purpose - see the -m:1 on the build step below.
+    # Long-lived build servers can hold build outputs open between steps; ILRepack
+    # overwrites the mod assembly in place, so a held handle surfaces as a locked-file
+    # failure. Same reason test/run-ingame.ps1 calls `dotnet build-server shutdown`.
     env:
       MSBUILDDISABLENODEREUSE: 1
       DOTNET_CLI_USE_MSBUILD_SERVER: false
@@ -46,24 +48,17 @@ jobs:
       - name: Restore
         run: dotnet restore OniMods.slnx
 
-      # -m:1 (single node, no parallel project builds) is load-bearing, not tidiness.
-      # BlueprintsIncluded.Tests references the mod with different global properties
-      # (DoNotBuildAsMod=true), so MSBuild treats it as a *second instance* of the same project -
-      # and both instances write to the same bin/. Built in parallel they race: ILRepack rewrites
-      # the assembly in place for one while the other is still copying obj -> bin, which surfaces
-      # as MSB3027 "the file is locked by .NET Host". Directory.Build.targets already documents
-      # the two-flavours-one-output-directory problem; this is that problem, in CI.
-      #
-      # The env block above stops long-lived build servers holding those outputs open between
-      # steps for the same reason test/run-ingame.ps1 calls `dotnet build-server shutdown`.
-      #
-      # The real fix is giving the two flavours separate output directories; until then, not
-      # building them at the same time is what keeps CI honest.
+      # Parallel by default. The mod used to be built twice into one output directory
+      # (once as a packed mod, once as a plain library for BlueprintsIncluded.Tests),
+      # which raced under parallelism and failed with MSB3027. The two flavours now have
+      # separate bin/ and obj/ - see the comment on BaseOutputPath in
+      # Directory.Build.props - so -m:1 is no longer needed to keep CI green.
       - name: Build (Release, offline)
-        run: dotnet build OniMods.slnx -c Release -p:OfflineBuild=true --no-restore --disable-build-servers -m:1
+        run: dotnet build OniMods.slnx -c Release -p:OfflineBuild=true --no-restore --disable-build-servers
 
-      # The 27 [RequiresGameInstall*] tests skip here by design - lib/ is reference-only and
-      # cannot execute. Expect "14 passed, 27 skipped"; see test/README.md.
+      # The [RequiresGameInstall*] tests skip here by design - lib/ is reference-only and
+      # cannot execute. The skip count is the signal, not the pass count: offline, every
+      # gated test must skip. See test/README.md.
       - name: Test (offline)
         run: dotnet test OniMods.slnx -p:OfflineBuild=true --no-build -c Release --disable-build-servers
 

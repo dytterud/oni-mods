@@ -33,10 +33,6 @@
 	</PropertyGroup>
 
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<OutDir>bin</OutDir>
-	</PropertyGroup>
-
 	<ItemGroup>
 		<ProjectReference Include="..\UtilLibs\UtilLibs.csproj" />
 	</ItemGroup>

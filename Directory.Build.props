@@ -14,6 +14,41 @@
 		<GameLibsFolder Condition="'$(OfflineBuild)' == 'true'">$(MSBuildThisFileDirectory)lib</GameLibsFolder>
 	</PropertyGroup>
 
+	<!--Two build flavours, two output directories. The mod project is built twice, with
+	    different global properties: once as a packed mod, and once as a plain library via
+	    BlueprintsIncluded.Tests' ProjectReference (DoNotBuildAsMod=true). Different global
+	    properties mean a separate MSBuild project instance, so both instances compile and both
+	    write - and until this split they wrote to the same bin/ and obj/. Built in parallel they
+	    raced: ILRepack rewrites the mod assembly in place while the other instance is still
+	    copying obj -> bin, which surfaces as MSB3027 "the file is locked by .NET Host". CI
+	    contained that with -m:1 (PR #38); separating the outputs removes the hazard instead.
+
+	    Keyed on the *global* DoNotBuildAsMod, because that is what distinguishes the two
+	    instances - not on a csproj-local value, which is evaluated after this file. UtilLibs is
+	    doubled the same way (global properties propagate down its ProjectReference) and the same
+	    condition separates it. Test projects set DoNotBuildAsMod locally, not globally, so they
+	    keep the ordinary bin/obj.
+
+	    The two companions are not optional:
+
+	    MSBuildProjectExtensionsPath is pinned back to obj/ because NuGet restore does NOT
+	    propagate a ProjectReference's global properties - it restores each project once, at its
+	    default evaluation. Let this follow BaseIntermediateOutputPath and the library flavour
+	    looks for obj/library/project.assets.json, which restore never writes, and the build dies
+	    with NETSDK1004. Sharing the restore outputs is also exactly what happened before this
+	    split, and they are read-only during a build, so nothing races over them.
+
+	    DefaultItemExcludes then has to re-exclude obj/ by hand. The SDK's default globs only
+	    exclude $(BaseIntermediateOutputPath); once that points at obj/library/, the sibling
+	    obj/**/*.cs - AssemblyInfo.cs and the TargetFramework attribute - gets compiled in as
+	    source, and every assembly-level attribute comes out duplicated (CS0579).-->
+	<PropertyGroup Condition="'$(DoNotBuildAsMod)' == 'true'">
+		<BaseOutputPath>bin\library\</BaseOutputPath>
+		<BaseIntermediateOutputPath>obj\library\</BaseIntermediateOutputPath>
+		<MSBuildProjectExtensionsPath>$(MSBuildProjectDirectory)\obj\</MSBuildProjectExtensionsPath>
+		<DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildProjectDirectory)\obj\**</DefaultItemExcludes>
+	</PropertyGroup>
+
 	<PropertyGroup>
 		<Optimize>true</Optimize>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
