@@ -10,7 +10,17 @@ and was never published under it.
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- **Detects a conflicting blueprint mod at load.** Upstream Blueprints Expanded, or a second copy
+  of this mod, is now found during startup and logged by name, and a warning is queued for the main
+  menu. Both carry the same root namespace and patch the same game methods, so running them together
+  applies every patch twice.
+
+  Note the limit, which was measured rather than assumed: against the current upstream the pair
+  crashes during asset load and ONI's own crash handler appears before the main menu, so the queued
+  dialog is never shown. What you get in that case is the log line `incompatible mod found:
+  BlueprintsV2`, which names the cause in a Player.log.
 
 ## [0.1.0] - 2026-09-13
 
