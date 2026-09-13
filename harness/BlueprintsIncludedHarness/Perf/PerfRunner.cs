@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using BlueprintsV2.BlueprintData;
+using BlueprintsV2.Tools;
 using BlueprintsV2.Visualizers;
 using HarmonyLib;
 using UnityEngine;
@@ -19,7 +20,9 @@ namespace BlueprintsV2.Harness.Perf;
 /// </summary>
 internal static class PerfRunner
 {
-    private static readonly int[] Sizes = { 100, 500, 1000, 5000 };
+    /// <summary>Import/export sweep. Internal so <see cref="ExportPerf"/> runs the same N,
+    /// keeping <c>serialize</c> directly comparable with <c>deserialize</c>.</summary>
+    internal static readonly int[] Sizes = { 100, 500, 1000, 5000 };
 
     // Placement instantiates real GameObjects per building (much heavier per unit than JSON
     // parsing) and needs real dug Grid cells, so its sweep is capped lower than import's.
@@ -29,6 +32,11 @@ internal static class PerfRunner
     // that whole budget for use whilst leaving nothing for create, so they share a smaller sweep.
     private static readonly int[] PlacementSizes = { 100, 500, 1000, 2000 };
     private static readonly int[] UseCreateSizes = { 100, 500, 1000 };
+    // Snapshot paste is mutating like `use`, so it needs its own disjoint row band and cannot
+    // reuse one. The full UseCreateSizes set would need as many rows again as `use` itself and
+    // does not fit the fixture's ~94-row budget alongside it, so it takes the two smaller sizes;
+    // the point is the snapshot/non-snapshot delta at equal N, not another size curve.
+    private static readonly int[] SnapshotPasteSizes = { 100, 500 };
     private const int PlacementRowWidth = SyntheticBlueprint.RowWidth;
     private const int UseWarmup = 1, UseIterations = 2;               // mutating - kept small
     private const int VisualizeWarmup = 2, VisualizeIterations = 5;   // non-mutating - redrawable
@@ -75,6 +83,8 @@ internal static class PerfRunner
                 () => RunFullImport(json));
         }
 
+        yield return ExportPerf.Run(report, log);
+
         yield return RunPlacementSweep(report, log);
         yield return ComponentLookupPerf.Run(report, log);
         yield return SelectionScreenPerf.Run(report, log);
@@ -103,7 +113,8 @@ internal static class PerfRunner
         // of the region, built once per size (CreateBlueprint itself is a pure read, safe to time
         // repeatedly over the same rectangle like visualize).
         int createRows = UseCreateSizes.Sum(RowsFor);
-        int regionRows = useRows + createRows;
+        int snapshotRows = SnapshotPasteSizes.Sum(RowsFor) * useDraws;
+        int regionRows = useRows + createRows + snapshotRows;
 
         // Anchor-relative, not an arbitrary absolute map coordinate: UseBlueprint's placement
         // check (BuildingVisual.ValidCell) also gates on Grid.IsValidCellInWorld(cell,
@@ -125,7 +136,11 @@ internal static class PerfRunner
             // skip check (below) compares against a budget bigger than what DigRegion/Reveal
             // actually covered, and its later sizes silently run onto undug/unrevealed cells.
             useRows = Math.Min(useRows, regionRows);
-            createRows = regionRows - useRows;
+            createRows = Math.Min(createRows, regionRows - useRows);
+            // Snapshot paste is last in line deliberately: it is the newest band and the one whose
+            // sizes are least load-bearing, so a cramped map costs its largest size rather than
+            // eating into the use/create series the docs' figures are built on.
+            snapshotRows = regionRows - useRows - createRows;
         }
 
         // Extend in the same direction (negative dx) FixtureLayout's own buildings already use
@@ -134,7 +149,8 @@ internal static class PerfRunner
             RegionEdgeMargin, Math.Max(RegionEdgeMargin, Grid.WidthInCells - PlacementRowWidth - RegionEdgeMargin));
         int y0 = RegionEdgeMargin;
         log.Line($"placement-perf region: x[{x0},{x0 + PlacementRowWidth}) y[{y0},{y0 + regionRows}) " +
-                 $"- rows [0,{useRows}) for visualize/use, [{useRows},{regionRows}) for create " +
+                 $"- rows [0,{useRows}) for visualize/use, [{useRows},{useRows + createRows}) for create, " +
+                 $"[{useRows + createRows},{regionRows}) for snapshot-paste " +
                  $"(anchor cell for reference: {HarnessCases.AnchorCell} {anchorXY})");
 
         yield return DigRegion(x0, y0, PlacementRowWidth, regionRows, log);
@@ -211,6 +227,9 @@ internal static class PerfRunner
                 log.Line($"  use-N{n}: {createdTotal} Constructable(s) created across {useDraws} draws (expected {n * useDraws})");
                 BlueprintState.ClearVisuals();
             }
+
+            yield return RunSnapshotPasteSweep(report, log, x0, y0 + useRows + createRows,
+                snapshotRows, useDraws);
         }
         finally
         {
@@ -220,7 +239,7 @@ internal static class PerfRunner
             if (stateField != null) stateField.SetValue(st, savedState);
         }
 
-        yield return RunCreateSweep(report, log, x0, y0 + useRows, Math.Max(0, regionRows - useRows));
+        yield return RunCreateSweep(report, log, x0, y0 + useRows, Math.Max(0, createRows));
         yield return RunUpdateVisualDenseSweep(report, log);
     }
 
@@ -329,6 +348,13 @@ internal static class PerfRunner
         var def = Assets.GetBuildingDef("Tile");
         var elements = new List<Tag> { ElementLoader.FindElementByHash(SimHashes.SandStone).tag };
 
+        // Both capture tools pass MultiToolParameterMenu.Instance (CreateBlueprintTool.cs:122,
+        // SnapshotTool.cs:178); the `create` op below passes null. That is not a cosmetic
+        // difference - a null filter skips BuildingDefAllowedWithCurrentFilters per building, the
+        // DigPlacer layer test per cell, and AllowedElementState per empty cell. Three per-unit
+        // tests that no measured number covered, on the path every real capture takes.
+        var filter = TryGetPopulatedFilter(log);
+
         int rowCursor = 0;
         foreach (int n in UseCreateSizes)
         {
@@ -369,6 +395,127 @@ internal static class PerfRunner
             yield return TimeOp(report, log, "create", n, warmup: CreateWarmup, iterations: CreateIterations,
                 () => { lastCaptured = BlueprintState.CreateBlueprint(topLeft, bottomRight, filter: null); });
             log.Line($"  create-N{n}: captured {lastCaptured?.BuildingConfigurations.Count ?? -1} building(s) (expected {n})");
+
+            // Both ops below reuse the rectangle just built, so they cost no extra region rows.
+            if (filter == null)
+                continue;
+
+            yield return TimeOp(report, log, "create-filtered", n, warmup: CreateWarmup, iterations: CreateIterations,
+                () => { _ = BlueprintState.CreateBlueprint(topLeft, bottomRight, filter); });
+
+            // The Snapshot tool's copy. createsSnapshot itself only suppresses the empty-blueprint
+            // DigLocations cleanup and swaps a log line, so this should land on top of
+            // create-filtered - measured rather than assumed, because that pair is what decides
+            // whether snapshot capture needs any attention of its own.
+            yield return TimeOp(report, log, "snapshot-copy", n, warmup: CreateWarmup, iterations: CreateIterations,
+                () =>
+                {
+                    var snap = BlueprintState.CreateBlueprint(topLeft, bottomRight, filter, createsSnapshot: true);
+                    snap.SetRandomSnapshotId();
+                });
+        }
+    }
+
+    /// <summary>
+    /// Resolves the filter both capture tools pass, populating it exactly as
+    /// <c>MultiFilteredDragTool.OnActivateTool</c> does.
+    ///
+    /// <c>MultiToolParameterMenu.Instance</c> being non-null is not enough, and assuming otherwise
+    /// aborted a whole perf run: the menu's backing <c>parameters</c> dictionary stays null until
+    /// <c>PopulateMenu</c> is called, <c>GetParameters</c> copies it unguarded, and
+    /// <c>AllowedToFilter</c> therefore throws <c>ArgumentNullException</c> on a menu that exists
+    /// but has never been opened. A scripted run never activates a tool, so that is its normal
+    /// state - populate the menu from the tool's own <c>DefaultParameters</c> instead of waiting
+    /// for a click that will not come.
+    ///
+    /// One filter serves both ops: ToolMenu_Patches.cs:55-56 assigns the *same dictionary object*
+    /// to <c>SnapshotTool</c> and <c>CreateBlueprintTool</c>, so capture and snapshot-copy really
+    /// do run the identical filter set in game.
+    ///
+    /// Returns null (having said why) rather than throwing: one unavailable op should cost its own
+    /// numbers, not the rest of the sweep.
+    /// </summary>
+    private static MultiToolParameterMenu? TryGetPopulatedFilter(HarnessLog log)
+    {
+        var menu = MultiToolParameterMenu.Instance;
+        var defaults = CreateBlueprintTool.Instance?.DefaultParameters;
+        if (menu == null || defaults == null || defaults.Count == 0)
+        {
+            log.Line("  SKIP create-filtered / snapshot-copy: MultiToolParameterMenu.Instance or " +
+                     "CreateBlueprintTool.Instance.DefaultParameters unavailable");
+            return null;
+        }
+
+        try
+        {
+            menu.PopulateMenu(defaults);
+            _ = menu.GetParameters();   // the call that throws on an unpopulated menu
+        }
+        catch (Exception e)
+        {
+            log.Line($"  SKIP create-filtered / snapshot-copy: filter unusable after PopulateMenu " +
+                     $"- {e.GetType().Name}: {e.Message}");
+            return null;
+        }
+
+        log.Line($"  filter populated with {defaults.Count} parameter(s) for create-filtered / snapshot-copy");
+        return menu;
+    }
+
+    /// <summary>
+    /// The Snapshot tool's paste - <c>UseBlueprint</c> with a <c>snapshotBp</c> and
+    /// <c>IsPlacingSnapshot</c> set - against the plain <c>use</c> measured at the same N.
+    ///
+    /// The flag is not bookkeeping: <c>VisualizeBlueprintCore</c> reads it as <c>notSnapshot</c>
+    /// and skips the per-building blocked-filter-layer test while a snapshot is being placed, so
+    /// each iteration's setup draw does measurably different work from the one <c>use</c> pays for.
+    /// Both the setup draw and the timed call run with it set, which is the order the real tool
+    /// produces (SnapshotTool sets it on activation, before any draw happens).
+    ///
+    /// Called from inside <see cref="RunPlacementSweep"/>'s try block so it inherits the anchor and
+    /// RequireConstructable overrides that sweep already applies - it adds only the snapshot flag.
+    /// </summary>
+    private static IEnumerator RunSnapshotPasteSweep(PerfReport report, HarnessLog log,
+        int x0, int y0, int availableRows, int draws)
+    {
+        var st = BlueprintState.CurrentStateInfo();
+        bool savedFlag = st.IsPlacingSnapshot;
+        st.IsPlacingSnapshot = true;
+        try
+        {
+            int rowCursor = 0;
+            foreach (int n in SnapshotPasteSizes)
+            {
+                int rows = RowsFor(n);
+                if (rowCursor + rows * draws > availableRows)
+                {
+                    log.Line($"  SKIP snapshot-paste-N{n}: not enough dug region left " +
+                             $"({availableRows - rowCursor} rows, need {rows * draws})");
+                    continue;
+                }
+
+                log.Line($"snapshot-paste N={n}");
+                // Distinct name per size: Blueprint identity is its FilePath, derived from the name.
+                var bp = SyntheticBlueprint.Build(n, "Tile", $"PerfSnapshot{n}");
+                bp.SetRandomSnapshotId();
+                Vector2I origin = default;
+                int before = CountConstructables();
+                yield return TimeOp(report, log, "snapshot-paste", n, warmup: UseWarmup, iterations: UseIterations,
+                    setup: () =>
+                    {
+                        origin = new Vector2I(x0, y0 + rowCursor);
+                        rowCursor += rows;
+                        BlueprintState.VisualizeBlueprint(origin, bp);
+                    },
+                    body: () => BlueprintState.UseBlueprint(BlueprintState.PlayerId_DefaultTilePreviews, origin, bp));
+                int created = CountConstructables() - before;
+                log.Line($"  snapshot-paste-N{n}: {created} Constructable(s) created across {draws} draws (expected {n * draws})");
+                BlueprintState.ClearVisuals();
+            }
+        }
+        finally
+        {
+            st.IsPlacingSnapshot = savedFlag;
         }
     }
 

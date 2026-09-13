@@ -41,16 +41,19 @@ namespace UtilLibs
 		{
 			//return "```" + text + "```";
 			byte[] buffer = Encoding.UTF8.GetBytes(text);
-			var memoryStream = new MemoryStream();
-			using (var gZipStream = new GZipStream(memoryStream, CompressionMode.Compress, true))
+			byte[] compressedData;
+			using (var memoryStream = new MemoryStream())
 			{
-				gZipStream.Write(buffer, 0, buffer.Length);
+				using (var gZipStream = new GZipStream(memoryStream, CompressionMode.Compress, true))
+				{
+					gZipStream.Write(buffer, 0, buffer.Length);
+				}
+
+				// ToArray rather than a rewind-and-Read of memoryStream.Length bytes: it cannot
+				// come up short, and it says what is meant. (MemoryStream.Read would in fact have
+				// returned everything, but the shape invited the bug DecompressString really had.)
+				compressedData = memoryStream.ToArray();
 			}
-
-			memoryStream.Position = 0;
-
-			var compressedData = new byte[memoryStream.Length];
-			memoryStream.Read(compressedData, 0, compressedData.Length);
 
 			var gZipBuffer = new byte[compressedData.Length + 4];
 			Buffer.BlockCopy(compressedData, 0, gZipBuffer, 4, compressedData.Length);
@@ -67,26 +70,36 @@ namespace UtilLibs
 		{
 			try
 			{
-				//return compressedText.Trim('`');
 				byte[] gZipBuffer = Convert.FromBase64String(compressedText);
-				using (var memoryStream = new MemoryStream())
+
+				// The first four bytes are the uncompressed length. CompressString still writes it,
+				// so the format is unchanged and strings produced by other versions still read - but
+				// it is no longer trusted here. It arrives from the clipboard, i.e. unvalidated
+				// input, and sizing the output buffer from it had two failure modes: a value that
+				// disagreed with the real payload silently truncated the result or NUL-padded it
+				// (returning a string that looks fine and parses wrong), and a corrupt or hostile
+				// value demanded an allocation of that size before anything could sanity-check it.
+				// Decompressing into a growable stream needs no length up front and cannot disagree
+				// with the data.
+				using (var source = new MemoryStream(gZipBuffer, 4, gZipBuffer.Length - 4))
+				using (var gZipStream = new GZipStream(source, CompressionMode.Decompress))
+				using (var decompressed = new MemoryStream())
 				{
-					int dataLength = BitConverter.ToInt32(gZipBuffer, 0);
-					memoryStream.Write(gZipBuffer, 4, gZipBuffer.Length - 4);
-
-					var buffer = new byte[dataLength];
-
-					memoryStream.Position = 0;
-					using (var gZipStream = new GZipStream(memoryStream, CompressionMode.Decompress))
-					{
-						gZipStream.Read(buffer, 0, buffer.Length);
-					}
-
-					return Encoding.UTF8.GetString(buffer);
+					// CopyTo loops until the stream really ends. The single Read this replaces kept
+					// whatever one call happened to return and treated the untouched rest of the
+					// buffer - zeroes - as payload; Stream.Read is explicitly allowed to return
+					// fewer bytes than asked for, which is what CA2022 flags.
+					gZipStream.CopyTo(decompressed);
+					return Encoding.UTF8.GetString(decompressed.ToArray());
 				}
 			}
 			catch (Exception ex)
 			{
+				// Empty is also what a caller gets for "this was never compressed"
+				// (ModAssets.ImportFromClipboard falls through to a raw-JSON parse on either), so
+				// without this line a genuinely corrupt payload is indistinguishable from plain text
+				// and leaves no trace at all.
+				SgtLogger.warning("DecompressString failed: " + ex.Message);
 				return string.Empty;
 			}
 		}

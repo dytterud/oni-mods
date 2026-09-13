@@ -1,4 +1,4 @@
-﻿# Feasibility: automated in-game regression tests
+# Feasibility: automated in-game regression tests
 
 **Status:** built and passing — see [`harness/`](../../harness/README.md) and
 [`test/run-ingame.ps1`](../../test/run-ingame.ps1). This doc records why it was built and how it works.
@@ -195,7 +195,8 @@ things** (fast and deterministic vs. many warmed-up iterations). The harness mod
 opt-in profiling mode, useful **while actively working on a performance change** to confirm
 it helped and didn't regress allocations.
 
-**Built so far: blueprint import.** Activated by the sentinel's first line (`perf` instead of
+**Built so far: blueprint import and export, plus capture and placement.** Activated by the
+sentinel's first line (`perf` instead of
 `run`) or `BPI_HARNESS=perf` — see `HarnessGate.Mode` in
 [HarnessMod.cs](../../harness/BlueprintsIncludedHarness/HarnessMod.cs). `test/run-ingame.ps1 -Perf`
 drives it. Instead of asserting, `PerfRunner`
@@ -210,16 +211,85 @@ drives it. Instead of asserting, `PerfRunner`
    (`new Blueprint(sb)`) and `full-import` (the clipboard-minus-clipboard path,
    `ModAssets.TryImportBlueprintFromString`, reflected since it's `internal`), each with a
    warmup batch then timed iterations.
-3. Records per iteration: `Stopwatch` elapsed plus two allocation counters and a GC guard
+3. Times the export direction over the same sizes
+   ([ExportPerf.cs](../../harness/BlueprintsIncludedHarness/Perf/ExportPerf.cs)): `serialize`
+   (`Blueprint.WriteJsonString`, the direct counterpart to `deserialize`), `compress`
+   (`CompressString` — gzip + base64), `export` (both, i.e. `ModAssets.ExportToClipboard` minus
+   the clipboard write) and `decompress` (the first step of a paste). The OS clipboard itself is
+   excluded on both sides: it is Unity/OS cost this mod cannot change. Each size also gets a
+   compress → decompress fidelity check, logged loudly on mismatch — `DecompressString` swallows
+   its exceptions and returns an empty string, so a broken round trip would otherwise show up
+   only as a suspiciously fast `decompress`.
+4. Records per iteration: `Stopwatch` elapsed plus two allocation counters and a GC guard
    ([AllocProbe.cs](../../harness/BlueprintsIncludedHarness/Perf/AllocProbe.cs)) — see
    **Allocation** below.
-4. Also Harmony-patches `BuildingConfig.SanitizeSelectedTags` and `ModAssets.GetValidMaterials`
+5. Also Harmony-patches `BuildingConfig.SanitizeSelectedTags` and `ModAssets.GetValidMaterials`
    ([PerfInstrumentation.cs](../../harness/BlueprintsIncludedHarness/Perf/PerfInstrumentation.cs))
    to count calls + accumulate time, so the result directly attributes cost instead of leaving
    it to inference.
-5. Writes median / p95 / alloc-per-op plus the hotspot totals to `%TEMP%/bpi-harness/perf.json`
+6. Writes median / p95 / alloc-per-op plus the hotspot totals to `%TEMP%/bpi-harness/perf.json`
    ([PerfWriter.cs](../../harness/BlueprintsIncludedHarness/Perf/PerfWriter.cs)). No committed
    baseline / regression-diff yet — this is investigation, not a gate.
+
+The capture and placement sweeps carry both halves of the copy/paste pair:
+
+| op | what it drives | why it is separate |
+|---|---|---|
+| `create` | `CreateBlueprint(..., filter: null)` | the original sweep — a path **no tool actually takes** |
+| `create-filtered` | `CreateBlueprint(..., MultiToolParameterMenu.Instance)` | what both capture tools pass. A non-null filter adds `BuildingDefAllowedWithCurrentFilters` per building, the `DigPlacer` layer test per cell and `AllowedElementState` per empty cell |
+| `snapshot-copy` | the same, `createsSnapshot: true` + `SetRandomSnapshotId` | the Snapshot tool's copy |
+| `use` | `UseBlueprint` | plain placement |
+| `snapshot-paste` | `UseBlueprint` with a `snapshotBp` and `IsPlacingSnapshot` | the flag makes `VisualizeBlueprintCore` skip the per-building blocked-layer test, so the setup draw differs too |
+
+`create-filtered` and `snapshot-copy` reuse the rectangle `create` already built, so they cost no
+extra region rows. `snapshot-paste` is mutating and needs its own band, which is why it runs a
+smaller size set (100 / 500) and is first to be skipped when the fixture map is short of room.
+
+**First results (2026-09-13, one run — directional, not a controlled series):**
+
+| op | N=100 | N=500 | N=1000 | N=5000 |
+|---|---:|---:|---:|---:|
+| `serialize` | 0.20 ms | 0.85 ms | 1.71 ms | 8.15 ms |
+| `compress` | 0.19 ms | 0.59 ms | 1.18 ms | 5.59 ms |
+| `export` | 0.37 ms | 1.46 ms | 2.77 ms | 13.73 ms |
+| `decompress` | 0.08 ms | 0.21 ms | 0.34 ms | 1.54 ms |
+| `deserialize` | 1.82 ms | 8.43 ms | 17.31 ms | 81.24 ms |
+| `full-import` | 12.46 ms | 27.83 ms | 45.90 ms | 184.80 ms |
+
+Three things this settles:
+
+- **Export is not a problem.** At N=5000 the whole export path is 13.7 ms against import's 184.8 ms
+  — a 13× gap, and `serialize` alone is 10× cheaper than `deserialize`. Writing JSON is nothing like
+  parsing it back, and the asymmetry is large enough that no export-side work is worth doing before
+  the import side is exhausted.
+- **`export` is exactly its two halves** (8.15 + 5.59 = 13.74 against a measured 13.73), so there is
+  no hidden cost between them — no intermediate copy worth eliminating. Compression takes the JSON
+  to **3% of its length**, so it earns its ~40% share of the export cost several times over in what
+  the player actually pastes.
+- **No round-trip failure at any size — but the check found a real bug anyway.**
+  `DecompressString` sized its output buffer from the four-byte length prefix carried inside the
+  payload (unvalidated clipboard input) and took whatever a single `GZipStream.Read` returned, the
+  standing `CA2022` warning in `UtilLibs`. A prefix disagreeing with the real data silently
+  NUL-padded or truncated the result; a corrupt one demanded an allocation of that size. Now
+  decompressed into a growable stream, which needs no length up front — the prefix is still
+  written, so the format is unchanged. **The `decompress` timings above predate that fix.**
+
+The capture and placement pairs come out close enough to answer their question and stop:
+
+| pair | N=100 | N=500 | N=1000 |
+|---|---:|---:|---:|
+| `create` (no filter) | 4.94 ms | 22.67 ms | 46.85 ms |
+| `create-filtered` | 5.32 ms | 23.41 ms | 48.77 ms |
+| `snapshot-copy` | 5.16 ms | 23.81 ms | 52.07 ms |
+| `use` | 16.05 ms | 75.65 ms | 144.87 ms |
+| `snapshot-paste` | 16.30 ms | 78.61 ms | — |
+
+The filter costs **2-4% in time** but roughly **3× in allocation** (216 KB against 72 KB at N=100,
+2.1 MB against 0.7 MB at N=1000) — the per-building and per-cell tests are cheap, the dictionary
+copy `GetParameters` makes on *every* call is not. That is the only lead here worth pulling, and it
+is small. `snapshot-copy` and `snapshot-paste` sit on top of their non-snapshot counterparts, as
+predicted from reading the code: the snapshot flag changes behaviour, not cost. `snapshot-copy` at
+N=1000 shows a 254 ms p95 against a 52 ms median — one gen-0 GC in five iterations, not a signal.
 
 ### Allocation
 
