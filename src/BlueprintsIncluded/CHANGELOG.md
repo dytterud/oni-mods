@@ -50,12 +50,12 @@ Development infrastructure; no effect on the mod in-game:
 - An in-game regression harness that boots the game, loads a fixture colony, runs assertions
   against the live blueprint pipeline and quits — covering the colony-dependent behaviour
   unit tests structurally can't reach. Plus a perf mode for timing blueprint operations.
-- Unit test projects (xUnit), and a manual [smoke-test checklist](docs/smoke-test-checklist.md)
+- Unit test projects (xUnit), and a manual [smoke-test checklist](../../docs/blueprints-included/smoke-test-checklist.md)
   for what neither tier covers.
 - An automated upstream scan that opens issues for fixes and features landing in upstream
-  `BlueprintsV2/` or `UtilLibs/` — see [docs/upstream-sync.md](docs/upstream-sync.md). This
+  `BlueprintsV2/` or `UtilLibs/` — see [docs/blueprints-included/upstream-sync.md](../../docs/blueprints-included/upstream-sync.md). This
   fork has no shared git history with upstream, so nothing can be cherry-picked.
-- [CONTRIBUTING.md](CONTRIBUTING.md), [NOTICE](NOTICE), and issue forms.
+- [CONTRIBUTING.md](../../CONTRIBUTING.md), [NOTICE](../../NOTICE), and issue forms.
 
 ### Changed
 
@@ -68,8 +68,8 @@ Internal only; no in-game behaviour change:
 - **Version reset to `0.1.0`**, from the `7.0.0` inherited at the fork point. Never published
   under the old number, so nothing sees this as a downgrade.
 - Build metadata corrected: the compiled assembly credited upstream's author rather than this
-  fork's. Upstream's copyright remains where it belongs, in [LICENSE](LICENSE) and
-  [NOTICE](NOTICE).
+  fork's. Upstream's copyright remains where it belongs, in [LICENSE](../../LICENSE) and
+  [NOTICE](../../NOTICE).
 - Repository restructured to a conventional `src/` + `test/` layout. The C# root namespace
   stays `BlueprintsV2` deliberately — renaming it would break save compatibility and every
   translation file.

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 	<!--
 	  The three Generate* targets below deliberately do NOT register their outputs as
@@ -38,6 +38,10 @@
 			<ModInfoLines Include="minimumSupportedBuild: $(TargetGameVersion)"/>
 			<ModInfoLines Include="version: $(Version)"/>
 			<ModInfoLines Include="APIVersion: 2"/>
+			<!--Without this ONI can treat a mod as base-game-only and warn DLC players it is
+			    incompatible. requiredDlcIds / forbiddenDlcIds stay unset: those are for mods that
+			    only work *with* or *without* a DLC, which is a different claim.-->
+			<ModInfoLines Include="supportedContent: $(SupportedContent)" Condition="'$(SupportedContent)' != ''"/>
 			<ModInfoLines Include="requiredDlcIds:" Condition="'$(RequiredDlcIds)' != ''"/>
 			<ModInfoLines Include="$([System.String]::Copy('$(RequiredDlcIds)').Insert(0,' - ').Replace(',','%0a- '))" Condition="'$(RequiredDlcIds)' != ''"/>
 			<ModInfoLines Include="forbiddenDlcIds:" Condition="'$(ForbiddenDlcIds)' != ''"/>
@@ -49,8 +53,8 @@
 	<Target Name="GenerateLauncherMetadata" BeforeTargets="PrepareForRun" Condition="'$(DoNotBuildAsMod)' != 'true'">
 		<ItemGroup>
 			<LauncherMetadataLines Include='{'/>
-			<LauncherMetadataLines Include='"BugReportURL":"https://github.com/dytterud/BlueprintsIncluded/issues/new",'/>
-			<LauncherMetadataLines Include='"RepoURL":"https://github.com/dytterud/BlueprintsIncluded",'/>
+			<LauncherMetadataLines Include='"BugReportURL":"$(RepoUrl)/issues/new",'/>
+			<LauncherMetadataLines Include='"RepoURL":"$(RepoUrl)",'/>
 			<LauncherMetadataLines Include='"Author":"$(Authors)"'/>
 			<LauncherMetadataLines Include='}'/>
 		</ItemGroup>
@@ -113,6 +117,16 @@
 			$(TargetDir)mod_info.yaml;
 			$(TargetDir)LauncherMetadata.json;
 		  "
+		  DestinationFolder="$(TargetFolder)"/>
+
+		<!--MIT requires the copyright notice to travel with distributed copies, and a Workshop
+		    upload is a distribution - so the packaged folder carries them, not just the repo.
+		    NOTICE is the half that matters most in practice: it records the upstream attribution
+		    chain and Klei's no-commercial-use terms.
+		    A mod's own preview.png needs no entry here: anything sitting at the root of its
+		    ModAssets folder is already copied to the mod folder root by the glob below.-->
+		<Copy
+		  SourceFiles="$(MSBuildThisFileDirectory)LICENSE;$(MSBuildThisFileDirectory)NOTICE"
 		  DestinationFolder="$(TargetFolder)"/>
 
 		<Message Text="Copy ModAssets to $(TargetFolder)" Importance="High"/>

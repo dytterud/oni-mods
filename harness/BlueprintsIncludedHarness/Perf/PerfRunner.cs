@@ -12,7 +12,7 @@ using UnityEngine;
 namespace BlueprintsV2.Harness.Perf;
 
 /// <summary>
-/// docs/in-game-regression-testing.md §7: opt-in benchmark pass, not part of the pass/fail
+/// docs/blueprints-included/in-game-regression-testing.md §7: opt-in benchmark pass, not part of the pass/fail
 /// regression run. Pauses the sim, then for each blueprint size runs a warmup batch (discarded)
 /// followed by timed iterations of each import operation, recording elapsed time, allocations, and
 /// the <see cref="PerfInstrumentation"/> hotspot totals, and writes <c>perf.json</c>.

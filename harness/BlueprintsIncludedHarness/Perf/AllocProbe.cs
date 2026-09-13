@@ -95,7 +95,7 @@ internal sealed class AllocStats
 
 /// <summary>
 /// Brackets one measured body with the allocation counters that actually work on ONI's runtime
-/// (docs/in-game-regression-testing.md §7):
+/// (docs/blueprints-included/in-game-regression-testing.md §7):
 /// <list type="bullet">
 /// <item><c>GC.GetTotalMemory(false)</c> - the managed heap. Coarse but live, and it scales with N
 /// on every sweep.</item>

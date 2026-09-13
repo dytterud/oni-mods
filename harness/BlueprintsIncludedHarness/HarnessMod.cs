@@ -50,7 +50,7 @@ public sealed class HarnessMod : UserMod2
 }
 
 /// <summary>The harness's two modes. <c>Run</c> is the regression pass (assertion cases, JUnit
-/// output); <c>Perf</c> is the opt-in benchmark pass (docs/in-game-regression-testing.md §7).</summary>
+/// output); <c>Perf</c> is the opt-in benchmark pass (docs/blueprints-included/in-game-regression-testing.md §7).</summary>
 internal enum HarnessMode
 {
     None,

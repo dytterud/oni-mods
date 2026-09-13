@@ -5,7 +5,7 @@
     excluded from CLI solution builds (`<Build ... Project="false" />` in the .slnx) so
     `dotnet build` / `dotnet test` / CI never touch it and it can't race the mod's in-place
     ILRepack. Built + deployed by test/run-ingame.ps1 (a `-c Debug` build against a real ONI
-    install). See harness/README.md and docs/in-game-regression-testing.md.
+    install). See harness/README.md and docs/blueprints-included/in-game-regression-testing.md.
 
     Inherits the repo-root Directory.Build.props (netstandard2.1, game <Reference> items, nullable,
     LangVersion 14) and Directory.Build.targets (mod.yaml / mod_info.yaml + CopyModsToDevFolder).

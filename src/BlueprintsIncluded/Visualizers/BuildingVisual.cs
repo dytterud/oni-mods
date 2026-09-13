@@ -58,7 +58,7 @@ public class BuildingVisual : IVisual
     /// <c>BuildingDef.IsValidPlaceLocation</c>, which was measured to consult only the cell it is
     /// passed - not the object's position, and it accepts an inactive object. So one shared
     /// instance serves every tile of a given def instead of ~38.5us of cloning each. See
-    /// docs/in-game-regression-testing.md §7.
+    /// docs/blueprints-included/in-game-regression-testing.md §7.
     ///
     /// Gated on the preview actually lacking an anim controller rather than on "is a tile": a def
     /// whose preview *can* render keeps its own clone, so this is safe per def by construction.

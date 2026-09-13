@@ -5,11 +5,11 @@ committed fixture colony, and either runs assertions against the live blueprint 
 colony-dependent slice `dotnet test` structurally can't reach — or (in perf mode) times parts of
 that pipeline. Writes JUnit XML or `perf.json`, then quits.
 
-Background and rationale: [`docs/in-game-regression-testing.md`](../docs/in-game-regression-testing.md).
+Background and rationale: [`docs/blueprints-included/in-game-regression-testing.md`](../docs/blueprints-included/in-game-regression-testing.md).
 
 ## Not part of the normal build
 
-- Listed in `BlueprintsIncluded.slnx` for the IDE, but **excluded from CLI solution builds**
+- Listed in `OniMods.slnx` for the IDE, but **excluded from CLI solution builds**
   (`<Build … Project="false" />`) — `dotnet build`, `dotnet test` and CI never build it, and it
   can't race the mod's in-place ILRepack.
 - Built and deployed only by [`test/run-ingame.ps1`](../test/run-ingame.ps1). Building the csproj
@@ -24,6 +24,13 @@ Background and rationale: [`docs/in-game-regression-testing.md`](../docs/in-game
   is deployed.
 - Dormant unless activated: it does nothing unless `%TEMP%\bpi-harness\run` exists (the launcher
   writes it) or `BPI_HARNESS=1`/`perf` is set. Safe to leave enabled in `mods/dev`.
+
+> **If a second mod ever needs an in-game harness:** the reusable half is `HarnessMod.cs` (the gate)
+> and `HarnessRunner.cs`, `Assert.cs`, `JUnitWriter.cs`, `Screenshot.cs` and `Perf/AllocProbe.cs` /
+> `PerfInstrumentation.cs`. The Blueprints-specific half is `HarnessCases.cs`, `FixtureBuilder.cs`,
+> `FixtureLayout.cs`, `ExceptionSweep.cs` and the rest of `Perf/`. Splitting them is deliberately
+> deferred until there is a second consumer to design against — one mod's harness is not a
+> framework.
 
 ## Prerequisites
 
@@ -95,7 +102,7 @@ return null` to let frames pass (needed for placement / sim settling). Throw (an
 helper that digs a target, drops the mod's tech/material gates, drives
 VisualizeBlueprint → [rotate] → UseBlueprint, and hands back the new build orders.
 
-The §3 case table from [`docs/in-game-regression-testing.md`](../docs/in-game-regression-testing.md)
+The §3 case table from [`docs/blueprints-included/in-game-regression-testing.md`](../docs/blueprints-included/in-game-regression-testing.md)
 is covered. Natural extensions: more building types / layers, place-with-settings applied to the
 built object, replacement visualizers over occupied terrain.
 
