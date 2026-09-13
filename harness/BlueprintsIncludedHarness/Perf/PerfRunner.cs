@@ -76,6 +76,7 @@ internal static class PerfRunner
         }
 
         yield return RunPlacementSweep(report, log);
+        yield return ComponentLookupPerf.Run(report, log);
         yield return SelectionScreenPerf.Run(report, log);
 
         var hotspots = PerfInstrumentation.SnapshotAll();

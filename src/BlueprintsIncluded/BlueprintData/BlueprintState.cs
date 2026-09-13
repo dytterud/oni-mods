@@ -352,8 +352,11 @@ public static class BlueprintState
                         bool hasConstructable = gameObject.TryGetComponent<Constructable>(out var constructable);
                         bool hasDeconstructable = gameObject.TryGetComponent<Deconstructable>(out var deconstructable);
 
-                        var haulingPoint = gameObject.GetComponent("DeconstructableHaulingPoint");
-                        if (!hasDeconstructable && haulingPoint != null)
+                        ///short-circuited on hasDeconstructable, and routed through
+                        ///ModComponentLookup: this sits in the per-cell-per-layer scan, so it ran
+                        ///more often than once per building, and it was resolving a type from a
+                        ///string every time even when the answer could not change the outcome.
+                        if (!hasDeconstructable && ModComponentLookup.Find(gameObject, "DeconstructableHaulingPoint") != null)
                         {
                             hasDeconstructable = true;
                         }
