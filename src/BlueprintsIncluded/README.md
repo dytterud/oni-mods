@@ -11,6 +11,32 @@ from the upstream Steam item.
 > **Don't run both.** The `staticID`s differ, so ONI will happily enable this and Blueprints
 > Expanded at once — but they share a root namespace and patch the same game methods.
 
+## Compatibility with Blueprints Expanded
+
+**Staying interchangeable with upstream is a design goal, not an accident.** You should be able to
+switch between this and Blueprints Expanded — in either direction, at any time — without losing
+anything:
+
+- **Blueprint files.** The on-disk format is untouched: same schema version, same keys, no fields
+  added. Blueprints made in either mod open in the other, and the two read the same
+  `blueprints/` folder.
+- **Saves.** The C# root namespace stays `BlueprintsV2` specifically so KSerialization sees the
+  same type names. A colony saved with one mod loads with the other, blueprint-placed buildings
+  and their stored settings intact. This is why the namespace has not been renamed to match the
+  mod, and why it will not be.
+- **Translations.** The `.po` files key off those same names, so existing translations keep
+  working.
+
+The one thing that is *not* compatible is running both at the same time — see the warning above.
+Switching means disabling one and enabling the other, which is safe; having both enabled is not.
+
+**The limits of that promise.** Compatibility is maintained by not gratuitously diverging, not by
+testing against upstream — nothing here runs upstream's build, so a format change landing there
+would be found by the [upstream scan](../../docs/blueprints-included/upstream-sync.md) rather than
+caught automatically. If upstream ever changes the blueprint schema, this fork follows it rather
+than forking the format. If that ever stops being possible, it will be said here plainly rather
+than discovered by someone losing a blueprint library.
+
 ## How this differs from Blueprints Expanded
 
 **It is the same mod, with bugs fixed and made a lot faster.** No features were added or removed,
