@@ -1,10 +1,12 @@
-<Solution>
+﻿<Solution>
   <Folder Name="/src/">
     <Project Path="src/BlueprintsIncluded/BlueprintsIncluded.csproj" />
+    <Project Path="src/SaveProfiler/SaveProfiler.csproj" />
     <Project Path="src/UtilLibs/UtilLibs.csproj" />
   </Folder>
   <Folder Name="/test/">
     <Project Path="test/BlueprintsIncluded.Tests/BlueprintsIncluded.Tests.csproj" />
+    <Project Path="test/SaveProfiler.Tests/SaveProfiler.Tests.csproj" />
     <Project Path="test/UtilLibs.Tests/UtilLibs.Tests.csproj" />
   </Folder>
   <Folder Name="/harness/">
