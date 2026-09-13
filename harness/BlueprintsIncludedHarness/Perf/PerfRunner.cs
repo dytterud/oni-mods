@@ -406,6 +406,7 @@ internal static class PerfRunner
         // The whole point is that the cells underneath are occupied - if they are not, this sweep is
         // measuring the same thing as the sparse one and its comparison is meaningless.
         log.Line($"update-visual-dense [tile] N={n}: {solid}/{n} cells carry a finished tile");
+        LogRefreshReachability(log, x0, y0);
 
         var bp = SyntheticBlueprint.Build(n, "Tile", $"PerfUpdateVisualDense{n}");
         BlueprintState.VisualizeBlueprint(origin, bp);
@@ -419,6 +420,47 @@ internal static class PerfRunner
             body: () => BlueprintState.UpdateVisual(BlueprintState.PlayerId_DefaultTilePreviews, cursor, forcingRedraw: false));
 
         BlueprintState.ClearVisuals();
+    }
+
+    /// <summary>
+    /// Reports whether <c>CustomTileRenderer.RefreshCellInternal</c> can actually reach its second
+    /// half over these cells. That method does <c>Rebuild</c>, then looks up
+    /// <c>Grid.Objects[cell, tile_layer]</c> and, if it finds something, calls
+    /// <c>GetComponentInChildren&lt;KAnimGraphTileVisualizer&gt;()?.Refresh()</c>.
+    ///
+    /// §7 attributed the refresh batching's 25-31% win over occupied cells to that
+    /// <c>Refresh()</c> being expensive - but the attribution run measured it at <b>0 calls</b>
+    /// against 76,482 refreshes, with 1000/1000 cells occupied. This logs which of the two lookups
+    /// comes back empty, so the reason is measured rather than inferred from the zero. Cheap
+    /// (samples a handful of cells once, outside any timed region) and worth keeping: it is the
+    /// evidence for a correction §7 now carries.
+    /// </summary>
+    private static void LogRefreshReachability(HarnessLog log, int x0, int y0)
+    {
+        var def = Assets.GetBuildingDef("Tile");
+        if (def == null)
+            return;
+
+        int sampled = 0, withObject = 0, withGraphVis = 0;
+        for (int i = 0; i < 16; i++)
+        {
+            int cell = Grid.XYToCell(x0 + i % PlacementRowWidth, y0 + i / PlacementRowWidth);
+            if (!Grid.IsValidCell(cell))
+                continue;
+            sampled++;
+
+            var go = Grid.Objects[cell, (int)def.TileLayer];
+            if (go == null)
+                continue;
+            withObject++;
+            if (go.GetComponentInChildren<KAnimGraphTileVisualizer>() != null)
+                withGraphVis++;
+        }
+
+        log.Line($"  refresh reachability over {sampled} sampled cell(s) on TileLayer={def.TileLayer}: " +
+                 $"{withObject} carry a GameObject, {withGraphVis} of those carry a " +
+                 $"KAnimGraphTileVisualizer (0 here means RefreshCellInternal's Refresh() branch is " +
+                 $"unreachable for tiles, so its cost is Rebuild's alone)");
     }
 
     private static int RowsFor(int n) => (n + PlacementRowWidth - 1) / PlacementRowWidth;
