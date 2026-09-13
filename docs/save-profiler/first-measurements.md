@@ -13,7 +13,7 @@ two bugs these runs exposed stay visible. Method rules: [../perf-method.md](../p
 | Game | 744825 |
 | Mods | BlueprintsIncluded, PeterHan.ModUpdateDate, SaveProfiler. **Fast Save disabled.** |
 | Attribution | off |
-| Machine | one machine, one run each. No noise floor established. |
+| Machine | one machine. Seven runs; noise floor measured at ±2.5% (below). |
 
 ## Autosave — 3,693.8 ms total
 
@@ -24,7 +24,7 @@ Self time, with nesting resolved. Rows sum to the total.
 | `SaveLoadRoot.SaveWithoutTransform` | 1953.8 | 52.9 | 21,522 calls, 56.7 MB written |
 | `SaveLoader.CompressContents` | 601.5 | 16.3 | 65.3 MB → 5.4 MB |
 | *unaccounted* | 570.7 | 15.5 | inside the root, outside every measured phase |
-| `Sim.Save` | 529.0 | 14.3 | **outlier — see the retraction below** |
+| `Sim.Save` | 529.0 | 14.3 | **position-dependent — see below** |
 | `SaveManager.Save` | 28.3 | 0.8 | the loop around SaveWithoutTransform |
 | `Game.Save` | 10.0 | 0.3 | |
 | `SaveLoader.Save (inner)` | 0.4 | 0.0 | |
@@ -53,20 +53,24 @@ rather than anything proportional. **Untested and worth testing: this colony liv
 `cloud_save_files/`, so Steam Cloud may be in that path.** Profiling a local save of similar size
 would settle it.
 
-## Four runs, and the noise floor
+## Seven runs, and the noise floor
 
-All on the same colony, same mod list, Fast Save off. `unaccounted` is recomputed uniformly here as
-root minus its direct children, so the first run (taken before that bug was fixed) is comparable.
+All on the same colony, same mod list, Fast Save off. `unaccounted` is recomputed uniformly as root
+minus its direct children, so the early runs (taken before that bug was fixed) are comparable.
+"Pos" is the save's position within its session — the axis two earlier passes failed to record.
 
-| run | kind | total | serialize | compress | `Sim.Save` | unaccounted | Sim+unacc |
-|---|---|---:|---:|---:|---:|---:|---:|
-| 18:24 | auto | 3866.5 | 2076.2 | 627.4 | 10.3 | 1091.7 | **1102.0** |
-| 18:36 | manual | 3265.5 | 2021.1 | 610.7 | 10.3 | 571.6 | **581.9** |
-| 18:39 | auto | 3693.8 | 1953.8 | **529.0** | 529.0 | 570.7 | **1099.8** |
-| 18:51 | auto | 3882.7 | 2073.0 | 628.0 | 12.1 | 1108.5 | **1120.5** |
+| run | sess | pos | kind | total | serialize | compress | `Sim.Save` | unacc | Sim+unacc | outside |
+|---|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|
+| 18:24 | 1 | 1 | auto | 3866.5 | 2076.2 | 627.4 | 10.3 | 1091.7 | **1102.0** | — |
+| 18:36 | 1 | 2 | manual | 3265.5 | 2021.1 | 610.7 | 10.3 | 571.6 | **581.9** | — |
+| 18:39 | 1 | 3 | auto | 3693.8 | 1953.8 | 601.5 | **529.0** | 570.7 | **1099.8** | — |
+| 18:51 | 2 | 1 | auto | 3882.7 | 2073.0 | 628.0 | 12.1 | 1108.5 | **1120.5** | — |
+| 18:54 | 2 | 2 | auto | 3719.6 | 1968.7 | 627.2 | **528.1** | 550.2 | **1078.3** | — |
+| 18:58 | 2 | 3 | auto | 3748.4 | 1980.7 | 639.0 | **522.4** | 560.5 | **1082.9** | — |
+| 19:08 | 3 | 1 | auto | 3863.4 | 2051.6 | 623.0 | 12.5 | 1116.1 | **1128.6** | 1.4 |
 
-**Noise floor, measured rather than assumed:** across three autosaves the total spans 3693.8–3882.7,
-a range of 189 ms on a mean of 3814 — about **±2.5%**. Serialize is ±3%, compress ±2%. That is
+**Noise floor, measured rather than assumed:** across six autosaves the total spans 3693.8–3882.7,
+a range of 189 ms on a mean of 3796 — about **±2.5%**. Serialize is ±3%, compress ±2%. That is
 tighter than the ±10% the sibling mod measured for its own sweeps, and it means a Fast Save
 comparison needs to beat roughly 190 ms on the total to mean anything.
 
@@ -81,20 +85,20 @@ a 50× difference, attributed to autosave-versus-manual.
 already measured 10.3 ms. Two of three autosaves were cheap, so 529 ms was written off as an
 outlier and the whole finding was retracted.
 
-**What a fifth run showed:** 528.1 ms. Reproducible to within 1 ms of the original 529.0, in a
-different session.
+**What further runs showed:** 528.1 ms, then 522.4 ms. Reproducible to within 7 ms of the original
+529.0, across three separate sessions.
 
-| run | session | save # in session | kind | `Sim.Save` |
-|---|---|---|---|---:|
-| 18:24 | 1 | 1st | auto | 10.3 |
-| 18:36 | 1 | 2nd | manual | 10.3 |
-| 18:39 | 1 | 3rd | auto | **529.0** |
-| 18:51 | 2 | 1st | auto | 12.1 |
-| 18:54 | 2 | 2nd | auto | **528.1** |
+Sorted by position within the session, the readings stop looking noisy:
+
+| position in session | kind | `Sim.Save` |
+|---|---|---:|
+| 1st | auto | 10.3, 12.1, 12.5 |
+| 2nd | manual | 10.3 |
+| 2nd and later | auto | 529.0, 528.1, 522.4 |
 
 **So the retraction was also wrong.** The numbers were never noise — they are bimodal, and the
 distinguishing variable was one nobody had varied on purpose: how many saves had already happened
-since the colony was loaded. Three cheap readings and two expensive ones looked like 3-versus-1
+since the colony was loaded. Three cheap readings against one expensive one looked like 3-versus-1
 noise only because the runs were not labelled by it.
 
 The lesson is narrower than "measure more". Both errors came from the same place: a variable that was
@@ -102,21 +106,44 @@ moving was not in the table. The first pass compared autosave-versus-manual beca
 column that existed; the retraction called 529 an outlier because position-in-session was still not
 a column. Counting runs does not help if the axis is missing.
 
-**What can be claimed now:** the first save after loading a colony pays ~10 ms in `Sim.Save`; a later
-autosave pays ~528 ms. The single manual save was also the 2nd save of its session, so "manual saves
-never pay it" and "the first save after load never pays it" both fit all five runs and cannot be
-separated without a manual save taken later in a session.
+**What can be claimed now**, and it fits all seven runs: the first autosave after loading a colony
+pays ~10–12.5 ms in `Sim.Save`; every later autosave pays ~522–529 ms. The one manual save was cheap,
+but it was also its session's second save, so "manual saves never pay it" is supported by a single
+sample and should not be leaned on.
 
-**What is unchanged by any of it:** `Sim.Save` + unaccounted, together, is ~1,080–1,120 ms on every
-autosave (1102.0, 1099.8, 1120.5, 1078.3). The ~520 ms is always paid. Loading a colony only moves
-where it lands — into `Sim.Save` on later saves, into the unmeasured remainder on the first.
+**What is unchanged by any of it:** `Sim.Save` + unaccounted, together, is 1,078–1,129 ms on every
+autosave. **The ~520 ms is always paid — loading only moves where it lands**, into `Sim.Save` on
+later saves and into the unmeasured remainder on the first. That reframes the question: this is one
+wait whose position shifts with sim-thread state, not a cost that appears and disappears. Mechanism
+still not established.
 
-## Not measured
+## RULED OUT: cycle-boundary work outside the save
 
-**The timelapse never appeared in any run.** `Timelapser.SaveScreenshot` bound successfully (the
-gated test confirms the method exists) but recorded zero calls during the save window. `Render()` is
-an `IEnumerator` coroutine, so the screenshot is almost certainly taken across later frames, outside
-`SaveLoader.Save` entirely. Anything it costs is invisible to this profiler as built.
+The measured save (3.7–3.9 s) ran consistently below a wristwatch reading of ~4.2 s, and the
+standing hypothesis — raised from watching the game, not from the code — was that a new cycle does
+extra work outside `SaveLoader.Save` that the player feels as part of the same pause. Daily report
+generation and the timelapse were the named candidates.
+
+Measured, on run 19:08:
+
+| Outside the save | Calls | ms |
+|---|---:|---:|
+| `ReportManager.OnNightTime` | 1 | 1.1 |
+| `Timelapser.OnNewDay` | 2 | 0.3 |
+| `Timelapser.SaveScreenshot` | **0** | — |
+| `Timelapser.RenderAndPrint` | **0** | — |
+| **total** | | **1.4** |
+
+**1.4 ms. The hypothesis is ruled out.** `unresolvedTargets` was empty, so those zeros are real
+calls-never-made rather than targets that failed to bind.
+
+Two caveats on how far that generalises. The timelapse never ran at all on this machine, which most
+likely means it is disabled in these settings — so this rules the idea out *for these runs*, not for
+a player with timelapse on. And at cycle 585, building the daily report costs 1.1 ms: whatever Fast
+Save's report trimming buys, on this colony it is not that.
+
+The residual ~350–450 ms between watch and report now sits inside stopwatch-and-reaction error with
+its one concrete alternative explanation eliminated, and is not treated as a finding.
 
 ## Two bugs these runs found
 
@@ -139,7 +166,9 @@ row missing.
 
 ## What these numbers do not license
 
-- Differencing runs. No noise floor was established; the sibling mod measured ±10% with systematic
-  drift, and nothing here is more careful than that.
+- Differencing runs that are closer than ~190 ms on the total, which is this setup's measured ±2.5%
+  noise floor.
+- Comparing any two runs without labelling each by its position within its session. Two separate
+  passes drew wrong conclusions from exactly that omission.
 - Generalising past this colony, this machine, this mod list, or this save location.
 - Any claim about *why* `Sim.Save` behaves differently on an autosave.
