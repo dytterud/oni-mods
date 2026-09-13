@@ -42,16 +42,7 @@ than discovered by someone losing a blueprint library.
 **It is the same mod, with bugs fixed and made a lot faster.** No features were added or removed,
 and blueprint files are unchanged, so anything you built with upstream still loads here.
 
-**Bugs fixed that upstream still has:**
-
-- Instant-built buildings spawned at their material's *melting point* — a basalt insulated tile
-  materialised at 1530 K instead of 293 K, hot enough to damage itself and dump that heat into
-  the surrounding cells.
-- Wide blueprints placed near the left or bottom map edge could build on unrelated cells: the
-  anchor shift was applied before the cell-index conversion, and a negative result wrapped into a
-  different row instead of failing.
-- Creating a blueprint captured every building's data twice, because a building registered on two
-  object layers was found once per layer and re-captured each time.
+**Bug fixes** — see the [CHANGELOG](CHANGELOG.md) for what has been fixed in each release.
 
 **Speed**, measured in-game rather than estimated:
 
