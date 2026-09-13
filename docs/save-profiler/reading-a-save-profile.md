@@ -61,6 +61,24 @@ Two consequences. First, byte attribution costs nothing beyond the timing wrappe
 knowing if you ever go further than measuring — the format frames each component independently, so
 a cached blob could in principle be spliced back in without fixing up any global offsets.
 
+## The "outside the save" section
+
+The save is not the whole hitch. A new cycle also builds the daily report
+(`ReportManager.OnNightTime`) and takes the timelapse screenshot (`Timelapser.OnNewDay` →
+`RenderAndPrint`), and none of that runs inside `SaveLoader.Save` — so none of it is in any phase
+total, while the player feels all of it as one pause.
+
+Those are measured separately and reported under their own heading, never added to the save's
+totals. **Read the window carefully: that section covers everything measured since the previous
+report, not this save.** Some of it runs before the save and some after — the timelapse is a
+coroutine, so its frames land once the save has already returned and the report has been written.
+With an autosave every cycle, the window is the previous cycle boundary.
+
+`Timelapser.Render()` is deliberately not patched: it returns an `IEnumerator`, so a prefix/postfix
+pair would time the construction of the coroutine — microseconds — and present that as the cost of
+the screenshot. A wrapper that measures the wrong thing is worse than none, because it produces a
+number. `RenderAndPrint` is patched instead.
+
 ## The attribution mode
 
 Off by default. On, it wraps `SerializeTypeless`, which fires once per component: a mature colony

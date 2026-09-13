@@ -22,6 +22,17 @@ public static class SaveProfileRecorder
     private static readonly object gate = new();
     private static readonly Dictionary<string, SampleAccumulator> phases = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, SampleAccumulator> types = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Work measured <em>outside</em> <c>SaveLoader.Save</c> — the rest of the cycle boundary.
+    ///
+    /// Deliberately not cleared by <see cref="Begin"/>. Some of this runs before the save and some
+    /// after it (the timelapse is a coroutine, so its frames land once the save has already
+    /// returned and the report has already been written). Clearing per-save would drop whichever
+    /// half fell on the wrong side. It is cleared when a report claims it instead, so each report
+    /// covers the window since the previous one.
+    /// </summary>
+    private static readonly Dictionary<string, SampleAccumulator> ambient = new(StringComparer.Ordinal);
     private static readonly List<string> unresolved = [];
 
     [ThreadStatic]
@@ -133,6 +144,14 @@ public static class SaveProfileRecorder
         return null;
     }
 
+    /// <summary>Records work outside the save. See <see cref="ambient"/> for why this survives
+    /// <see cref="Begin"/>.</summary>
+    public static void AddAmbient(string name, double elapsedMs)
+    {
+        lock (gate)
+            Accumulator(ambient, name, SampleAccumulator.DefaultRetainedSamples).Add(elapsedMs, 0);
+    }
+
     /// <summary>
     /// Records one component serialization against its type.
     ///
@@ -199,6 +218,13 @@ public static class SaveProfileRecorder
 
             foreach (var (name, acc) in types)
                 report.Types.Add(new SaveProfileReport.TypeRow(name, acc.Snap()));
+
+            foreach (var (name, acc) in ambient)
+                report.Ambient.Add(new SaveProfileReport.TypeRow(name, acc.Snap()));
+
+            // Claimed, so the next report measures the next window rather than re-reporting this
+            // one's totals on top of its own.
+            ambient.Clear();
 
             report.UnresolvedTargets.AddRange(unresolved);
         }
