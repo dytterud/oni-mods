@@ -266,9 +266,13 @@ Three things this settles:
   no hidden cost between them — no intermediate copy worth eliminating. Compression takes the JSON
   to **3% of its length**, so it earns its ~40% share of the export cost several times over in what
   the player actually pastes.
-- **No round-trip failure at any size.** `DecompressString`'s single unchecked `GZipStream.Read`
-  (the standing `CA2022` warning in `UtilLibs`) does not truncate even at 831 KB of JSON. Worth
-  keeping the check: it is the kind of bug that appears only past some payload size.
+- **No round-trip failure at any size — but the check found a real bug anyway.**
+  `DecompressString` sized its output buffer from the four-byte length prefix carried inside the
+  payload (unvalidated clipboard input) and took whatever a single `GZipStream.Read` returned, the
+  standing `CA2022` warning in `UtilLibs`. A prefix disagreeing with the real data silently
+  NUL-padded or truncated the result; a corrupt one demanded an allocation of that size. Now
+  decompressed into a growable stream, which needs no length up front — the prefix is still
+  written, so the format is unchanged. **The `decompress` timings above predate that fix.**
 
 The capture and placement pairs come out close enough to answer their question and stop:
 
