@@ -24,7 +24,7 @@ Self time, with nesting resolved. Rows sum to the total.
 | `SaveLoadRoot.SaveWithoutTransform` | 1953.8 | 52.9 | 21,522 calls, 56.7 MB written |
 | `SaveLoader.CompressContents` | 601.5 | 16.3 | 65.3 MB → 5.4 MB |
 | *unaccounted* | 570.7 | 15.5 | inside the root, outside every measured phase |
-| `Sim.Save` | 529.0 | 14.3 | **see below** |
+| `Sim.Save` | 529.0 | 14.3 | **outlier — see the retraction below** |
 | `SaveManager.Save` | 28.3 | 0.8 | the loop around SaveWithoutTransform |
 | `Game.Save` | 10.0 | 0.3 | |
 | `SaveLoader.Save (inner)` | 0.4 | 0.0 | |
@@ -44,28 +44,66 @@ thing that grows with colony age, and it is the only target worth optimising fir
 **Compression is 16.3%**, and the ratio is 8.3% — the data is extremely compressible. A cheaper
 compression level would trade into this 601 ms, not into the 53%.
 
-**~571 ms (15.5%) is unaccounted**, and it is *stable*: 571.6 ms on a manual save and 570.7 ms on an
-autosave, from a run-to-run spread otherwise in the tens of ms. `PrepSaveFile` (0.2 ms) and
+**~571–1108 ms is unaccounted**, and it is *not* stable on its own — an early draft of this
+document claimed it was, on two runs that agreed by coincidence; a third measured 1108.5 ms. What is
+stable is `Sim.Save` + unaccounted taken together (see below). `PrepSaveFile` (0.2 ms) and
 `SaveColonyPreview` (0.0 ms) are measured and ruled out, so by elimination it is the write of the
 compressed buffer to disk. Its flatness across two very different invocations suggests a fixed cost
 rather than anything proportional. **Untested and worth testing: this colony lives in
 `cloud_save_files/`, so Steam Cloud may be in that path.** Profiling a local save of similar size
 would settle it.
 
-## The one surprise
+## Four runs, and the noise floor
 
-**`Sim.Save` costs 529 ms on an autosave and 10.3 ms on a manual save — 50×**, and that difference
-accounts for essentially the entire gap between the two (3,693.8 ms vs 3,265.5 ms, a 428 ms
-difference against a 519 ms `Sim.Save` delta).
+All on the same colony, same mod list, Fast Save off. `unaccounted` is recomputed uniformly here as
+root minus its direct children, so the first run (taken before that bug was fixed) is comparable.
 
-Everything else is within noise between the two runs: `CompressContents` 601.5 vs 610.7, unaccounted
-570.7 vs 571.6, `SaveManager.Save` 1982.1 vs 2050.0.
+| run | kind | total | serialize | compress | `Sim.Save` | unaccounted | Sim+unacc |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 18:24 | auto | 3866.5 | 2076.2 | 627.4 | 10.3 | 1091.7 | **1102.0** |
+| 18:36 | manual | 3265.5 | 2021.1 | 610.7 | 10.3 | 571.6 | **581.9** |
+| 18:39 | auto | 3693.8 | 1953.8 | **529.0** | 529.0 | 570.7 | **1099.8** |
+| 18:51 | auto | 3882.7 | 2073.0 | 628.0 | 12.1 | 1108.5 | **1120.5** |
 
-**Mechanism not established.** The plausible story is that an autosave fires at a cycle boundary
-while the sim thread is mid-frame, so `Sim.Save` blocks waiting for a safe point, whereas a manual
-save happens from a menu with the sim already idle. That is a reading of the situation, not a
-measurement, and docs/perf-method.md is explicit about what publishing those is worth. Testing it
-means instrumenting the wait, not reasoning about it harder.
+**Noise floor, measured rather than assumed:** across three autosaves the total spans 3693.8–3882.7,
+a range of 189 ms on a mean of 3814 — about **±2.5%**. Serialize is ±3%, compress ±2%. That is
+tighter than the ±10% the sibling mod measured for its own sweeps, and it means a Fast Save
+comparison needs to beat roughly 190 ms on the total to mean anything.
+
+## RETRACTED: "`Sim.Save` costs 50× more on an autosave"
+
+**What was published** (from the first two runs): `Sim.Save` cost 529 ms on an autosave against
+10.3 ms on a manual save, a 50× difference that accounted for the entire autosave-versus-manual gap.
+It was written up as the run's one surprise.
+
+**What a repeat run measured:** 12.1 ms, on an autosave. And the *first* autosave had already
+measured 10.3 ms — the same as the manual save.
+
+**Why the two differed:** the comparison was drawn from a single pair of runs that happened to
+straddle the anomaly, and the one autosave that disagreed with the other two was treated as the rule.
+Three autosaves now read 10.3, 529.0 and 12.1 ms. Run 18:39 is the outlier, not the pattern.
+
+This is the failure docs/perf-method.md describes: "almost every wrong conclusion came from believing
+something plausible instead of measuring it." The mechanism offered — an autosave blocking on a
+mid-frame sim thread — was plausible, was flagged as unestablished, and was still wrong about which
+runs behaved which way.
+
+## What replaced it
+
+The column that *is* stable is `Sim.Save` **plus** unaccounted, taken together:
+
+- autosaves: **1102.0, 1099.8, 1120.5 ms** (±1%)
+- manual save: **581.9 ms**
+
+So the autosave-versus-manual difference is real and reproducible — about **520 ms** — but it does
+not belong to `Sim.Save`. It belongs to a combined bucket of sim-wait plus file write, and in run
+18:39 roughly 500 ms of it happened to land inside `Sim.Save`'s window instead of outside every
+measured phase. The two move inversely and sum to a constant.
+
+**Mechanism still not established**, and this time the shape of the ignorance is clearer: there is a
+~520 ms cost specific to autosaves that the current phase set cannot locate, because it lands in
+different places on different runs. Locating it needs a finer phase inside the outer `SaveLoader.Save`
+— not more reasoning about sim threads.
 
 ## Not measured
 
