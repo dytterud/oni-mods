@@ -601,6 +601,104 @@ after initial placement under conditions not fully ruled out here. Given the ris
 data loss in a save/restore-adjacent feature) against the payoff (`create` is an occasional dev-tool
 action, not a hot path, and is already ~38% faster from the fix above), left un-implemented.
 
+### The handler loop, revisited — `GetComponent(string)` was ~203 µs a call
+
+The declined follow-up above assumed the ~35 handlers were all cheap `TryGetComponent<T>` checks and
+the only lever was running fewer of them. Instrumenting four of them individually says otherwise:
+**two were not typed checks at all**, and between them they were 94% of the loop.
+
+`SkinHelper` carries fallback handlers for Aki's decor mods, which do not implement this mod's
+`Blueprints_GetData` / `Blueprints_SetData` extension point — so without them, lamp colours and
+backwall patterns would not survive a blueprint. They looked their components up **by type name**,
+and `GameObject.GetComponent(string)` resolves a type from a string on every call:
+
+| handler | lookup | µs/call |
+|---|---|---:|
+| `TryStoreMoodLamp` | 2 × string | **408.3** |
+| `TryStoreBackwall` | 1 × string | **202.6** |
+| `TryStoreArtableSkin` | typed (control) | 12.4 |
+| `TryStoreBuildingSkin` | typed (control) | 1.0 |
+| `GetAdditionalBuildingData` (all ~35) | | 649.2 |
+
+~203 µs per lookup, consistent to within 1% between the one- and two-lookup handlers — against ~1 µs
+for typed lookups in the *same loop*, with the same call count and the same wrapper overhead. That
+control pair is why the figure is trustworthy despite being an attribution run: the wrapper floor is
+~0.2 µs, i.e. 0.1% of a 203 µs call, so instrumentation distortion is irrelevant at this scale,
+unlike the per-frame measurements elsewhere in this section.
+
+**The fix exists because of *why* they returned null.** Every one of those lookups failed, because
+the mods defining `Backwall` / `MoodLamp` / `TintableLamp` were not installed — and if no loaded
+assembly defines a name, no `GameObject` can carry it, ever. Loaded assemblies do not change after
+mod load, so the whole lookup can be skipped permanently. No invalidation question, unlike the
+per-`BuildingDef` cache declined above.
+[`ModComponentLookup`](../../src/BlueprintsIncluded/BlueprintData/ModComponentLookup.cs) resolves
+each name once and caches it, **negative results included**.
+
+A fourth lookup — `DeconstructableHaulingPoint` in `CreateBlueprint`'s own scan — was worse placed:
+per cell per object layer rather than per building, and evaluated even when `hasDeconstructable` was
+already true. Now short-circuited as well as cached.
+
+| N | `create` before | after | |
+|---:|---:|---:|---:|
+| 100 | 111.7 ms | 4.8 ms | −96% |
+| 500 | 542.3 ms | 22.3 ms | −96% |
+| 1000 | **1076.3 ms** | **45.4 ms** | **−96%** |
+
+Captured counts unchanged (1000/1000, 500/500, 100/100). The handler loop accounts for ~547 ms of
+the N=1000 saving; the remaining ~480 ms is the scan lookup, which was never instrumented — so the
+uninstrumented fix was worth about as much as the measured one.
+
+**Does it still help a player who *has* those mods?** The create sweep could not say: with the mods
+installed the string overload resolves its type rather than failing, which is a different and
+probably cheaper path, so the −96% could not be carried over. `ComponentLookupPerf` answers it
+without requiring the mods — it defines its own probe component so the resolving branch becomes
+reachable, and times all four combinations on one throwaway `GameObject`. It asserts the two forms
+agree (same instance for a resolvable name, both null for an absent one) **before** timing, since
+comparing operations that find different things would be worthless.
+
+| | µs/call |
+|---|---:|
+| string, type resolves — what a decor-mod user paid | **114.930** |
+| cached, type resolves — what they pay now | **0.655** |
+| string, type absent | 196.460 |
+| cached, type absent | 0.511 |
+
+**175× faster even when the type resolves.** Unity does not meaningfully cache the name→type
+resolution: resolving costs 114.9 µs against 196.5 µs absent, only 42% cheaper. The prediction
+before this ran was that the win would shrink to something modest — it does not.
+
+⚠️ **An inversion worth keeping.** Before this, capture was **~70% slower for users who had never
+installed the decor mods** (3 × 196.5 = 589 µs/building) than for those who had (3 × 114.9 =
+345 µs). The fallbacks exist solely to support mods that the slower group did not have. A
+compatibility shim's cost lands hardest on the people it does nothing for.
+
+**A silent-failure hazard found while writing it.** The obvious way to resolve a name is
+`AccessTools.TypeByName`, whose last resort is `AllTypes().FirstOrDefault(t => t.Name == name)` —
+first short-name match across every loaded assembly, in enumeration order. `"Backwall"` is generic
+enough that an unrelated assembly could own one, and binding to the wrong type fails *silently*:
+`GetComponent(wrongType)` never matches, so the mod's data would stop round-tripping with no error
+anywhere. The search is restricted to `Component`-derived types instead, which is what
+`GetComponent(string)` could have returned in the first place.
+
+**Two registration bugs, fixed in passing.** `RegisterAdditionalStorableBuildingData` tested
+`OverridePriority` and then dropped it, storing every entry at the default 0 — so the check compared
+against that 0 and refused every override, collapsing the documented contract to "first registration
+wins". No path exercised today changes behaviour (the fallbacks register last and are correctly
+refused either way), **so the regression suite cannot prove this one**; it matters for an external
+mod calling the public API later with the default priority against an ID held at −10. And
+`Aki_DecorPackA_API_Integrated` / `Aki_Backwalls_API_Integrated` gated those fallbacks as a handover
+for when the decor mods adopted the extension point — nothing ever set them, and nothing on Aki's
+side would: [aki-art/ONI-Mods](https://github.com/aki-art/ONI-Mods) contains no reference to
+`Blueprints_GetData`, `Blueprints_SetData` or `Blueprints_ID`, and its one blueprint integration
+Harmony-patches the *original* `Blueprints` mod's buildability check, doing no data transfer at all.
+The guards are gone; the fields are kept as `[Obsolete]` no-ops because they are public on the
+ModAPI surface.
+
+⚠️ **Not covered.** The branch where the type *resolves* is exercised only by
+`ComponentLookupPerf`'s agreement check, never by a regression case — the fixture has no mod
+components in it. `GetComponent(Type)` also matches assignable subclasses where the string overload
+matched the exact class name, a superset, reachable only with those mods installed.
+
 **Built next: opening the selection screen.** The dialog the Use Blueprint tool puts up, reported
 as slow to open. `SelectionScreenPerf` drives the real `BlueprintSelectionScreen.ShowWindow` (the
 screen, `ModAssets` and the `Vis_*` previews are all internal types, so everything is reached by
@@ -1369,6 +1467,18 @@ either side.
       own renderers (124,768 against our 76,482 refreshes). Needs per-sweep accumulator snapshots to
       compare its µs/call between a vacuum-only and a dense-only sweep. Low value (the path is 2% of
       the frame); worth doing only if the explanation is ever load-bearing again.
+- [x] **`create`'s handler loop, re-measured.** The earlier "all ~35 handlers are cheap typed
+      checks" reading was wrong: two of them resolved components by *string*, at ~203 µs a call
+      against ~1 µs for the typed controls beside them, and were 94% of the loop. Cached the type
+      per name (negative results included) and short-circuited a fourth lookup in the capture scan:
+      `create` N=1000 **1076 → 45 ms**. Confirmed still worth 175× when the type resolves, via a
+      probe component rather than installing Aki's mods. Two registration bugs fixed in passing.
+      See §7 *The handler loop, revisited*.
+- [ ] **Cover the resolving branch with a regression case.** `ComponentLookupPerf` asserts the
+      cached and string forms agree, but only inside a perf sweep — a player with Aki's decor mods
+      takes a branch no pass/fail case exercises, and `GetComponent(Type)` matches assignable
+      subclasses where the string overload matched the exact class name. A harness case attaching a
+      probe component to a fixture building would close it without any external dependency.
 - [ ] Optional follow-ups: more building types / layers, place-with-settings applied to the built
       object, replacement visualizers over occupied terrain, a committed perf baseline + diff.
 - [ ] `run-ingame.ps1` currently removes the dev `Blueprints Expanded` (`mods/dev/BlueprintsV2`)

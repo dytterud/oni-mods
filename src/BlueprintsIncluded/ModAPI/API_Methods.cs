@@ -219,7 +219,12 @@ internal class API_Methods
         {
             SgtLogger.l($"Registering additional blueprint data storage with the ID {ID}.");
         }
-        AdditionalBuildingDataEntries[ID] = new BuildingDataStorage(ID, GetDataToStore, ApplyStoredData);
+        ///OverridePriority has to be carried into the entry, not just tested above: it was being
+        ///dropped here, so every registration was stored at the default 0 no matter what the caller
+        ///passed. That made the check above compare `priority <= 0` against a stored 0 and refuse
+        ///every override, collapsing the whole mechanism to "first registration wins" - a mod
+        ///passing a high priority to deliberately replace an earlier handler was silently ignored.
+        AdditionalBuildingDataEntries[ID] = new BuildingDataStorage(ID, GetDataToStore, ApplyStoredData, OverridePriority);
     }
 
 
@@ -388,6 +393,18 @@ internal class API_Methods
         RegisterInternally(nameof(UserNameable), DataTransfer_UserNameable.TryGetData, DataTransfer_UserNameable.TryApplyData);
 
     }
+
+    /// <summary>
+    /// No longer read by anything - kept only so an external mod that sets them still compiles and
+    /// links. See <see cref="RegisterExtraData"/>: these gated fallback handlers for Aki's decor
+    /// mods, to be switched off once those mods adopted this mod's Blueprints_GetData /
+    /// Blueprints_SetData extension point. Nothing ever set either flag, and there is nothing on
+    /// Aki's side that would - aki-art/ONI-Mods contains no reference to the extension point at all.
+    /// The fallbacks now register unconditionally at the lowest priority, so a real handler for the
+    /// same ID still wins if one ever appears; suppressing them by hand is no longer necessary or
+    /// possible.
+    /// </summary>
+    [Obsolete("No longer read. The decor-mod fallback handlers always register, at priority -10, so a real handler registered for the same ID overrides them. Setting this has no effect and the field will be removed.")]
     public static bool
         Aki_DecorPackA_API_Integrated = false,
         Aki_Backwalls_API_Integrated = false
@@ -462,15 +479,25 @@ internal class API_Methods
         {
             SgtLogger.logError("Error while registering custom data transfers:\n" + e.Message);
         }
-        if (!Aki_DecorPackA_API_Integrated)
-        {
-            RegisterNonSolidTag("DecorPackA_StainedGlass");
-            RegisterInternally("DecorPackA_MoodLamp", SkinHelper.TryStoreMoodLamp, SkinHelper.TryApplyMoodLamp, -10);
-        }
-        if (!Aki_Backwalls_API_Integrated)
-        {
-            RegisterInternally("Backwalls_Backwall", SkinHelper.TryStoreBackwall, SkinHelper.TryApplyBackwall, -10);
-        }
+        ///Fallback handlers for Aki's decor mods, which do not implement this mod's
+        ///Blueprints_GetData / Blueprints_SetData extension point - so the scan above never picks
+        ///them up and their lamp colours and backwall patterns would not survive a blueprint.
+        ///
+        ///These used to sit behind `if (!Aki_DecorPackA_API_Integrated)` / `if
+        ///(!Aki_Backwalls_API_Integrated)`, a handover switch for when those mods adopted the
+        ///extension point. Nothing ever set either flag, and a search of aki-art/ONI-Mods confirms
+        ///there is nothing on that side to set them: the repo has zero references to
+        ///Blueprints_GetData, Blueprints_SetData or Blueprints_ID. Its one blueprint integration
+        ///(DecorPackA/Integration/BluePrintsMod.cs) Harmony-patches the *original* Blueprints mod's
+        ///buildability check and does no data transfer at all. So the flags were dead branches
+        ///guarding a handover that is not coming, and are gone.
+        ///
+        ///The -10 priority is deliberate and now actually takes effect (see
+        ///RegisterAdditionalStorableBuildingData): these are the weakest possible registration, so
+        ///if either mod ever does ship the extension point, its own handler registers over them.
+        RegisterNonSolidTag("DecorPackA_StainedGlass");
+        RegisterInternally("DecorPackA_MoodLamp", SkinHelper.TryStoreMoodLamp, SkinHelper.TryApplyMoodLamp, -10);
+        RegisterInternally("Backwalls_Backwall", SkinHelper.TryStoreBackwall, SkinHelper.TryApplyBackwall, -10);
 
     }
 

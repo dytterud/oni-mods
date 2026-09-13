@@ -10,7 +10,7 @@ internal class SkinHelper
     //Akis Backwalls
     internal static void TryApplyBackwall(GameObject arg1, JObject arg2)
     {
-        var backwallCmp = arg1.GetComponent("Backwall");
+        var backwallCmp = ModComponentLookup.Find(arg1, "Backwall");
 
         if (backwallCmp != null)
         {
@@ -30,7 +30,7 @@ internal class SkinHelper
     internal static JObject? TryStoreBackwall(GameObject arg)
     {
         JObject? data = null;
-        var backwallCmp = arg.GetComponent("Backwall");
+        var backwallCmp = ModComponentLookup.Find(arg, "Backwall");
         if (backwallCmp != null)
         {
             var settingsStruct = Traverse.Create(backwallCmp).Field("settings").GetValue();
@@ -50,7 +50,7 @@ internal class SkinHelper
     //Akis DecorPackI moodlamp
     internal static void TryApplyMoodLamp(GameObject arg1, JObject arg2)
     {
-        var moodLampCmp = arg1.GetComponent("MoodLamp");
+        var moodLampCmp = ModComponentLookup.Find(arg1, "MoodLamp");
 
         if (moodLampCmp != null)
         {
@@ -61,7 +61,7 @@ internal class SkinHelper
         }
         if (arg2.TryGetValue("colorHex", out var colorHexToken))
         {
-            var tintableLampCmp = arg1.GetComponent("TintableLamp");
+            var tintableLampCmp = ModComponentLookup.Find(arg1, "TintableLamp");
             if (tintableLampCmp != null)
             {
 
@@ -79,12 +79,12 @@ internal class SkinHelper
         string? currentVariantID = null;
         string? colorHex = null;
 
-        var moodLampCmp = arg.GetComponent("MoodLamp");
+        var moodLampCmp = ModComponentLookup.Find(arg, "MoodLamp");
         if (moodLampCmp != null)
         {
             currentVariantID = Traverse.Create(moodLampCmp).Field("currentVariantID").GetValue() as string;
         }
-        var tintableLampCmp = arg.GetComponent("TintableLamp");
+        var tintableLampCmp = ModComponentLookup.Find(arg, "TintableLamp");
         if (tintableLampCmp != null)
         {
             colorHex = Traverse.Create(tintableLampCmp).Field("colorHex").GetValue() as string;
@@ -186,7 +186,7 @@ internal class SkinHelper
             if (ValidFacadeId(facadeID, building))
             {
                 buildingFacade.ApplyBuildingFacade(Db.GetBuildingFacades().Get(facadeID));
-                if (building.GetComponent("FacadeRestorer") != null && building.TryGetComponent<KBatchedAnimController>(out var kbac)
+                if (ModComponentLookup.Find(building, "FacadeRestorer") != null && building.TryGetComponent<KBatchedAnimController>(out var kbac)
                     )
                 {
                     //refresh the anim on akis facade restorer aero pods

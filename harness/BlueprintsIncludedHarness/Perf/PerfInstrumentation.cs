@@ -97,6 +97,34 @@ internal static class PerfInstrumentation
         {
             TryPatchOne(harmony, log, "StoreAdditionalBuildingData", () => AccessTools.Method(apiMethodsType, "StoreAdditionalBuildingData"));
             TryPatchOne(harmony, log, "GetAdditionalBuildingData", () => AccessTools.Method(apiMethodsType, "GetAdditionalBuildingData"));
+
+            // Four of those ~35 handlers, picked because two of them resolve their component by
+            // STRING and two by type - a natural control pair, since all four run once per captured
+            // building with identical wrapper overhead.
+            //
+            // TryStoreBackwall does GetComponent("Backwall"); TryStoreMoodLamp does
+            // GetComponent("MoodLamp") *and* GetComponent("TintableLamp"). Both are registered
+            // whenever Aki's decor mods are ABSENT (API_Methods' `if (!Aki_..._API_Integrated)`
+            // fallbacks), which is the fixture's situation - so in this run all three string lookups
+            // execute on every building and every one of them returns null. GetComponent(string) is
+            // Unity's slowest component lookup: it resolves a type from a string on each call.
+            //
+            // TryStoreArtableSkin and TryStoreBuildingSkin take the typed TryGetComponent<T> path.
+            // Same loop, same per-building frequency, same wrapper - so the difference between the
+            // two pairs is the lookup mechanism and little else. If the string handlers are not
+            // dearer, there is nothing here worth fixing.
+            TryResolveType("BlueprintsV2.BlueprintData.SkinHelper", out var skinHelperType, log);
+            if (skinHelperType != null)
+            {
+                TryPatchOne(harmony, log, "SkinHelper.TryStoreBackwall (string)",
+                    () => AccessTools.Method(skinHelperType, "TryStoreBackwall"));
+                TryPatchOne(harmony, log, "SkinHelper.TryStoreMoodLamp (string x2)",
+                    () => AccessTools.Method(skinHelperType, "TryStoreMoodLamp"));
+                TryPatchOne(harmony, log, "SkinHelper.TryStoreArtableSkin (typed)",
+                    () => AccessTools.Method(skinHelperType, "TryStoreArtableSkin"));
+                TryPatchOne(harmony, log, "SkinHelper.TryStoreBuildingSkin (typed)",
+                    () => AccessTools.Method(skinHelperType, "TryStoreBuildingSkin"));
+            }
         }
         TryPatchAllOverloads(harmony, log, "NaturalBuildingCell", typeof(GameUtil));
 
