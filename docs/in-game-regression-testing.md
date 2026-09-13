@@ -1069,14 +1069,65 @@ Allocation is identical between arms (732 vs 736 KB at N=2000), confirming the r
 where the per-frame garbage comes from.
 
 **Why the first measurement missed it — the lesson worth keeping.** The −2% sweep dragged a blueprint
-across *vacuum*. `RefreshCellInternal` looks up `Grid.Objects[cell, layer]`, finds nothing, and
-returns before reaching the `KAnimGraphTileVisualizer.Refresh()` that makes a refresh expensive: the
-2.7M eliminated calls were each nearly free. The A/B above ran after the `use` and `create` sweeps
-had left real build orders and finished tiles in those cells, so each surviving refresh does real
-work and cutting 9× of them pays. **The batching's value scales with how occupied the cells under the
+across *vacuum*; the A/B above ran after the `use` and `create` sweeps had left real build orders and
+finished tiles in those cells. **The batching's value scales with how occupied the cells under the
 cursor are** — ~0 in empty space, ~30% over a real base, which is where players actually drag
 blueprints. A per-frame optimisation measured over empty terrain is measured in the one condition
 that cannot show it working.
+
+> ⚠️ **The *mechanism* this section originally gave for that was wrong, and is retracted.** It read:
+> *"`RefreshCellInternal` looks up `Grid.Objects[cell, layer]`, finds nothing, and returns before
+> reaching the `KAnimGraphTileVisualizer.Refresh()` that makes a refresh expensive."* That was
+> inferred from the dense-vs-sparse gap, never measured — and measuring it refutes it.
+>
+> An attribution run patched `KAnimGraphTileVisualizer.Refresh` directly: **0 calls**, against
+> 76,482 `RefreshCellInternal` calls, in a run whose dense sweep reported 1000/1000 cells occupied.
+> The patch resolved (the run log's registration summary confirms all 56 targets bound), so the zero
+> is the measurement, not a broken pin.
+>
+> `RunUpdateVisualDenseSweep`'s reachability probe says why: over 16 sampled cells on
+> `TileLayer=FoundationTile`, **16 carry a `GameObject` and 0 of those carry a
+> `KAnimGraphTileVisualizer`**. So it is not the `Grid.Objects` lookup that comes back empty — that
+> one succeeds — it is the component lookup. A finished `Tile`'s art comes from
+> `CustomTileRenderer`'s block-tile atlas, not from an anim-graph visualizer, so that branch is
+> **unreachable for tile blueprints entirely**, occupied cells or not. What a refresh actually costs
+> is `BlockTileRenderer.Rebuild` (0.3 µs/call) plus two lookups, and the batching wins by calling
+> `Rebuild` 9× less often — not by skipping an expensive `Refresh()`.
+>
+> **Still open: why `Rebuild` costs more over occupied cells.** That is the only remaining
+> explanation for the 25–31%, and it is *not* measured here — writing it in as fact would repeat the
+> error being corrected. `Rebuild`'s hotspot count is polluted by Klei's own renderers (124,768 calls
+> against our 76,482 refreshes), so settling it needs per-sweep accumulator snapshots to compare its
+> µs/call between a vacuum-only and a dense-only sweep. The A/B result itself (25–31%, interleaved)
+> stands regardless — only the explanation was wrong.
+
+**And the refresh path is now ~2% of the frame, which closes it.** From the same run, the whole of
+`UpdateVisual` against the refresh path inside it:
+
+| hotspot | calls | total | µs/call |
+|---|---:|---:|---:|
+| `UpdateVisual` | 324 | 2,251.5 ms | 6,949 |
+| ↳ `ApplyRotatedCellAndMove` | 226,800 | 930.3 ms | 4.1 |
+| ↳ `StoreOccupiedArea` | 226,800 | 130.7 ms | 0.6 |
+| ↳ `RefreshCellInternal` | 76,482 | **44.3 ms** | 0.6 |
+| ↳ ↳ `BlockTileRenderer.Rebuild` | 124,768 | 36.8 ms | 0.3 |
+| ↳ ↳ `KAnimGraphTileVisualizer.Refresh` | **0** | — | — |
+
+After batching and delta-seating, the entire refresh path costs **44 ms against `UpdateVisual`'s
+2,251 ms** — under 2%, and most of that is Klei's `Rebuild`. Two independent attribution runs
+reported identical call counts (76,482 / 124,768 / 0), so this is stable, not a sampling artifact.
+**There is no further win available here**; the per-visual move and colour path is 20× larger.
+
+> ⚠️ **A harness bug hid part of this, and is fixed.** `ApplyRotatedCellAndMove`'s hotspot was pinned
+> to a five-type parameter list; the shared-parent-transform change added `bool moveTransform = true`
+> and the pin silently stopped matching, so it read **0 calls** from that commit until this one — and
+> a hotspot reading zero is indistinguishable from a code path that never ran, which is exactly how
+> it survived. It now resolves by widest-overload (the narrow overload forwards to the wide one, so
+> patching both under one accumulator would double-count, per `KInstantiate`), and `Apply` ends with
+> a summary naming any target that failed to bind: *"all 56 target(s) resolved"*, or a loud list of
+> the ones that did not. The 4.1 µs/call figure above is the first time that method has been
+> measured. The shared-parent commit's own conclusion is unaffected — it rested on an interleaved
+> A/B, not on attribution.
 
 `update-visual-tile-dense` is a permanent sweep for exactly this reason (it reuses the finished tiles
 `create` already built, so it costs no extra region). Note it is *cheaper* than the sparse drag —
@@ -1283,8 +1334,10 @@ either side.
       `TileVisual` ever drawn stayed reachable and was walked on every cursor move, 8.0M `Clean()`
       calls against 150k real re-seats), and batched the refresh fan-out (-89% `RefreshCellInternal`).
       The batching first measured as a null result over empty terrain; an interleaved A/B over
-      occupied cells put it at **-25 to -31%**, because a refresh of an empty cell is nearly free.
-      11/11 green. See §7 *The tile-renderer follow-up*.
+      occupied cells put it at **-25 to -31%**. 11/11 green. See §7 *The tile-renderer follow-up*.
+      (The mechanism originally given for that gap — an expensive `KAnimGraphTileVisualizer.Refresh`
+      skipped over empty cells — was measured and **retracted**: that branch is unreachable for tile
+      blueprints. See the retraction note in §7.)
 - [x] `update-visual-tile-dense`: a permanent drag sweep over real finished tiles (reuses the
       rectangle `create` builds, so it costs no extra region). Added because every tile-renderer
       number before it came from a drag across empty dug-out space - the one condition in which the
@@ -1307,6 +1360,15 @@ either side.
       build location. Caching that needs an invalidation condition nobody has found a safe one for
       (§7, *The colour path*) — the remaining idea is to reimplement the parts of the game's validity
       rules that apply to a 1x1 tile, which is a correctness risk, not a perf trick.
+      **The refresh half of this is now closed with evidence**: attribution puts the whole refresh
+      path at 44 ms against `UpdateVisual`'s 2,251 ms (under 2%), so whatever is left is not there.
+      That measurement also retracted the mechanism §7 had given for the batching win, and fixed a
+      pinned-signature bug that had `ApplyRotatedCellAndMove` reading 0 calls for two commits.
+- [ ] **Settle why `Rebuild` costs more over occupied cells.** The only surviving explanation for the
+      batching's 25-31%, and currently unmeasured — `Rebuild`'s hotspot count is polluted by Klei's
+      own renderers (124,768 against our 76,482 refreshes). Needs per-sweep accumulator snapshots to
+      compare its µs/call between a vacuum-only and a dense-only sweep. Low value (the path is 2% of
+      the frame); worth doing only if the explanation is ever load-bearing again.
 - [ ] Optional follow-ups: more building types / layers, place-with-settings applied to the built
       object, replacement visualizers over occupied terrain, a committed perf baseline + diff.
 - [ ] `run-ingame.ps1` currently removes the dev `Blueprints Expanded` (`mods/dev/BlueprintsV2`)

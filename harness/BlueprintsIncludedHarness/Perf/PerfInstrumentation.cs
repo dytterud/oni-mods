@@ -28,6 +28,13 @@ internal static class PerfInstrumentation
     private static readonly Dictionary<string, Accumulator> byName = new(StringComparer.Ordinal);
     private static bool applied;
 
+    /// <summary>Registration tally for the end-of-Apply summary - see the note where it is logged.
+    /// <c>unresolved</c> holds the names whose target could not be found, which are exactly the
+    /// hotspots that will read 0 calls for a reason that has nothing to do with the code under
+    /// test.</summary>
+    private static int registered;
+    private static readonly List<string> unresolved = [];
+
     /// <summary>On for an attribution run (<c>run-ingame.ps1 -Attribution</c>, i.e. sentinel mode
     /// <c>perf-attribution</c>), off for a normal benchmark run. See the comment at its use site:
     /// instrumenting methods that run once per visual costs more than the methods do, so a run with
@@ -100,9 +107,14 @@ internal static class PerfInstrumentation
             () => AccessTools.Method(typeof(BlueprintState), nameof(BlueprintState.UpdateVisual)));
         TryPatchOne(harmony, log, "StoreOccupiedArea",
             () => AccessTools.Method(typeof(BlueprintState), "StoreOccupiedArea"));
+        // Resolved by widest-overload rather than by a pinned parameter list. It *was* pinned to
+        // five types, and adding `bool moveTransform = true` in the shared-parent-transform change
+        // silently dropped it to zero calls - a hotspot reading 0 looks identical to a code path
+        // that never ran, which is the failure mode the KInstantiateUI note below also describes.
+        // The widest overload is the right target regardless: the narrow one forwards to it, so
+        // patching both under one accumulator would double-count (see KInstantiate, docs §7).
         TryPatchOne(harmony, log, "ApplyRotatedCellAndMove",
-            () => AccessTools.Method(typeof(BlueprintState.BlueprintTransformationInfo), "ApplyRotatedCellAndMove",
-                new[] { typeof(Vector2I), typeof(IVisual), typeof(bool), typeof(bool), typeof(bool) }));
+            () => WidestOverload(typeof(BlueprintState.BlueprintTransformationInfo), "ApplyRotatedCellAndMove", log));
 
         // The rest of that path runs once PER VISUAL - 2000x per call at N=2000 - on bodies that are
         // a handful of arithmetic ops. A Harmony wrapper costs more than the method it measures
@@ -158,6 +170,23 @@ internal static class PerfInstrumentation
             // exactly the question.
             TryPatchOne(harmony, log, "BlockTileRenderer.Rebuild",
                 () => AccessTools.Method(typeof(Rendering.BlockTileRenderer), "Rebuild"));
+
+            // The other half of RefreshCellInternal's body, and the one §7 blames for making a
+            // refresh expensive over occupied cells - the claim that explains why batching the
+            // fan-out is worth 25-31% over a real base and ~0 over vacuum. That was inferred from
+            // the dense-vs-sparse gap, never measured, and it is load-bearing enough to be worth
+            // checking: it is why the batching survived a first measurement that read -2%.
+            //
+            // The remaining piece (the GetComponentInChildren walk that finds this component) is a
+            // Unity generic and cannot be patched sanely; wrapping it mod-side purely to time it
+            // would add a ~0.2us wrapper to something plausibly of the same order. Take it as the
+            // residual instead: RefreshCellInternal - Rebuild - Refresh - wrapper floor.
+            //
+            // Parameter list pinned rather than looked up by name alone: a name-only AccessTools
+            // lookup threw AmbiguousMatchException on KInstantiateUI and silently left that hotspot
+            // at zero (docs §7).
+            TryPatchOne(harmony, log, "KAnimGraphTileVisualizer.Refresh",
+                () => AccessTools.Method(typeof(KAnimGraphTileVisualizer), "Refresh", Type.EmptyTypes));
 
             // Inside GetVisualizerColor. It allocates ~230 B/call over 240,000 calls - ~460 KB of
             // the 2,448 KB a 2000-tile frame allocates - but its instrumented children only account
@@ -278,6 +307,22 @@ internal static class PerfInstrumentation
         TryPatchOne(harmony, log, "UpdateConduitConnectionBits",
             () => AccessTools.Method(typeof(BuildingVisual), "UpdateConduitConnectionBits"));
 
+        // A failed registration only ever printed one line among ~60, and a hotspot that reads zero
+        // calls is indistinguishable from a code path that genuinely never ran - so
+        // ApplyRotatedCellAndMove sat broken across two commits without anyone noticing. Summarise at
+        // the end, loudly, so an unresolved target is the last thing the run log says about
+        // instrumentation rather than something to scroll back for.
+        if (unresolved.Count > 0)
+        {
+            log.Line($"  *** perf instrumentation: {unresolved.Count} of {registered + unresolved.Count} " +
+                     $"target(s) DID NOT RESOLVE - their hotspots will read 0 calls, which is not the " +
+                     $"same as 'never called': {string.Join(", ", unresolved)}");
+        }
+        else
+        {
+            log.Line($"  perf instrumentation: all {registered} target(s) resolved");
+        }
+
         applied = true;
     }
 
@@ -320,6 +365,36 @@ internal static class PerfInstrumentation
         }
     }
 
+    /// <summary>
+    /// The overload of <paramref name="methodName"/> taking the most parameters, or null if there is
+    /// none. For the mod's own "narrow overload forwards to the wide one" pairs this picks the wide
+    /// one - the only one worth timing, since patching both under a shared accumulator double-counts
+    /// the nested call (docs §7, <c>KInstantiate</c>).
+    ///
+    /// Use it in preference to a pinned parameter list wherever a method is likely to grow an
+    /// optional parameter: a pin that stops matching leaves the hotspot silently reading zero, which
+    /// is indistinguishable from a path that never executed. Logs the signature it settled on so the
+    /// choice is visible in the run log rather than assumed.
+    /// </summary>
+    private static MethodBase? WidestOverload(Type declaringType, string methodName, HarnessLog log)
+    {
+        MethodBase? widest = null;
+        foreach (var candidate in declaringType.GetMethods(AccessTools.all))
+        {
+            if (candidate.Name != methodName)
+                continue;
+            if (widest == null || candidate.GetParameters().Length > widest.GetParameters().Length)
+                widest = candidate;
+        }
+
+        if (widest == null)
+            log.Line($"  perf instrumentation: {declaringType.Name}.{methodName}: no overload found");
+        else
+            log.Line($"  perf instrumentation: {declaringType.Name}.{methodName} resolved to " +
+                     $"({string.Join(",", widest.GetParameters().Select(p => p.ParameterType.Name))})");
+        return widest;
+    }
+
     private static bool TryPatchOne(Harmony harmony, HarnessLog log, string name, Func<MethodBase?> resolve)
     {
         try
@@ -328,14 +403,17 @@ internal static class PerfInstrumentation
             if (method == null)
             {
                 log.Line($"  perf instrumentation: {name}: method not found (its hotspot will be zero)");
+                unresolved.Add(name);
                 return false;
             }
             Register(name, method, harmony);
+            registered++;
             return true;
         }
         catch (Exception e)
         {
             log.Line($"  perf instrumentation: {name}: failed to patch (its hotspot will be zero): {e}");
+            unresolved.Add(name);
             return false;
         }
     }
