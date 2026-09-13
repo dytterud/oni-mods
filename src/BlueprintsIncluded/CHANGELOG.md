@@ -10,8 +10,12 @@ and was never published under it.
 
 ## [Unreleased]
 
-Nothing has been released from this fork yet — no tags, no GitHub releases. Everything
-below is in `main` and unreleased.
+Nothing yet.
+
+## [0.1.0] - 2026-09-13
+
+First release of the fork. Everything below was developed after the split from
+**Blueprints Expanded**; the fork baseline itself is recorded at the end.
 
 ### Fixed
 
@@ -19,8 +23,8 @@ below is in `main` and unreleased.
   blueprint with instant build enabled passed the minimum melting point straight through as
   the spawn temperature, so a basalt insulated tile materialised at 1530 K instead of its
   normal 293 K — hot enough to damage itself and dump that heat into the surrounding cells.
-  ([#1](https://github.com/dytterud/BlueprintsIncluded/issues/1),
-  [#5](https://github.com/dytterud/BlueprintsIncluded/pull/5))
+  ([#1](https://github.com/dytterud/oni-mods/issues/1),
+  [#5](https://github.com/dytterud/oni-mods/pull/5))
 - **Wide blueprints near the left or bottom map edge could build on unrelated cells.** The
   anchor shift (`BottomCenter` by default, half the blueprint's width) was applied before
   converting to a cell index, and a negative result silently wrapped into a different row
@@ -46,7 +50,7 @@ below is in `main` and unreleased.
 Development infrastructure; no effect on the mod in-game:
 
 - CI on every push and pull request — offline build plus tests, no game install needed
-  ([#13](https://github.com/dytterud/BlueprintsIncluded/pull/13)).
+  ([#13](https://github.com/dytterud/oni-mods/pull/13)).
 - An in-game regression harness that boots the game, loads a fixture colony, runs assertions
   against the live blueprint pipeline and quits — covering the colony-dependent behaviour
   unit tests structurally can't reach. Plus a perf mode for timing blueprint operations.
@@ -79,7 +83,8 @@ Internal only; no in-game behaviour change:
 Forked from upstream [`0bd6de6`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/0bd6de6)
 (2026-09-05). History was squashed, so there is no merge-base with upstream; the fork point was
 later pinned by content comparison rather than by date. Not yet ported from upstream:
-see the open [`upstream-sync`](https://github.com/dytterud/BlueprintsIncluded/issues?q=is%3Aissue+is%3Aopen+label%3Aupstream-sync)
+see the open [`upstream-sync`](https://github.com/dytterud/oni-mods/issues?q=is%3Aissue+is%3Aopen+label%3Aupstream-sync)
 issues.
 
-[Unreleased]: https://github.com/dytterud/BlueprintsIncluded/commits/main
+[Unreleased]: https://github.com/dytterud/oni-mods/compare/blueprints-included/v0.1.0...main
+[0.1.0]: https://github.com/dytterud/oni-mods/releases/tag/blueprints-included%2Fv0.1.0
