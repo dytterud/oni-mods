@@ -694,10 +694,32 @@ Harmony-patches the *original* `Blueprints` mod's buildability check, doing no d
 The guards are gone; the fields are kept as `[Obsolete]` no-ops because they are public on the
 ModAPI surface.
 
-⚠️ **Not covered.** The branch where the type *resolves* is exercised only by
-`ComponentLookupPerf`'s agreement check, never by a regression case — the fixture has no mod
-components in it. `GetComponent(Type)` also matches assignable subclasses where the string overload
-matched the exact class name, a superset, reachable only with those mods installed.
+**Now covered, and it retracts a caveat.** This section originally warned that the resolving branch
+had no regression case, and that `GetComponent(Type)` "also matches assignable subclasses where the
+string overload matched the exact class name, a superset" — reachable only with the decor mods
+installed. The first half is fixed; **the second half was wrong.**
+
+`mod-component-lookup-resolves-and-caches` makes the branch reachable with no external dependency by
+declaring the component the lookup names ([`ProbeComponents.cs`](../../harness/BlueprintsIncludedHarness/ProbeComponents.cs)),
+and asserts the new lookup *agrees with the one it replaced* rather than merely returning something:
+same instance for a name that resolves, null when the type exists but the object lacks it, null when
+nothing defines the name, and a repeat call still correct (a negative cached against the wrong key
+would pass a non-null check but fail this). Identity rather than non-null is the point — binding to
+the wrong type is the silent failure the `Component`-restricted scan exists to prevent, and it would
+satisfy any weaker assertion.
+
+On the superset: an object carrying only a *subclass* of the probe returns that subclass through the
+base type name from **both** forms —
+
+```
+subclass-only object: Find=HarnessProbeComponentSubclass, GetComponent(string)=HarnessProbeComponentSubclass
+```
+
+— so Unity's string overload matches assignable subclasses too, and the two are equivalent on that
+case as well. The difference this section asserted does not exist. That claim had been inferred from
+the API shapes rather than measured, which is the same mistake as the
+`KAnimGraphTileVisualizer.Refresh` attribution above; the behaviour is now pinned by an assertion
+instead of described by a guess.
 
 **Built next: opening the selection screen.** The dialog the Use Blueprint tool puts up, reported
 as slow to open. `SelectionScreenPerf` drives the real `BlueprintSelectionScreen.ShowWindow` (the
@@ -1474,11 +1496,13 @@ either side.
       `create` N=1000 **1076 → 45 ms**. Confirmed still worth 175× when the type resolves, via a
       probe component rather than installing Aki's mods. Two registration bugs fixed in passing.
       See §7 *The handler loop, revisited*.
-- [ ] **Cover the resolving branch with a regression case.** `ComponentLookupPerf` asserts the
-      cached and string forms agree, but only inside a perf sweep — a player with Aki's decor mods
-      takes a branch no pass/fail case exercises, and `GetComponent(Type)` matches assignable
-      subclasses where the string overload matched the exact class name. A harness case attaching a
-      probe component to a fixture building would close it without any external dependency.
+- [x] **Cover the resolving branch with a regression case.**
+      `mod-component-lookup-resolves-and-caches` declares the component the lookup names, so the
+      branch a player with Aki's decor mods takes is reachable in a fixture that has no such mods.
+      Asserts instance identity against `GetComponent(string)` (not just non-null — binding to the
+      wrong type is the silent failure that matters), both absent cases, and cache integrity on
+      repeat. It also **disproved** the suspected subclass-matching difference between the string
+      and typed overloads: both return the subclass through the base name. 14/14 green. See §7.
 - [ ] Optional follow-ups: more building types / layers, place-with-settings applied to the built
       object, replacement visualizers over occupied terrain, a committed perf baseline + diff.
 - [ ] `run-ingame.ps1` currently removes the dev `Blueprints Expanded` (`mods/dev/BlueprintsV2`)

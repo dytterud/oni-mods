@@ -77,6 +77,7 @@ internal static class HarnessCases
         new HarnessCase("conduit-flags-ignore-captured-orientation", ConduitFlagsIgnoreCapturedOrientation),
         new HarnessCase("tile-seating-map-tracks-the-drag", TileSeatingMapTracksTheDrag),
         new HarnessCase("preview-follows-the-cursor", PreviewFollowsTheCursor),
+        new HarnessCase("mod-component-lookup-resolves-and-caches", ModComponentLookupResolvesAndCaches),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -358,6 +359,81 @@ internal static class HarnessCases
     /// from), not on the cell field - the cell updates either way, so it would pass even when the
     /// art is wrong. The screenshots either side are for the human half: whether it *looks* right.
     /// </summary>
+    /// <summary>
+    /// Covers the branch of <c>ModComponentLookup</c> that this fixture otherwise cannot reach.
+    ///
+    /// Every production caller names a component belonging to Aki's decor mods, so with only our own
+    /// mod installed the name never resolves and only the "type absent" path runs - the path the
+    /// create-perf measurement exercised. A player who has those mods takes the *resolving* path
+    /// instead, where the lookup returns a real component, and until this case nothing asserted that
+    /// path at all. <see cref="HarnessProbeComponent"/> makes it reachable without depending on any
+    /// external mod.
+    ///
+    /// The lookup replaced <c>GetComponent(string)</c>, so the load-bearing property is that the two
+    /// agree: same instance for a name that resolves, null for one that does not. Asserting only
+    /// "returns non-null" would pass even if it had started finding the wrong component.
+    /// </summary>
+    private static IEnumerator ModComponentLookupResolvesAndCaches()
+    {
+        var find = typeof(Blueprint).Assembly
+            .GetType("BlueprintsV2.BlueprintData.ModComponentLookup")
+            ?.GetMethod("Find", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+        Assert.True(find != null, "ModComponentLookup.Find was found (is the cached lookup still in the mod?)");
+
+        Component? Find(GameObject go, string name) => find!.Invoke(null, new object[] { go, name }) as Component;
+
+        const string probeName = nameof(HarnessProbeComponent);
+        const string absentName = "HarnessNoSuchComponent_9d3f1a";
+
+        var carrier = new GameObject("HarnessLookupCarrier");
+        var bare = new GameObject("HarnessLookupBare");
+        var subclassOnly = new GameObject("HarnessLookupSubclassOnly");
+        try
+        {
+            var probe = carrier.AddComponent<HarnessProbeComponent>();
+            var subclass = subclassOnly.AddComponent<HarnessProbeComponentSubclass>();
+            yield return null;
+
+            ///The resolving branch, component present. Identity rather than non-null: the whole risk
+            ///of resolving a type by name is binding to the wrong one, which fails silently.
+            var found = Find(carrier, probeName);
+            Assert.True(ReferenceEquals(probe, found), "Find returns the component instance on the object");
+            Assert.True(ReferenceEquals(carrier.GetComponent(probeName), found),
+                "Find agrees with GetComponent(string) for a name that resolves");
+
+            ///The resolving branch, component absent - the type exists, this object just lacks it.
+            ///Distinct from the absent-type case below, and the one the production callers hit for
+            ///most buildings when the decor mods *are* installed.
+            Assert.True(Find(bare, probeName) == null, "Find returns null when the type exists but the object lacks it");
+
+            ///The absent-type branch: nothing defines this name, so nothing can carry it.
+            Assert.True(Find(carrier, absentName) == null, "Find returns null for a type nothing defines");
+            Assert.True(carrier.GetComponent(absentName) == null,
+                "GetComponent(string) agrees the absent name finds nothing");
+
+            ///Documented behaviour difference, pinned rather than left to be discovered later:
+            ///GetComponent(Type) matches assignable subclasses, where the string overload matched an
+            ///exact class name. Only observable on an object carrying the subclass and not the base.
+            var viaLookup = Find(subclassOnly, probeName);
+            var viaString = subclassOnly.GetComponent(probeName);
+            Log?.Line($"  subclass-only object: Find={(viaLookup == null ? "null" : viaLookup.GetType().Name)}, " +
+                      $"GetComponent(string)={(viaString == null ? "null" : viaString.GetType().Name)}");
+            Assert.True(ReferenceEquals(subclass, viaLookup),
+                "Find matches a subclass instance through the base type name (typed-lookup semantics)");
+
+            ///Caching is the point of the type, so check a repeat call still answers correctly rather
+            ///than having poisoned itself - a negative result cached against the wrong key, say.
+            Assert.True(ReferenceEquals(probe, Find(carrier, probeName)), "a repeat lookup still finds the component");
+            Assert.True(Find(carrier, absentName) == null, "a repeat lookup of an absent name is still null");
+        }
+        finally
+        {
+            UnityEngine.Object.Destroy(carrier);
+            UnityEngine.Object.Destroy(bare);
+            UnityEngine.Object.Destroy(subclassOnly);
+        }
+    }
+
     private static IEnumerator PreviewFollowsTheCursor()
     {
         var xy = Grid.CellToXY(AnchorCell);

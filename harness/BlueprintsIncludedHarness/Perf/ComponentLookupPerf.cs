@@ -4,21 +4,9 @@ using System.Diagnostics;
 using System.Reflection;
 using BlueprintsV2.BlueprintData;
 using UnityEngine;
+using BlueprintsV2.Harness;
 
 namespace BlueprintsV2.Harness.Perf;
-
-/// <summary>
-/// A component that exists only so a type-name lookup can succeed. Nothing ever attaches it to a
-/// real building; <see cref="ComponentLookupPerf"/> puts it on a throwaway GameObject.
-///
-/// Its whole job is to make <c>ModComponentLookup</c>'s resolving branch reachable without
-/// installing Aki's decor mods. That branch is what a player who *has* those mods takes, and the
-/// fixture otherwise only ever exercises the "type absent" branch - so the measurement that
-/// motivated the lookup cache could say nothing about the configuration where it matters most.
-/// </summary>
-public class HarnessProbeComponent : MonoBehaviour
-{
-}
 
 /// <summary>
 /// Answers one question the main create-path measurement could not: <b>is the cached lookup still
