@@ -20,6 +20,12 @@ jobs:
     # mod-packaging targets use backslash paths. Nothing here needs the game itself.
     runs-on: windows-latest
 
+    # Serialised on purpose - see the -m:1 on the build step below.
+    env:
+      MSBUILDDISABLENODEREUSE: 1
+      DOTNET_CLI_USE_MSBUILD_SERVER: false
+      UseSharedCompilation: false
+
     steps:
       - uses: actions/checkout@v4
 
@@ -40,13 +46,26 @@ jobs:
       - name: Restore
         run: dotnet restore OniMods.slnx
 
+      # -m:1 (single node, no parallel project builds) is load-bearing, not tidiness.
+      # BlueprintsIncluded.Tests references the mod with different global properties
+      # (DoNotBuildAsMod=true), so MSBuild treats it as a *second instance* of the same project -
+      # and both instances write to the same bin/. Built in parallel they race: ILRepack rewrites
+      # the assembly in place for one while the other is still copying obj -> bin, which surfaces
+      # as MSB3027 "the file is locked by .NET Host". Directory.Build.targets already documents
+      # the two-flavours-one-output-directory problem; this is that problem, in CI.
+      #
+      # The env block above stops long-lived build servers holding those outputs open between
+      # steps for the same reason test/run-ingame.ps1 calls `dotnet build-server shutdown`.
+      #
+      # The real fix is giving the two flavours separate output directories; until then, not
+      # building them at the same time is what keeps CI honest.
       - name: Build (Release, offline)
-        run: dotnet build OniMods.slnx -c Release -p:OfflineBuild=true --no-restore
+        run: dotnet build OniMods.slnx -c Release -p:OfflineBuild=true --no-restore --disable-build-servers -m:1
 
       # The 27 [RequiresGameInstall*] tests skip here by design - lib/ is reference-only and
       # cannot execute. Expect "14 passed, 27 skipped"; see test/README.md.
       - name: Test (offline)
-        run: dotnet test OniMods.slnx -p:OfflineBuild=true --no-build -c Release
+        run: dotnet test OniMods.slnx -p:OfflineBuild=true --no-build -c Release --disable-build-servers
 
       # Offline builds write the packaged mod to Builds/, so a PR can be downloaded and tried
       # in-game without a local toolchain.
