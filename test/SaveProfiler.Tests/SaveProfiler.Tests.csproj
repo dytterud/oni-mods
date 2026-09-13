@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="xunit" />
+		<PackageReference Include="xunit.runner.visualstudio">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Build the mod as a plain library for the tests (no ILRepack / mod packaging). -->
+		<ProjectReference Include="..\..\src\SaveProfiler\SaveProfiler.csproj">
+			<Properties>IsPacked=false;DoNotBuildAsMod=true;GenerateMetadata=false</Properties>
+		</ProjectReference>
+	</ItemGroup>
+
+	<!--
+	  Same story as BlueprintsIncluded.Tests: the [RequiresGameInstall*] tests need the game
+	  assemblies loadable at RUNTIME, not just at compile time, and every game <Reference> in
+	  Directory.Build.props is <Private>False</Private>. Without this copy the gate reports "no
+	  install" even when one is configured and the gated tests skip forever.
+
+	  This project's gated test resolves the real patch targets, so it needs Assembly-CSharp (for
+	  SaveLoader / SaveManager / Game / Sim / SaveLoadRoot) and Assembly-CSharp-firstpass (for
+	  KSerialization.Serializer) to actually load.
+
+	  Offline builds copy nothing, so the gate still skips cleanly on CI and fresh clones.
+	-->
+	<Target Name="CopyGameAssembliesForRuntime"
+	        AfterTargets="Build"
+	        Condition="'$(OfflineBuild)' != 'true'">
+		<ItemGroup>
+			<RequiredGameAssembly Include="$(GameLibsFolder)/Assembly-CSharp.dll" />
+			<RequiredGameAssembly Include="$(GameLibsFolder)/Assembly-CSharp-firstpass.dll" />
+
+			<!-- Best-effort: the exact module set varies by game version and DLC, so a missing
+			     one must not fail the build. -->
+			<OptionalGameAssembly Include="$(GameLibsFolder)/0Harmony.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/FMODUnity.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.CoreModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/Unity.TextMeshPro.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.AssetBundleModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.PhysicsModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.Physics2DModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.ParticleSystemModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.ImageConversionModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.TextRenderingModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.UI.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.UIModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/UnityEngine.WebRequestModule.dll" />
+			<OptionalGameAssembly Include="$(GameLibsFolder)/com.rlabrecque.steamworks.net.dll" />
+
+			<GameRuntimeAssembly Include="@(RequiredGameAssembly)" />
+			<GameRuntimeAssembly Include="@(OptionalGameAssembly)" Condition="Exists('%(FullPath)')" />
+		</ItemGroup>
+		<Error Condition="!Exists('%(RequiredGameAssembly.FullPath)')"
+		       Text="Game assembly not found: %(RequiredGameAssembly.FullPath). GameLibsFolder is '$(GameLibsFolder)' — check Directory.Build.props.user, or build with -p:OfflineBuild=true." />
+		<Copy SourceFiles="@(GameRuntimeAssembly)"
+		      DestinationFolder="$(OutDir)"
+		      SkipUnchangedFiles="true" />
+	</Target>
+
+</Project>
