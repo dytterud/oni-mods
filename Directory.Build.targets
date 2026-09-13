@@ -6,7 +6,7 @@
 
 	  The mod project is built twice with different global properties: as a mod, and again via
 	  BlueprintsIncluded.Tests' ProjectReference with DoNotBuildAsMod=true. Different global
-	  properties mean a separate MSBuild project instance, but both write to the same
+	  properties mean a separate MSBuild project instance, and the two used to share one
 	  bin/$(Configuration)/$(TargetFramework). The test-flavoured instance skips these targets by
 	  condition, so with FileWrites registered its IncrementalClean saw mod.yaml / mod_info.yaml /
 	  LauncherMetadata.json as orphaned prior outputs and removed them.
@@ -20,8 +20,11 @@
 	  them. The cost is that `dotnet clean` no longer deletes them individually; removing
 	  bin/ still does.
 
-	  The deeper issue - two build flavours sharing one output directory, which harness/README.md
-	  also blames for corrupted incremental state and ILRepack races - is untouched here.
+	  The shared output directory that caused all of this is gone: the two flavours now build to
+	  separate bin/ and obj/ (see the BaseOutputPath comment in Directory.Build.props), so the
+	  test-flavoured instance can no longer see these files at all. Restoring the <FileWrites>
+	  registrations is therefore probably safe now - but "probably" is not worth a silent
+	  `dotnet test` regression, so it stays as it is until someone tests it deliberately.
 	-->
 	<!--Write mod.yaml file-->
 	<Target Name="GenerateModYaml" BeforeTargets="PrepareForRun" Condition="'$(DoNotBuildAsMod)' != 'true'">
