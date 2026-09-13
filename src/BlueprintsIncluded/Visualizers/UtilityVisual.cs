@@ -43,13 +43,14 @@ public sealed class UtilityVisual : BuildingVisual
                 kbac.Play(animation);
         }
     }
-    internal override void MoveVisualizerCore(int cellParam, bool forceRedraw, bool applyColor)
+    internal override void MoveVisualizerCore(int cellParam, bool forceRedraw, bool applyColor, bool moveTransform = true)
     {
         if (cellParam != cell || forceRedraw)
         {
             ///see BuildingVisual.usesSharedVisualizer - normally false here (a utility preview
-            ///renders, so it keeps its own clone), guarded for consistency.
-            if (!usesSharedVisualizer)
+            ///renders, so it keeps its own clone), guarded for consistency. moveTransform is false
+            ///when the shared parent has already carried this visual to its new cell.
+            if (moveTransform && !usesSharedVisualizer)
                 Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, Grid.SceneLayer.Building));
             cell = cellParam;
             if (applyColor)

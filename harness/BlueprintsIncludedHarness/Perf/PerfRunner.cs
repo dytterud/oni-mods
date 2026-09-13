@@ -220,6 +220,7 @@ internal static class PerfRunner
         }
 
         yield return RunCreateSweep(report, log, x0, y0 + useRows, Math.Max(0, regionRows - useRows));
+        yield return RunUpdateVisualDenseSweep(report, log);
     }
 
     /// <summary>
@@ -317,6 +318,11 @@ internal static class PerfRunner
     /// representative "capture an existing base" scenario (as opposed to placement's still-pending
     /// orders, which would also capture but aren't what a player is usually blueprinting).
     /// </summary>
+    /// <summary>The largest rectangle of real finished tiles <see cref="RunCreateSweep"/> managed to
+    /// build, for <see cref="RunUpdateVisualDenseSweep"/> to drag a blueprint across. Null if create
+    /// was skipped for want of region.</summary>
+    private static (int X0, int Y0, int N)? denseTileField;
+
     private static IEnumerator RunCreateSweep(PerfReport report, HarnessLog log, int x0, int y0, int availableRows)
     {
         var def = Assets.GetBuildingDef("Tile");
@@ -347,6 +353,9 @@ internal static class PerfRunner
                     yield return null; // spread a few thousand Instantiate calls across frames
             }
             log.Line($"create N={n}: built {built}/{n} finished buildings");
+            // Sizes ascend, so the last one that fits is the biggest field available to drag over.
+            if (built == n)
+                denseTileField = (x0, rectY0, n);
 
             // CreateBlueprint's convention: topLeft = (minX, maxY), bottomRight = (maxX, minY) -
             // same as FixtureLayout.CaptureRect.
@@ -360,6 +369,56 @@ internal static class PerfRunner
                 () => { lastCaptured = BlueprintState.CreateBlueprint(topLeft, bottomRight, filter: null); });
             log.Line($"  create-N{n}: captured {lastCaptured?.BuildingConfigurations.Count ?? -1} building(s) (expected {n})");
         }
+    }
+
+    /// <summary>
+    /// The same per-frame drag as <see cref="RunUpdateVisualSweep"/>, but over a field of <b>real
+    /// finished tiles</b> instead of empty dug-out space - reusing the rectangle
+    /// <see cref="RunCreateSweep"/> just built, so it costs no extra region.
+    ///
+    /// Why it exists: every number behind the tile-renderer work in docs §7 came from a drag across
+    /// empty space, where <c>RefreshCellInternal</c> is at its cheapest - it looks up
+    /// <c>Grid.Objects[cell, layer]</c>, finds nothing, and skips the
+    /// <c>KAnimGraphTileVisualizer.Refresh()</c> entirely. Over real tiles that component exists and
+    /// actually runs, which is both the realistic case (players drag blueprints over their base, not
+    /// over vacuum) and the case the refresh batching was supposed to help. §7 names this run as the
+    /// one that should decide whether that batching earns its keep.
+    ///
+    /// Reported as <c>update-visual-tile-dense</c>, directly comparable with
+    /// <c>update-visual-tile</c> at the same N in the same run.
+    /// </summary>
+    private static IEnumerator RunUpdateVisualDenseSweep(PerfReport report, HarnessLog log)
+    {
+        if (denseTileField is not var (x0, y0, n))
+        {
+            log.Line("update-visual-dense: no finished-tile field was built (create sweep skipped) - skipping");
+            yield break;
+        }
+
+        var origin = new Vector2I(x0, y0);
+        int solid = 0;
+        for (int i = 0; i < n; i++)
+        {
+            int cell = Grid.XYToCell(x0 + i % PlacementRowWidth, y0 + i / PlacementRowWidth);
+            if (Grid.IsValidCell(cell) && Grid.Objects[cell, (int)ObjectLayer.FoundationTile] != null)
+                solid++;
+        }
+        // The whole point is that the cells underneath are occupied - if they are not, this sweep is
+        // measuring the same thing as the sparse one and its comparison is meaningless.
+        log.Line($"update-visual-dense [tile] N={n}: {solid}/{n} cells carry a finished tile");
+
+        var bp = SyntheticBlueprint.Build(n, "Tile", $"PerfUpdateVisualDense{n}");
+        BlueprintState.VisualizeBlueprint(origin, bp);
+        log.Line($"  visuals: {VisualCounts()}");
+
+        int step = 0;
+        var cursor = origin;
+        yield return TimeOp(report, log, "update-visual-tile-dense", n,
+            warmup: UpdateVisualWarmup, iterations: UpdateVisualIterations,
+            setup: () => cursor = new Vector2I(origin.x + (step++ % 2), origin.y),
+            body: () => BlueprintState.UpdateVisual(BlueprintState.PlayerId_DefaultTilePreviews, cursor, forcingRedraw: false));
+
+        BlueprintState.ClearVisuals();
     }
 
     private static int RowsFor(int n) => (n + PlacementRowWidth - 1) / PlacementRowWidth;

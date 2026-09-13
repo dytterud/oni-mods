@@ -82,13 +82,13 @@ public class TileVisual : BuildingVisual, ICleanableVisual
         }
     }
 
-    internal override void MoveVisualizerCore(int cellParam, bool forceRedraw, bool applyColor)
+    internal override void MoveVisualizerCore(int cellParam, bool forceRedraw, bool applyColor, bool moveTransform = true)
     {
         if (cellParam != cell || forceRedraw)
         {
             ///see BuildingVisual.usesSharedVisualizer - a shared placeholder is never rendered or
             ///read by position, so moving it would only stomp on other tiles sharing it.
-            if (!usesSharedVisualizer)
+            if (moveTransform && !usesSharedVisualizer)
                 Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, BuildingDef.SceneLayer));
             UpdateGrid(cellParam);
             if (applyColor)
@@ -109,9 +109,17 @@ public class TileVisual : BuildingVisual, ICleanableVisual
 
             if (ActiveTileVisuals[_playerId].TryGetValue(DirtyCell, out var vis) && vis == this.BuildingDef)
             {
-                CustomTileRenderer.RemoveTileBlock(_playerId, BuildingDef, false, SimHashes.Void, DirtyCell);
+                ///inside a batch the renderer only wants to know the cell changed: it compares the
+                ///cell's before/after def when the batch flushes, so an unseat that a neighbour's
+                ///reseat immediately undoes - every interior cell of a blueprint that just moved -
+                ///costs nothing at all. Outside one, this is the original immediate path.
+                bool deferred = CustomTileRenderer.NoteCellChanged(_playerId, DirtyCell, BuildingDef);
                 ActiveTileVisuals[_playerId].Remove(DirtyCell);
-                CustomTileRenderer.RefreshCell(_playerId, DirtyCell, BuildingDef.TileLayer, BuildingDef.ReplacementLayer);
+                if (!deferred)
+                {
+                    CustomTileRenderer.RemoveTileBlock(_playerId, BuildingDef, false, SimHashes.Void, DirtyCell);
+                    CustomTileRenderer.RefreshCell(_playerId, DirtyCell, BuildingDef.TileLayer, BuildingDef.ReplacementLayer);
+                }
             }
         }
         DirtyCell = -1;
@@ -139,9 +147,14 @@ public class TileVisual : BuildingVisual, ICleanableVisual
                 return;
             }
             //bool replacing = hasReplacementLayer && CanReplace(cell);
-            CustomTileRenderer.AddTileBlock(_playerId, LayerMask.NameToLayer("Overlay"), BuildingDef, false, SimHashes.Void, cellParam);
+            ///see Clean(): deferred inside a batch, immediate outside one.
+            bool deferred = CustomTileRenderer.NoteCellChanged(_playerId, cellParam, defBefore: null);
             ActiveTileVisuals[_playerId][cellParam] = this.BuildingDef;
-            CustomTileRenderer.RefreshCell(_playerId, cellParam, BuildingDef.TileLayer, BuildingDef.ReplacementLayer);
+            if (!deferred)
+            {
+                CustomTileRenderer.AddTileBlock(_playerId, LayerMask.NameToLayer("Overlay"), BuildingDef, false, SimHashes.Void, cellParam);
+                CustomTileRenderer.RefreshCell(_playerId, cellParam, BuildingDef.TileLayer, BuildingDef.ReplacementLayer);
+            }
             DirtyCell = cellParam;
             seated = true;
         }

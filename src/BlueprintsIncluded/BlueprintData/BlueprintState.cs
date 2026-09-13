@@ -120,6 +120,7 @@ public static class BlueprintState
         FoundationVisuals.Remove(id);
         DependentVisuals.Remove(id);
         CleanableVisuals.Remove(id);
+        BuildingVisual.DestroyVisualRoot(id);
         ColoredCells.Remove(id);
         PlayerColorsCached.Remove(id);
     }
@@ -652,6 +653,7 @@ public static class BlueprintState
         if (transformData.lastBlueprintPos == origin && !forcingRedraw)
             return;
 
+        var previousOrigin = transformData.lastBlueprintPos;
         transformData.lastBlueprintPos = origin;
         ///every tile in the blueprint unseats itself here and re-seats one cell over below, and
         ///each of those dirties a five-cell cross of tile art. Batched, the overlapping crosses
@@ -673,6 +675,13 @@ public static class BlueprintState
             ///early-return would not suppress.
             bool applyRotation = forcingRedraw || !transformData.RotationMatchesLastApplied();
 
+            ///a plain cursor move translates every visual by the same delta, so it is one write to
+            ///the shared parent instead of one per visual (BuildingVisual.TryTranslateRoot). A
+            ///rotation or flip changes the offsets themselves, and a forced redraw cannot assume the
+            ///previous origin means anything - both fall back to positioning each visual.
+            bool translateOnly = !applyRotation
+                && BuildingVisual.TryTranslateRoot(playerId, new Vector2I(origin.x - previousOrigin.x, origin.y - previousOrigin.y));
+
             var foundationVisuals = FoundationVisuals[playerId];
             var dependentVisuals = DependentVisuals[playerId];
 
@@ -685,7 +694,7 @@ public static class BlueprintState
                 for (int i = 0; i < foundationVisuals.Count; i++)
                 {
                     var foundationVisual = foundationVisuals[i];
-                    transformData.ApplyRotatedCellAndMove(origin, foundationVisual, forcingRedraw, applyRotation, applyColor: true);
+                    transformData.ApplyRotatedCellAndMove(origin, foundationVisual, forcingRedraw, applyRotation, applyColor: true, moveTransform: !translateOnly);
                     StoreOccupiedArea(playerId, foundationVisual);
                 }
                 ///the RefreshColor pass below exists because a visual's colour depends on occupancy,
@@ -697,7 +706,7 @@ public static class BlueprintState
                 for (int i = 0; i < dependentVisuals.Count; i++)
                 {
                     var dependentVisual = dependentVisuals[i];
-                    transformData.ApplyRotatedCellAndMove(origin, dependentVisual, forcingRedraw, applyRotation, applyColor: false);
+                    transformData.ApplyRotatedCellAndMove(origin, dependentVisual, forcingRedraw, applyRotation, applyColor: false, moveTransform: !translateOnly);
                     StoreOccupiedArea(playerId, dependentVisual);
                 }
                 for (int i = 0; i < dependentVisuals.Count; i++)
@@ -747,6 +756,10 @@ public static class BlueprintState
             ///already unregistered themselves from the renderer.
             CleanableVisuals[playerId].Clear();
 
+            ///see CleanDirtyVisuals: the colour cache outlives a single update, but not the
+            ///blueprint it describes.
+            ColoredCells[playerId].Clear();
+
             ClearOccupiedCells(playerId);
 
             if (LocalPlayerId(playerId))
@@ -787,15 +800,21 @@ public static class BlueprintState
         }
     }
 
+    /// <summary>
+    /// <c>ColoredCells</c> is deliberately <b>not</b> cleared here, only in <see cref="ClearVisuals"/>.
+    /// It is the cache <c>VisualsUtilities.SetTileColor</c> compares against to decide whether a
+    /// cell's art needs refreshing, so wiping it every update made every tile's colour look changed
+    /// and re-dirtied a five-cell cross per tile per cursor move - which is the same O(N) churn the
+    /// renderer-side reconciliation removes, arriving by a different route. Keeping it means a tile
+    /// that lands on a cell already showing that colour costs nothing.
+    ///
+    /// Stale entries for cells the blueprint has moved off are harmless: <c>GetCachedCellColor</c>
+    /// is only consulted for cells that carry a tile block, and a later tile landing on one compares
+    /// against it correctly. They are bounded by clearing on <see cref="ClearVisuals"/>, i.e. once
+    /// per blueprint put down.
+    /// </summary>
     public static void CleanDirtyVisuals(ulong playerId)
     {
-        var coloredCells = ColoredCells[playerId];
-        //foreach (int cell in coloredCells.Keys)
-        //{
-        //	CustomTileRenderer.RefreshCell(playerId, cell, ObjectLayer.FoundationTile);
-        //}
-
-        coloredCells.Clear();
         CleanableVisuals[playerId].ForEach(cleanableVisual => cleanableVisual.Clean());
     }
     #endregion
@@ -981,14 +1000,16 @@ public static class BlueprintState
         /// <param name="applyColor">false when a RefreshColor pass follows and would only recompute
         /// what this call produced. Only honoured for BuildingVisual; the other IVisual
         /// implementations do not colour on move at all.</param>
-        internal void ApplyRotatedCellAndMove(Vector2I origin, IVisual bpEntryVis, bool forcingRedraw, bool applyRotation, bool applyColor)
+        internal void ApplyRotatedCellAndMove(Vector2I origin, IVisual bpEntryVis, bool forcingRedraw, bool applyRotation, bool applyColor, bool moveTransform = true)
         {
             if (applyRotation)
                 bpEntryVis.ApplyRotation(BlueprintOrientation, FlippedX, FlippedY);
 
             int cell = GetRotatedCell(origin, bpEntryVis);
-            if (!applyColor && bpEntryVis is BuildingVisual buildingVisual)
-                buildingVisual.MoveVisualizerCore(cell, forcingRedraw, applyColor: false);
+            ///only a BuildingVisual's transform hangs off the shared root, so only it can skip the
+            ///per-visual write; DigVisual and the note visuals position themselves as before.
+            if (bpEntryVis is BuildingVisual buildingVisual)
+                buildingVisual.MoveVisualizerCore(cell, forcingRedraw, applyColor, moveTransform);
             else
                 bpEntryVis.MoveVisualizer(cell, forcingRedraw);
         }

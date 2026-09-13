@@ -1050,16 +1050,41 @@ of once per neighbour that moved past it. Batches wrap `UpdateVisual`, `ClearVis
 | `BlockTileRenderer.Rebuild` | 3,055,012 | 369,852 (−88%) |
 | `AddTileBlock` / `RemoveTileBlock` | 150,000 | 150,000 (unchanged by design) |
 
-**And it bought ~nothing.** `update-visual-tile` N=2000 went 23.26 → 22.76 ms (−2%) and its
-allocation 2,444 → 2,448 KB — both inside the ±10% noise floor. Removing 2.7M calls saved half a
-millisecond, because those calls were individually trivial. **The estimate that the fan-out was
-"about half the frame" was wrong, and the measurement is what says so** — recorded here because the
-next person to read that floor pointer deserves to know it was chased and came back empty.
+**First measurement: it bought ~nothing.** `update-visual-tile` N=2000 went 23.26 → 22.76 ms (−2%),
+allocation 2,444 → 2,448 KB — both inside the ±10% noise floor. It was kept anyway, on the argument
+that the fixture's tiles sit in dug-out space where a `Rebuild` is at its cheapest, with a note that
+the measurement to run before re-litigating it was a drag across *existing* tiles.
 
-Kept anyway, deliberately: it provably removes redundant work, and the fixture's tiles sit in dug-out
-space where a `Rebuild` is at its cheapest — a dense colony need not be so forgiving. If it ever
-needs re-litigating, the measurement to run first is a drag across *existing* tiles rather than
-empty space.
+**That measurement was then run, and it reverses the verdict: the batching is worth 25-31%.**
+Interleaved arms (a temporary `PerfSwitches.RefreshBatching` flipped every iteration — the method
+this section prescribes; scaffolding since deleted), one run:
+
+| drag | batch on | batch off | |
+|---|---:|---:|---|
+| empty space, N=1000 | 8.57 ms | 11.38 ms | **−24.7%** |
+| empty space, N=2000 | 15.41 ms | 20.91 ms | **−26.3%** |
+| over real finished tiles, N=1000 | 8.91 ms | 12.89 ms | **−30.8%** |
+
+Allocation is identical between arms (732 vs 736 KB at N=2000), confirming the refresh path is not
+where the per-frame garbage comes from.
+
+**Why the first measurement missed it — the lesson worth keeping.** The −2% sweep dragged a blueprint
+across *vacuum*. `RefreshCellInternal` looks up `Grid.Objects[cell, layer]`, finds nothing, and
+returns before reaching the `KAnimGraphTileVisualizer.Refresh()` that makes a refresh expensive: the
+2.7M eliminated calls were each nearly free. The A/B above ran after the `use` and `create` sweeps
+had left real build orders and finished tiles in those cells, so each surviving refresh does real
+work and cutting 9× of them pays. **The batching's value scales with how occupied the cells under the
+cursor are** — ~0 in empty space, ~30% over a real base, which is where players actually drag
+blueprints. A per-frame optimisation measured over empty terrain is measured in the one condition
+that cannot show it working.
+
+`update-visual-tile-dense` is a permanent sweep for exactly this reason (it reuses the finished tiles
+`create` already built, so it costs no extra region). Note it is *cheaper* than the sparse drag —
+8.91 vs 11.70 ms at N=1000, 80 vs 596 KB — because over an identical finished tile
+`SameBuildingAlreadyFinishedInPlace` short-circuits `GetVisualizerColor` before it reaches
+`ValidCell`. So the expensive per-frame case is **empty space**, where the game is asked whether a
+cell nobody occupies is a legal build location; the dense drag is the cheap one. Dense-vs-sparse is
+therefore not a single-variable comparison — only the interleaved A/B isolates the batching.
 
 **Where the per-frame time actually is**, from the same run: tiles cost ~11.4 µs/visual/frame,
 dependents ~6.1 µs. The ~6 µs both pay is `Visualizer.transform.SetPosition` (a native Unity write
@@ -1104,16 +1129,90 @@ hoisting it out of the loop would buy nothing.
 > measured delta. Compare attribution allocation only with another attribution run, and take
 > frame-level allocation from a normal `-Perf` run.
 
-**Three levers left, none of them small:**
+### Delta-seating the tiles — the tile surcharge is gone
 
-1. **One shared parent transform.** Positioning is O(N) only because each visualizer is moved
-   independently; parenting the non-tile visualizers under one GameObject would make a cursor move
-   one transform write. Tiles still need per-cell seating, and colour still needs per-visual
-   evaluation — but only when a cell's validity actually changes.
-2. **Delta-seat the tiles.** `ActiveTileVisuals` maps cell → `BuildingDef`, not cell → instance, so
-   when a solid blueprint translates by one cell the interior entries are already correct and only
-   the leading and trailing edges change. Diffing the desired map against the current one would make
-   renderer work O(perimeter) instead of O(N). Bounded by the ~5.3 µs tile surcharge.
+Lever 2 below, implemented. Two changes, because either one alone would have been cancelled out by
+the other:
+
+1. **The renderer reconciles instead of unseat-then-reseat.** `TileVisual` now tells
+   `CustomTileRenderer.NoteCellChanged` *that* a cell changed (recording what it held at first touch)
+   and updates `ActiveTileVisuals` eagerly; the batch flush compares each touched cell's before/after
+   def and only then removes/adds blocks and dirties crosses. On a cursor move every interior cell of
+   a translating blueprint is vacated by one tile and re-filled by its neighbour **with the same
+   def** — before == after, so it costs nothing. Only the leading and trailing edges do work.
+   O(N) → O(perimeter). Outside a batch the original immediate path is unchanged.
+2. **The colour cache outlives one update.** `CleanDirtyVisuals` was wiping `ColoredCells` every
+   frame, which made every tile's colour look changed to `VisualsUtilities.SetTileColor` and
+   re-dirtied a five-cell cross per tile per move — the same O(N) churn arriving by a different
+   route, and enough to cancel fix 1 completely. It is now cleared in `ClearVisuals` instead, i.e.
+   once per blueprint put down. Stale entries are harmless: `GetCachedCellColor` is only consulted
+   for cells that carry a tile block.
+
+| sweep | before | after | |
+|---|---:|---:|---|
+| `update-visual-tile` N=1000 | 11.70 ms / 596 KB | **6.86 ms / 68 KB** | −41% |
+| `update-visual-tile` N=2000 | 21.38 ms / 1,312 KB | **11.76 ms / 132 KB** | −45% time, −90% alloc |
+| `update-visual-tile-dense` N=1000 | 8.91 ms / 80 KB | **4.87 ms / ~0 KB** | −45% |
+| `visualize` N=2000 | 68.19 ms / 5,108 KB | **46.19 ms / 476 KB** | −32% time, −91% alloc |
+| `update-visual-ladder` N=2000 (control) | 11.82 ms | 11.89 ms | +1%, unchanged |
+
+The decisive pair is the last two rows: tiles now cost **11.76 ms against dependents' 11.89 ms** at
+the same N. The ~5.3 µs/visual tile surcharge that every measurement above carried is gone — tiles
+became as cheap as visuals that never touch the tile renderer at all, which is what "interior cells
+do nothing" predicts. The unchanged ladder control rules out a machine-wide drift.
+
+**What guards it:** `tile-seating-map-tracks-the-drag` (12th regression case) drags a 3x3 tile
+blueprint — the smallest footprint that *has* an interior cell — one cell at a time and then further
+than its own width, asserting after each step that every footprint cell is seated with the right def,
+that **the ring just outside it is empty** (the assertion that catches a tile left behind), and that
+nothing is seated after `ClearVisuals`. The map is the assertable half; whether the tile *art* looks
+right while dragging is a human judgement and belongs to the
+[smoke-test checklist](smoke-test-checklist.md). That case failed on its first run (`6/9 seated,
+3 stray`) because the default `BottomCenter` anchor shifts a 3-wide blueprint one cell in x — the
+case now pins `_state` to `BottomLeft`, the same reflection `PerfRunner` uses.
+
+### The shared parent transform — 3-5%, not the headline it was billed as
+
+Lever 1, implemented. Every anim-backed visualizer is parented to one root per player
+(`BuildingVisual.VisualRoots`); a plain cursor move translates **the root once** and passes
+`moveTransform: false` down, so each visual still updates its cell for validity and colour but writes
+no transform. Rotation and flip change the offsets themselves and fall back to per-visual writes,
+gated by the `applyRotation` flag that already existed. Visuals on the shared placeholder are never
+parented (nothing reads their position, and moving one would drag every tile sharing it), and
+`DigVisual` / the note visuals are not `BuildingVisual`s, so they position themselves as before.
+
+Interleaved A/B, one run:
+
+| | on | off | |
+|---|---:|---:|---|
+| `shared-parent-ladder` N=2000 (anim-backed, parented) | 7.30 ms | 7.67 ms | **−4.7%** |
+| `shared-parent-ladder` N=1000 | 4.62 ms | 4.78 ms | **−3.3%** |
+| `shared-parent-tile` N=2000 (control — shared placeholder, no transform) | 6.98 ms | 6.94 ms | +0.6% |
+| `shared-parent-tile` N=1000 | 4.45 ms | 4.45 ms | +0.1% |
+
+**A between-run pair had read −11% / −9% for ladder and −6% for tile. The interleaved arms put the
+real figures at −4.7% / −3.3% and the tile control at zero** — so most of that apparent win, and all
+of the tile's, was drift. This is the third change in this section predicted to be large that
+measured small (the refresh batching read as nothing and was worth 25-31%; the colour path's
+allocation was an instrumentation artifact), and the only reason any of the three is stated correctly
+here is that the number was checked rather than reasoned about.
+
+Why it is small: N `SetPosition` calls were never the bottleneck. Unity still propagates the parent's
+move to N children in native code, so the saving is the managed interop, not the work. The dominant
+per-visual cost is the colour evaluation.
+
+**What guards it:** `preview-follows-the-cursor` (13th case) drags a 3-tall `Ladder` blueprint —
+whose preview carries a `KBatchedAnimController`, so it is parented and rendered from its transform —
+and asserts every visualizer's **world position** moved by exactly the drag distance. Asserting the
+cell field instead would have passed even with the art frozen, since the cell updates either way. The
+open question this answers is whether a `KBatchedAnimController` notices a *parent* move at all: it
+caches its position for the anim batch, and if it did not, previews would render at stale positions
+while every other assertion still passed. It does, confirmed by the assertion and by the screenshots
+either side.
+
+**One lever left:**
+
+1. ~~**One shared parent transform.**~~ Done, above.
 3. ~~**The colour path.**~~ **Tried and rejected** — see *The colour path, measured properly* above.
    Its allocation was an instrumentation artifact, and a drag gives every visual a new cell each
    frame, so there is nothing safe to cache. What is left there is Klei's `IsValidPlaceLocation`
@@ -1182,17 +1281,32 @@ hoisting it out of the loop would buy nothing.
       than left in hopefully. See §7 **Allocation**.
 - [x] Tile-renderer follow-up: found and fixed a real leak (`CleanableVisuals` never cleared - every
       `TileVisual` ever drawn stayed reachable and was walked on every cursor move, 8.0M `Clean()`
-      calls against 150k real re-seats), and batched the refresh fan-out (-89% `RefreshCellInternal`)
-      for **no measurable frame-time gain** - a negative result, recorded as one. 11/11 green.
-      See §7 *The tile-renderer follow-up*.
-- [ ] **Next for per-frame cost** — the levers are measured and ranked in §7 *Three levers left*.
-      Only the first changes the asymptotics:
-      1. one shared parent transform (cursor move becomes one transform write, not N);
-      2. delta-seat the tiles (renderer work O(perimeter) instead of O(N), bounded by the ~5.3 µs
-         per-tile surcharge).
-      The third (skip `GetVisualizerColor`) was **tried and rejected**: the ~460 KB/frame that
-      motivated it turned out to be the harness's own `Stopwatch` allocations, and a drag gives every
-      visual a new cell each frame so there is nothing safe to cache. See §7.
+      calls against 150k real re-seats), and batched the refresh fan-out (-89% `RefreshCellInternal`).
+      The batching first measured as a null result over empty terrain; an interleaved A/B over
+      occupied cells put it at **-25 to -31%**, because a refresh of an empty cell is nearly free.
+      11/11 green. See §7 *The tile-renderer follow-up*.
+- [x] `update-visual-tile-dense`: a permanent drag sweep over real finished tiles (reuses the
+      rectangle `create` builds, so it costs no extra region). Added because every tile-renderer
+      number before it came from a drag across empty dug-out space - the one condition in which the
+      refresh work being optimised does not happen.
+- [x] Delta-seat the tiles: the per-frame path no longer unseats and re-seats every tile, it records
+      which cells changed and reconciles them at the batch flush, and the colour cache now outlives a
+      single update. `update-visual-tile` N=2000 **21.38 -> 11.76 ms and 1,312 -> 132 KB/frame**; the
+      tile surcharge over dependents is gone entirely (11.76 vs 11.89 ms). Guarded by a new
+      `tile-seating-map-tracks-the-drag` case; 12/12 green. See §7 *Delta-seating the tiles*.
+- [x] Shared parent transform: every anim-backed visualizer is parented to one root per player, so
+      a plain cursor move is one transform write instead of N. Interleaved A/B: **−4.7% / −3.3%** on
+      anim-backed visuals, ~0 on the tile control (a between-run pair had read −11%, nearly all
+      drift). Guarded by `preview-follows-the-cursor`, which asserts world positions rather than
+      cells — a `KBatchedAnimController` caches its position for the anim batch, and whether it
+      notices a *parent* move was the one thing no other assertion could reach. See §7.
+- [ ] **Per-frame cost from here.** All three levers are done or rejected; the path is no longer
+      obvious, so measure before choosing. What the numbers now say: the dominant per-visual cost is
+      the colour evaluation, and the expensive case is a drag over **empty space**, where
+      `ValidCell` → Klei's `IsValidPlaceLocation` asks whether a cell nobody occupies is a legal
+      build location. Caching that needs an invalidation condition nobody has found a safe one for
+      (§7, *The colour path*) — the remaining idea is to reimplement the parts of the game's validity
+      rules that apply to a 1x1 tile, which is a correctness risk, not a perf trick.
 - [ ] Optional follow-ups: more building types / layers, place-with-settings applied to the built
       object, replacement visualizers over occupied terrain, a committed perf baseline + diff.
 - [ ] `run-ingame.ps1` currently removes the dev `Blueprints Expanded` (`mods/dev/BlueprintsV2`)

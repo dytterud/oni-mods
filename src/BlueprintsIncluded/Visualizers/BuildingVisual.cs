@@ -85,6 +85,55 @@ public class BuildingVisual : IVisual
         return placeholder;
     }
 
+    /// <summary>
+    /// One parent per player for every visualizer that actually carries a transform, so a cursor
+    /// move can be <b>one</b> transform write instead of N.
+    ///
+    /// A drag only ever translates the blueprint: each visual keeps the same offset from the origin,
+    /// so moving the shared parent by the origin's delta moves all of them correctly and each child
+    /// keeps its own local position (including the per-def z from <c>SceneLayer</c>). Rotation and
+    /// flip are the exception - they change the offsets themselves - and fall back to positioning
+    /// each visual, which is what <c>applyRotation</c> already gates in <c>UpdateVisual</c>.
+    ///
+    /// Visuals on the shared placeholder (<see cref="usesSharedVisualizer"/>) are never parented:
+    /// nothing reads their position, and moving one would drag every other tile sharing it.
+    /// </summary>
+    private static readonly Dictionary<ulong, GameObject> VisualRoots = new();
+
+    private static GameObject GetVisualRoot(ulong playerId)
+    {
+        if (VisualRoots.TryGetValue(playerId, out var existing) && existing != null)
+            return existing;
+
+        var root = new GameObject($"BlueprintsIncludedVisualRoot_{playerId}");
+        root.transform.SetPosition(Vector3.zero);
+        VisualRoots[playerId] = root;
+        return root;
+    }
+
+    /// <summary>
+    /// Shifts the whole preview by <paramref name="cellDelta"/> cells (one cell is one world unit),
+    /// returning false when there is no root to move - in which case the caller positions each
+    /// visual itself, exactly as before. Called once per update instead of N times.
+    /// </summary>
+    internal static bool TryTranslateRoot(ulong playerId, Vector2I cellDelta)
+    {
+        if (!VisualRoots.TryGetValue(playerId, out var root) || root == null)
+            return false;
+
+        if (cellDelta.x != 0 || cellDelta.y != 0)
+            root.transform.SetPosition(root.transform.GetPosition() + new Vector3(cellDelta.x, cellDelta.y, 0f));
+        return true;
+    }
+
+    /// <summary>Drops a player's root (the visuals under it are destroyed by the caller).</summary>
+    internal static void DestroyVisualRoot(ulong playerId)
+    {
+        if (VisualRoots.TryGetValue(playerId, out var root) && root != null)
+            UnityEngine.Object.Destroy(root);
+        VisualRoots.Remove(playerId);
+    }
+
     public BuildingVisual(BuildingConfig buildingConfig, int cell, ulong playerId)
     {
         this._playerId = playerId;
@@ -143,6 +192,10 @@ public class BuildingVisual : IVisual
         {
             Visualizer.SetLayerRecursively(LayerMask.NameToLayer("Place"));
         }
+        ///parented after activation and after Play: the batch a controller lands in is chosen on
+        ///registration, and worldPositionStays keeps the position it was just given.
+        Visualizer.transform.SetParent(GetVisualRoot(_playerId).transform, worldPositionStays: true);
+
         ApplyColorIfChanged(cell);
         UpdateRequirementsState();
     }
@@ -165,13 +218,16 @@ public class BuildingVisual : IVisual
     /// immediately overwrites is the single most expensive redundancy in the per-frame update
     /// (see BlueprintState.UpdateVisual). Kept off the public <see cref="IVisual"/> surface so the
     /// interface other mods implement does not change shape.</summary>
-    internal virtual void MoveVisualizerCore(int cellParam, bool forceRedraw, bool applyColor)
+    /// <param name="moveTransform">false when the shared parent has already been translated for this
+    /// update (see <see cref="TryTranslateRoot"/>) and writing each visual's position again would
+    /// only recompute what the parent move already did.</param>
+    internal virtual void MoveVisualizerCore(int cellParam, bool forceRedraw, bool applyColor, bool moveTransform = true)
     {
         if (cell != cellParam || forceRedraw)
         {
             ///a shared placeholder renders nothing and nothing reads its position, so moving it
             ///would just be one visual stomping on another's.
-            if (!usesSharedVisualizer)
+            if (moveTransform && !usesSharedVisualizer)
                 Visualizer.transform.SetPosition(Grid.CellToPosCBC(cellParam, BuildingDef.SceneLayer));
             if (applyColor)
                 ApplyColorIfChanged(cellParam);
