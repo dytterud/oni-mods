@@ -1,7 +1,7 @@
 # Manual smoke-test checklist
 
 The mod has no automated end-to-end coverage — it needs a running game, and the
-meaningful pipeline tests are `[RequiresGameInstall]` (see [test/README.md](../test/README.md)).
+meaningful pipeline tests are `[RequiresGameInstall]` (see [test/README.md](../../test/README.md)).
 Run this pass in-game after any change that touches blueprint data, the tools, the
 visualizers, or the UI (e.g. every commit of the nullable / language-modernization work).
 
@@ -9,7 +9,7 @@ Automating this pass is possible but not yet built — see
 [in-game-regression-testing.md](in-game-regression-testing.md).
 
 Build a Debug mod (`-c Debug`, real install configured via `Directory.Build.props.user` —
-see [README.md](../README.md)), launch ONI, load or start a colony.
+see [README.md](../../README.md)), launch ONI, load or start a colony.
 
 ## 1. Create
 

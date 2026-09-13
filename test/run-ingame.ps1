@@ -6,7 +6,7 @@
 
 .DESCRIPTION
   Requires a real ONI install configured via Directory.Build.props.user (GameLibsFolder + ModFolder).
-  See docs/in-game-regression-testing.md and harness/README.md.
+  See docs/blueprints-included/in-game-regression-testing.md and harness/README.md.
 
   Patches mods.json for the run (restored afterward): enables BlueprintsIncluded + the harness in
   load order, and disables the upstream "Blueprints Expanded" so its patches don't collide.
@@ -89,7 +89,7 @@ if (-not $SkipBuild) {
     Get-Process OxygenNotIncluded -ErrorAction SilentlyContinue | Stop-Process -Force
 
     Write-Host '==> building BlueprintsIncluded (Debug -> mods/dev)'
-    dotnet build (Join-Path $repo 'BlueprintsIncluded.slnx') -c Debug --nologo
+    dotnet build (Join-Path $repo 'OniMods.slnx') -c Debug --nologo
     if ($LASTEXITCODE) { throw 'mod build failed' }
 
     Write-Host '==> building harness (Debug -> mods/dev)'

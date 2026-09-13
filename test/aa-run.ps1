@@ -5,7 +5,7 @@
 .DESCRIPTION
   There is no code change between the two passes, so every difference it reports is
   harness/machine noise. That number is the floor a real perf delta has to beat before it means
-  anything - see docs/in-game-regression-testing.md, "A/A noise measurement".
+  anything - see docs/blueprints-included/in-game-regression-testing.md, "A/A noise measurement".
 
   Worth re-running whenever the machine, the ONI version or the sweep's iteration counts change;
   the noise floor is a property of all three, and a stale one is worse than none.

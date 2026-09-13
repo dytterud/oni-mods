@@ -1,4 +1,4 @@
-﻿# Upstream sync — tracking BlueprintsV2 upstream
+# Upstream sync — tracking BlueprintsV2 upstream
 
 This mod is a standalone fork of **Blueprints Expanded** by SGT_Imalas. Upstream keeps
 developing, and nothing that happens there is visible here unless someone looks — not the fixes
@@ -77,7 +77,7 @@ upstream HEAD:
 - **`UtilLibs`** — 125/129 identical, **0 missing** *at the time of the backfill*. The four:
   two post-fork commits already triaged, `UtilLibs.csproj` (this fork's build config), and
   `UtilMethods.cs` (see below). **Most of those files were later pruned deliberately** — see
-  [pruned `UtilLibs` files](utillibs-pruned.md). A re-run of this comparison will therefore
+  [pruned `UtilLibs` files](../utillibs-pruned.md). A re-run of this comparison will therefore
   report them absent; that is the prune, not an incomplete import. Because none of the four
   divergent files were pruned, every pruned file was byte-identical to upstream when it went.
 - **`BlueprintsV2` C#** — 103/107 files present. The four absent are one genuinely unported
@@ -185,7 +185,7 @@ tree, and what porting it would cost here. "Upstream added a thing" is not enoug
   (`Directory.Build.targets`). Record the verdict and move on.
 - **Other mods in the monorepo** — outside both watched paths.
 - **`UtilLibs` changes this mod cannot reach** — either the file was
-  [pruned](utillibs-pruned.md) and is not in this tree at all, or it is present but
+  [pruned](../utillibs-pruned.md) and is not in this tree at all, or it is present but
   unreachable. See [the relevance filter](#the-utillibs-relevance-filter). That filter stays:
   `UtilLibs` serves every Imalas mod, so "flag everything" there would be mostly noise about
   helpers this mod never calls. The flag-everything rule is specific to `BlueprintsV2/`.
@@ -230,7 +230,7 @@ Test these **in order** — the first one that matches wins:
 
 | Reachability | Test | Action |
 |---|---|---|
-| **pruned** | the file's path appears in [`docs/utillibs-pruned.md`](utillibs-pruned.md) | verdict `pruned-helper`, no issue |
+| **pruned** | the file's path appears in [`docs/utillibs-pruned.md`](../utillibs-pruned.md) | verdict `pruned-helper`, no issue |
 | **direct** | changed type/member is referenced from `src/BlueprintsIncluded/` | triage normally |
 | **indirect** | referenced from a `src/UtilLibs/` file that is itself referenced from `src/BlueprintsIncluded/` (one hop) | triage normally, state the hop in the issue |
 | **none** | none of the above | verdict `unused-helper`, no issue |
@@ -266,7 +266,7 @@ behind.
   describes *the fix*, not a diff to merge.
 - **`UtilLibs` changes usually port close to verbatim.** `src/UtilLibs/` is deliberately kept
   near upstream: block-scoped namespaces, `ImplicitUsings` off, `Nullable` off. Respect those
-  conventions when porting — see [CLAUDE.md](../CLAUDE.md).
+  conventions when porting — see [CLAUDE.md](../../CLAUDE.md).
 
 ## Output
 
@@ -359,7 +359,7 @@ A **pull request** references its issue with `Closes #N` and does not repeat the
 — the issue holds that. It states which safety-bar clause it cleared and how that was checked
 (the blob SHA it matched, or the existing helper it reused), the build and test results, and an
 explicit list of what was **not** verified — in-game behaviour above all. It follows
-[the PR template](../.github/pull_request_template.md) and keeps the AI-assisted disclosure.
+[the PR template](../../.github/pull_request_template.md) and keeps the AI-assisted disclosure.
 
 Rules the scan follows for its own PRs:
 

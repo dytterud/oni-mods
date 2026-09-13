@@ -1,7 +1,7 @@
 ﻿# Feasibility: automated in-game regression tests
 
-**Status:** built and passing — see [`harness/`](../harness/README.md) and
-[`test/run-ingame.ps1`](../test/run-ingame.ps1). This doc records why it was built and how it works.
+**Status:** built and passing — see [`harness/`](../../harness/README.md) and
+[`test/run-ingame.ps1`](../../test/run-ingame.ps1). This doc records why it was built and how it works.
 §3 below is the original design sketch; the harness now covers that whole case table. §7 (perf mode)
 is also built, scoped so far to blueprint import. Decisions are in [§8](#8-decision-checklist).
 
@@ -36,27 +36,27 @@ Run it locally as a pre-release gate. Never wire it into CI.
 
 The committed `lib/*.dll` are refasmer **reference assemblies** — they compile but their
 method bodies throw. `GameAssemblies.Probe()` in
-[test/BlueprintsIncluded.Tests/GameAssemblies.cs](../test/BlueprintsIncluded.Tests/GameAssemblies.cs)
+[test/BlueprintsIncluded.Tests/GameAssemblies.cs](../../test/BlueprintsIncluded.Tests/GameAssemblies.cs)
 detects this and skips every `[RequiresGameInstall*]` test unless a real install is
 configured.
 
 Even with a real install's executable *publicised* DLLs on disk, the pipeline core stays
 out of reach in a plain test process:
 
-- [`BlueprintState.CreateBlueprint`](../src/BlueprintsIncluded/BlueprintData/BlueprintState.cs)
+- [`BlueprintState.CreateBlueprint`](../../src/BlueprintsIncluded/BlueprintData/BlueprintState.cs)
   walks `Grid.Objects` / `Grid.Element` / `Grid.Mass` / utility network managers — all
   populated only by a loaded colony + running sim.
 - `BuildingConfig.WriteJson`
-  ([BuildingConfig.cs](../src/BlueprintsIncluded/BlueprintData/BuildingConfig.cs))
+  ([BuildingConfig.cs](../../src/BlueprintsIncluded/BlueprintData/BuildingConfig.cs))
   early-returns unless `Assets.GetBuildingDef` resolves, which needs the building database
   built during colony load. This is exactly why
-  [BlueprintRoundTripTests.cs](../test/BlueprintsIncluded.Tests/BlueprintData/BlueprintRoundTripTests.cs)
+  [BlueprintRoundTripTests.cs](../../test/BlueprintsIncluded.Tests/BlueprintData/BlueprintRoundTripTests.cs)
   round-trips names / notes / dig locations / metadata but **not** `BuildingConfigurations`.
 - The visualizers instantiate `GameObject`s and query `Grid` per frame — pure Unity scene
   work.
 
 So the only way to exercise capture → serialize-with-real-defs → place → data-transfer is
-inside a booted player with a colony loaded. See also [test/README.md](../test/README.md)
+inside a booted player with a colony loaded. See also [test/README.md](../../test/README.md)
 and [smoke-test-checklist.md](smoke-test-checklist.md).
 
 ## 3. Proposed architecture
@@ -72,7 +72,7 @@ directly (project reference or a path reference to the built dll).
 - **Never** built in Release, never written to `Builds/` or deployed to Steam. Only an
   explicit `dotnet build -c Debug` copies it into `$(ModFolder)` next to the mod, reusing
   the existing `CopyModsToDevFolder` target and `Directory.Build.props.user` config from
-  [README.md](../README.md).
+  [README.md](../../README.md).
 - Because it references real mod types, an API change in `BlueprintsIncluded` breaks the
   harness at **compile time** rather than silently rotting — a feature.
 
@@ -165,28 +165,28 @@ it helped and didn't regress allocations.
 
 **Built so far: blueprint import.** Activated by the sentinel's first line (`perf` instead of
 `run`) or `BPI_HARNESS=perf` — see `HarnessGate.Mode` in
-[HarnessMod.cs](../harness/BlueprintsIncludedHarness/HarnessMod.cs). `test/run-ingame.ps1 -Perf`
+[HarnessMod.cs](../../harness/BlueprintsIncludedHarness/HarnessMod.cs). `test/run-ingame.ps1 -Perf`
 drives it. Instead of asserting, `PerfRunner`
-([harness/.../Perf/PerfRunner.cs](../harness/BlueprintsIncludedHarness/Perf/PerfRunner.cs)):
+([harness/.../Perf/PerfRunner.cs](../../harness/BlueprintsIncludedHarness/Perf/PerfRunner.cs)):
 
 1. Loads the fixture save (unchanged bootstrap), **pauses the sim**
    (`SpeedControlScreen.Instance.Pause`).
 2. Builds an N-building blueprint in code
-   ([SyntheticBlueprint.cs](../harness/BlueprintsIncludedHarness/Perf/SyntheticBlueprint.cs) —
+   ([SyntheticBlueprint.cs](../../harness/BlueprintsIncludedHarness/Perf/SyntheticBlueprint.cs) —
    single-ingredient raw-mineral `Tile`s, so nothing gets re-sanitized) for
    N = 100 / 500 / 1000 / 5000, and times two operations against its JSON: `deserialize`
    (`new Blueprint(sb)`) and `full-import` (the clipboard-minus-clipboard path,
    `ModAssets.TryImportBlueprintFromString`, reflected since it's `internal`), each with a
    warmup batch then timed iterations.
 3. Records per iteration: `Stopwatch` elapsed plus two allocation counters and a GC guard
-   ([AllocProbe.cs](../harness/BlueprintsIncludedHarness/Perf/AllocProbe.cs)) — see
+   ([AllocProbe.cs](../../harness/BlueprintsIncludedHarness/Perf/AllocProbe.cs)) — see
    **Allocation** below.
 4. Also Harmony-patches `BuildingConfig.SanitizeSelectedTags` and `ModAssets.GetValidMaterials`
-   ([PerfInstrumentation.cs](../harness/BlueprintsIncludedHarness/Perf/PerfInstrumentation.cs))
+   ([PerfInstrumentation.cs](../../harness/BlueprintsIncludedHarness/Perf/PerfInstrumentation.cs))
    to count calls + accumulate time, so the result directly attributes cost instead of leaving
    it to inference.
 5. Writes median / p95 / alloc-per-op plus the hotspot totals to `%TEMP%/bpi-harness/perf.json`
-   ([PerfWriter.cs](../harness/BlueprintsIncludedHarness/Perf/PerfWriter.cs)). No committed
+   ([PerfWriter.cs](../../harness/BlueprintsIncludedHarness/Perf/PerfWriter.cs)). No committed
    baseline / regression-diff yet — this is investigation, not a gate.
 
 ### Allocation
@@ -475,7 +475,7 @@ T2 + T3 show the answer tracks the *queried cell* while the object sits elsewher
 moving the object doesn't change it: **`IsValidPlaceLocation` never reads the source's transform.**
 It also tolerates a `null` source and an inactive one.
 
-**Implemented in [`BuildingVisual.cs`](../src/BlueprintsIncluded/Visualizers/BuildingVisual.cs).**
+**Implemented in [`BuildingVisual.cs`](../../src/BlueprintsIncluded/Visualizers/BuildingVisual.cs).**
 One lazily-created placeholder per `BuildingDef`, kept inactive, never moved and never destroyed,
 reused instead of cloning. Gated on *"the preview prefab has no `KBatchedAnimController`"* rather
 than on "is a tile" — a preview that can't render is safe to share by construction, and any def
@@ -504,7 +504,7 @@ kept identical call counts. The surviving `KInstantiate` calls got *dearer* per 
 The instrumentation also caught a real (if smaller) redundancy: `TileVisual.UpdateGrid` unregisters
 and re-registers a tile's mesh block (`CustomTileRenderer.AddTileBlock`/`RefreshCell`) on *every*
 forced redraw, even when the tile hasn't actually moved. Fixed in
-[`TileVisual.cs`](../src/BlueprintsIncluded/Visualizers/TileVisual.cs) by skipping that cycle when
+[`TileVisual.cs`](../../src/BlueprintsIncluded/Visualizers/TileVisual.cs) by skipping that cycle when
 already seated at the same cell. **Measured impact: negligible** (`visualize` N=2000: 164.8 ms →
 162.9 ms, noise-level) — the default `BottomCenter` blueprint anchor shifts every building's X
 position by half the blueprint's width on the very first post-construction redraw
@@ -569,7 +569,7 @@ own layer and a `ReplacementLayer`) — and was redoing the *entire* expensive p
 (fresh `BuildingConfig`, `SelectedElements` copy, conduit-flag lookup,
 `StoreAdditionalBuildingData`) on every hit, only deduplicating the final list entry by value
 afterward (`BuildingConfigurations.Contains`) — after already paying for the redundant work. Fixed
-in [`BlueprintState.cs`](../src/BlueprintsIncluded/BlueprintData/BlueprintState.cs) by tracking
+in [`BlueprintState.cs`](../../src/BlueprintsIncluded/BlueprintData/BlueprintState.cs) by tracking
 already-captured `GameObject`s and skipping straight to `emptyCell = false` on a repeat hit,
 before any of the expensive work runs (safe regardless of *why* the same object is found again —
 multiple layers at one cell, or multiple cells for a multi-cell building — since a `BuildingConfig`
@@ -590,7 +590,7 @@ handlers actually apply *per `BuildingDef`* (most building types have none of mo
 `Tile` has none of the ~35), so most of the 35 `TryGetComponent` checks per building could be
 skipped entirely instead of run and found empty. **Not safe as scoped.**
 `DataTransfer_Prioritizable.TryGetData` is a plain `TryGetComponent<Prioritizable>` check like the
-other 34 — but [`BuildingVisual.ApplyBuildingData`](../src/BlueprintsIncluded/Visualizers/BuildingVisual.cs)
+other 34 — but [`BuildingVisual.ApplyBuildingData`](../../src/BlueprintsIncluded/Visualizers/BuildingVisual.cs)
 calls `building.FindOrAddComponent<Prioritizable>()` at blueprint-placement time, so whether a given
 `GameObject` has a `Prioritizable` component depends on *how that instance was placed*, not on its
 `BuildingDef` — two buildings of the identical type can differ. A per-`BuildingDef` "never applies,
@@ -738,7 +738,7 @@ a 2000-building blueprint. Well past the point of diminishing returns, and not i
 further.
 
 **Second pass — the file list (the other 13%).** Three separate problems in
-[`BlueprintSelectionScreen`](../src/BlueprintsIncluded/UnityUI/BlueprintSelectionScreen.cs), all
+[`BlueprintSelectionScreen`](../../src/BlueprintsIncluded/UnityUI/BlueprintSelectionScreen.cs), all
 shipped together:
 
 1. **`UpdateBlueprintButtons` rebuilt unconditionally.** Every open hid every cached entry (across
@@ -842,7 +842,7 @@ generic definition) but **not re-measured** — it would only split the clone fr
 ### A/A noise measurement — what a perf delta here has to beat
 
 Prompted by the unsupportable "−8%" above. Two full perf passes were run on the **identical
-build**, no code change between them ([`test/aa-run.ps1`](../test/aa-run.ps1)), and their `perf.json` medians
+build**, no code change between them ([`test/aa-run.ps1`](../../test/aa-run.ps1)), and their `perf.json` medians
 diffed. Anything that differs is harness/machine noise. Iteration counts were raised first
 (`SelectionScreenPerf`: cold 3 → 10, warm/preview 5 → 10).
 
@@ -935,8 +935,8 @@ it was paying for the duplicated colour evaluation (fix 3) on top of everything 
 pays; the foundation case keeps a floor the fixes don't touch, namely `CustomTileRenderer`'s
 `AddTileBlock`/`RefreshCell`/`SetTileColor` work per tile.
 
-**The four fixes**, all in [`BlueprintState.cs`](../src/BlueprintsIncluded/BlueprintData/BlueprintState.cs)
-and [`BuildingVisual.cs`](../src/BlueprintsIncluded/Visualizers/BuildingVisual.cs):
+**The four fixes**, all in [`BlueprintState.cs`](../../src/BlueprintsIncluded/BlueprintData/BlueprintState.cs)
+and [`BuildingVisual.cs`](../../src/BlueprintsIncluded/Visualizers/BuildingVisual.cs):
 
 1. **Rotation gating.** `ApplyRotatedCellAndMove` called `IVisual.ApplyRotation` for every visual on
    every update, but rotation and flip only change via hotkey and every path that changes them
@@ -1280,7 +1280,7 @@ either side.
 - [x] Separate harness mod vs. flag-gated code inside `BlueprintsIncluded`? — **separate mod**,
       compiled against the already-built merged `BlueprintsIncluded.dll` via a plain `<Reference>`
       (not `ProjectReference` — that double-builds the mod and corrupts its incremental state).
-      Listed in `BlueprintsIncluded.slnx` for the IDE but excluded from CLI solution builds
+      Listed in `OniMods.slnx` for the IDE but excluded from CLI solution builds
       (`<Build … Project="false" />`) so it never races the mod's in-place ILRepack; built directly
       by `test/run-ingame.ps1`, which builds the mod first so the referenced DLL is current.
 - [x] Include the [§7](#7-performance-measurement-separate-mode) perf mode, or add it later? — **built**,

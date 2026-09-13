@@ -12,7 +12,7 @@ authoritative.
 No game install needed to build or test:
 
 ```bash
-dotnet build BlueprintsIncluded.slnx -c Release -p:OfflineBuild=true
+dotnet build OniMods.slnx -c Release -p:OfflineBuild=true
 ```
 
 ```bash
@@ -38,7 +38,7 @@ unit-tested. There are three tiers:
 |---|---|---|
 | Unit tests | `dotnet test` | no |
 | In-game regression harness | `pwsh test/run-ingame.ps1` | yes |
-| Manual smoke test | [`docs/smoke-test-checklist.md`](docs/smoke-test-checklist.md) | yes |
+| Manual smoke test | [`docs/blueprints-included/smoke-test-checklist.md`](docs/blueprints-included/smoke-test-checklist.md) | yes |
 
 For the latter two, set up a real install first:
 
@@ -46,13 +46,13 @@ For the latter two, set up a real install first:
    `GameLibsFolder` (the game's `OxygenNotIncluded_Data/Managed`) and `ModFolder`
    (your `Klei/OxygenNotIncluded/mods/dev`). It's gitignored.
 2. `dotnet tool restore` — installs the assembly publicizer and refasmer.
-3. `dotnet build BlueprintsIncluded.slnx -c Debug` — copies the mod into your dev
+3. `dotnet build OniMods.slnx -c Debug` — copies the mod into your dev
    mods folder.
 
 The harness boots ONI, loads a fixture colony, runs assertions against the live
 pipeline, writes JUnit XML and quits. See
 [`harness/README.md`](harness/README.md) and
-[`docs/in-game-regression-testing.md`](docs/in-game-regression-testing.md).
+[`docs/blueprints-included/in-game-regression-testing.md`](docs/blueprints-included/in-game-regression-testing.md).
 
 **Run the smoke-test checklist** after changing blueprint data, tools,
 visualizers or UI. The harness doesn't cover everything.
@@ -126,7 +126,7 @@ KSerialization save compatibility and every `.po` translation. It's intentional.
 This is a fork with no shared git history, so upstream fixes can't be
 cherry-picked. A scheduled scan opens `upstream-sync` issues for changes landing
 in upstream `BlueprintsV2/` or `UtilLibs/`; the procedure and the porting rules
-are in [`docs/upstream-sync.md`](docs/upstream-sync.md). Read that before
+are in [`docs/blueprints-included/upstream-sync.md`](docs/blueprints-included/upstream-sync.md). Read that before
 porting anything from upstream — including why some upstream files must never be
 synced wholesale.
 

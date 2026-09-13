@@ -633,7 +633,7 @@ internal class ModAssets
     /// established once when the game's databases load and don't change for the life of the
     /// process, so this never needs invalidating. Perf harness measured this as the dominant cost
     /// of importing a large blueprint (~85us/call, called once per building per ingredient) -
-    /// see docs/in-game-regression-testing.md §7.
+    /// see docs/blueprints-included/in-game-regression-testing.md §7.
     /// </summary>
     private static readonly Dictionary<(Tag Tag, bool OmitDisabled), List<Tag>> ValidMaterialsCache = new();
 

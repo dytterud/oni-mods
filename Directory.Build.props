@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project>
 	<Import Condition=" !Exists('Directory.Build.props.user') " Project="Directory.Build.props.default" />
 	<Import Condition=" Exists('Directory.Build.props.user') " Project="Directory.Build.props.user" />
@@ -55,6 +55,12 @@
 	<PropertyGroup>
 		<!--Beached DLC, hotfix 1-->
 		<TargetGameVersion>737790</TargetGameVersion>
+		<!--Repo-level identity. Used by the LauncherMetadata generation in
+		    Directory.Build.targets so a repo rename is one edit, not a grep.-->
+		<RepoUrl>https://github.com/dytterud/oni-mods</RepoUrl>
+		<!--Which game/DLC configurations the mods declare support for. A mod that genuinely
+		    only works with one DLC overrides this in its own csproj.-->
+		<SupportedContent>ALL</SupportedContent>
 	</PropertyGroup>
 
 

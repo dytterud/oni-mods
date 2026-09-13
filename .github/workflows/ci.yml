@@ -38,15 +38,15 @@ jobs:
       # misdetected local install. Offline also skips the assembly publicizer, so this needs no
       # `dotnet tool restore`.
       - name: Restore
-        run: dotnet restore BlueprintsIncluded.slnx
+        run: dotnet restore OniMods.slnx
 
       - name: Build (Release, offline)
-        run: dotnet build BlueprintsIncluded.slnx -c Release -p:OfflineBuild=true --no-restore
+        run: dotnet build OniMods.slnx -c Release -p:OfflineBuild=true --no-restore
 
       # The 27 [RequiresGameInstall*] tests skip here by design - lib/ is reference-only and
       # cannot execute. Expect "14 passed, 27 skipped"; see test/README.md.
       - name: Test (offline)
-        run: dotnet test BlueprintsIncluded.slnx -p:OfflineBuild=true --no-build -c Release
+        run: dotnet test OniMods.slnx -p:OfflineBuild=true --no-build -c Release
 
       # Offline builds write the packaged mod to Builds/, so a PR can be downloaded and tried
       # in-game without a local toolchain.
@@ -54,6 +54,6 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: BlueprintsIncluded-${{ github.sha }}
-          path: Builds/BlueprintsIncluded/
+          name: mods-${{ github.sha }}
+          path: Builds/
           if-no-files-found: error

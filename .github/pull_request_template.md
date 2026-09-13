@@ -26,7 +26,7 @@ What was actually run and what happened. Be explicit about what was NOT
 verified — an honest gap is easy to check at review time; a hidden one isn't.
 -->
 
-- [ ] `dotnet build BlueprintsIncluded.slnx -c Release -p:OfflineBuild=true` succeeds
+- [ ] `dotnet build OniMods.slnx -c Release -p:OfflineBuild=true` succeeds
 - [ ] `dotnet test` passes (if `src/` or `test/` changed)
 - [ ] New/changed behaviour covered by a test that fails without the change
       (game-touching logic often has no seam — say so if it couldn't be tested)

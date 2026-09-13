@@ -66,13 +66,13 @@ Add cases in `harness/BlueprintsIncludedHarness/HarnessCases.cs` — each is a c
 let frames pass, and `PlaceAt` already drives dig → VisualizeBlueprint → [rotate] →
 UseBlueprint. It can capture screenshots too. Details:
 [`harness/README.md`](../harness/README.md); background:
-[`docs/in-game-regression-testing.md`](../docs/in-game-regression-testing.md).
+[`docs/blueprints-included/in-game-regression-testing.md`](../docs/blueprints-included/in-game-regression-testing.md).
 
 The harness is a separate dev-only mod: in the solution for the IDE, but excluded from CLI
 solution builds and **not** run by `dotnet test`, so it never races the mod's in-place ILRepack.
 
 What it can't do is judge whether something *looks* right — it asserts values and captures
-screenshots for a human to review. [`docs/smoke-test-checklist.md`](../docs/smoke-test-checklist.md)
+screenshots for a human to review. [`docs/blueprints-included/smoke-test-checklist.md`](../docs/blueprints-included/smoke-test-checklist.md)
 is the fallback for that.
 
 ## Shared config

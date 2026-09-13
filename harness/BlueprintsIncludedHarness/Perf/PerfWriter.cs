@@ -16,7 +16,7 @@ internal sealed class PerfReport
 }
 
 /// <summary>Writes <c>perf.json</c>: the per-operation size sweep plus the
-/// <see cref="PerfInstrumentation"/> hotspot totals (docs/in-game-regression-testing.md §7).</summary>
+/// <see cref="PerfInstrumentation"/> hotspot totals (docs/blueprints-included/in-game-regression-testing.md §7).</summary>
 internal static class PerfWriter
 {
     public static void Write(string path, PerfReport report,

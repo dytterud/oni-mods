@@ -8,7 +8,7 @@ using UnityEngine;
 namespace BlueprintsV2.Harness.Perf;
 
 /// <summary>
-/// docs/in-game-regression-testing.md §7: the blueprint selection screen's open cost - the dialog
+/// docs/blueprints-included/in-game-regression-testing.md §7: the blueprint selection screen's open cost - the dialog
 /// the Use Blueprint tool puts up, reported as slow to open.
 ///
 /// Opening runs two independent pieces of work, so this measures them on their own axes rather
