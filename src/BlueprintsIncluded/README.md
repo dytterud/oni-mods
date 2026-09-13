@@ -24,6 +24,7 @@ copy `Builds/BlueprintsIncluded/` into your `Klei/OxygenNotIncluded/mods/local/`
 | [In-game regression testing](../../docs/blueprints-included/in-game-regression-testing.md) | the harness, and §7's performance measurements |
 | [Smoke-test checklist](../../docs/blueprints-included/smoke-test-checklist.md) | the manual pass, for what assertions can't see |
 | [Upstream sync](../../docs/blueprints-included/upstream-sync.md) | how upstream changes are ported |
+| [steamdesc.bbcode](steamdesc.bbcode) | the Steam Workshop page text, kept here so it is reviewed and updated alongside the code |
 
 ## Credit
 
