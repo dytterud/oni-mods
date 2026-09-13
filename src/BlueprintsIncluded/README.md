@@ -11,6 +11,48 @@ from the upstream Steam item.
 > **Don't run both.** The `staticID`s differ, so ONI will happily enable this and Blueprints
 > Expanded at once — but they share a root namespace and patch the same game methods.
 
+## How this differs from Blueprints Expanded
+
+**It is the same mod, with bugs fixed and made a lot faster.** No features were added or removed,
+and blueprint files are unchanged, so anything you built with upstream still loads here.
+
+**Bugs fixed that upstream still has:**
+
+- Instant-built buildings spawned at their material's *melting point* — a basalt insulated tile
+  materialised at 1530 K instead of 293 K, hot enough to damage itself and dump that heat into
+  the surrounding cells.
+- Wide blueprints placed near the left or bottom map edge could build on unrelated cells: the
+  anchor shift was applied before the cell-index conversion, and a negative result wrapped into a
+  different row instead of failing.
+- Creating a blueprint captured every building's data twice, because a building registered on two
+  object layers was found once per layer and re-captured each time.
+
+**Speed**, measured in-game rather than estimated:
+
+| | upstream | here |
+|---|---:|---:|
+| Creating a blueprint (1000 buildings) | ~1076 ms | **~45 ms** |
+| Dragging a 2000-building preview, per cursor step | 38–55 ms | **~12 ms** |
+| Reopening the blueprint dialog (2000-building preview) | ~699 ms | **~74 ms** |
+| Importing a 5000-building blueprint | ~505 ms | **~85 ms** |
+
+The practical effect is that dragging a large blueprint went from a few dropped frames per cell of
+mouse travel to none. Figures are from one machine and are directional — the method, the caveats
+and the things deliberately *not* optimised are in
+[§7](../../docs/blueprints-included/in-game-regression-testing.md#7-performance-measurement-separate-mode).
+
+**Testing.** Upstream has none; this fork has CI on every push, unit tests, an in-game harness that
+boots the game and asserts against a live colony, and a manual smoke checklist for what assertions
+can't see.
+
+**The trade-off, stated plainly:** upstream keeps developing, and this fork does not automatically
+get its new work. A scheduled scan opens an issue for each upstream change so nothing is missed
+silently, but anything still open is a feature or fix you would have upstream and don't have here —
+see the open [`upstream-sync`](https://github.com/dytterud/oni-mods/issues?q=is%3Aissue+is%3Aopen+label%3Aupstream-sync)
+issues and [how porting works](../../docs/blueprints-included/upstream-sync.md).
+
+Per-release detail is in [CHANGELOG.md](CHANGELOG.md).
+
 ## Install
 
 Unreleased. Until it is on the Workshop, build it (see the [repo README](../../README.md)) and
