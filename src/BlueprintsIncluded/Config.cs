@@ -15,7 +15,7 @@ public enum DefaultSelections
 
 [Serializable]
 [RestartRequired]
-[ModInfo("https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods", collapse: true)]
+[ModInfo("https://github.com/dytterud/oni-mods", collapse: true)]
 [ConfigFile(SharedConfigLocation: true)]
 public class Config : SingletonOptions<Config>
 {
