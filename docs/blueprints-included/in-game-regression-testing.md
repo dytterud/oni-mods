@@ -158,6 +158,38 @@ placement, sim interaction).
 
 ## 7. Performance measurement (separate mode)
 
+> **Where this landed.** The work is **done** — not exhausted, but at the point where what remains
+> is Klei's code rather than this mod's. Read this box for the state; the rest of §7 is the
+> investigation log, in the order things were learned, and is long.
+>
+> | path | before | after |
+> |---|---:|---:|
+> | `create` N=1000 | 1076 ms | **45 ms** |
+> | drag, dependent visuals N=2000 | 55.2 ms | **12.8 ms** |
+> | drag, tiles N=2000 | 38.0 ms | **11.8 ms** |
+> | dialog reopen, preview N=2000 | 699 ms | **74 ms** |
+> | dialog reopen, file list L=500 | 126 ms | **26 ms** |
+> | import N=5000 (deserialize) | 505 ms | **85 ms** |
+>
+> Dragging a 2000-building blueprint went from roughly three dropped frames per cursor step to
+> comfortably inside one. Figures come from different runs across several months and are
+> directional, not a controlled series — see *A/A noise measurement*.
+>
+> **Deliberately declined**, each for a stated reason rather than for lack of effort: caching
+> Klei's `IsValidPlaceLocation` (no safe invalidation; the failure mode is a mis-tinted preview —
+> a correctness risk, not a perf trick), object-pooling the visualizers (ceiling measured, blast
+> radius judged not worth it), caching which data handlers apply per `BuildingDef` (silent
+> per-building data loss), and culling off-screen previews (placement is coupled to the visual
+> list). The remaining per-frame cost is dominated by game code: the whole tile-refresh path is
+> under 2% of a frame.
+>
+> **Four claims in this section were retracted after being measured** — an allocation figure that
+> turned out to be the harness measuring itself, the `KAnimGraphTileVisualizer.Refresh`
+> explanation, a "shared parent transform" win that was mostly between-run drift, and a
+> subclass-matching difference that did not exist. Each retraction is left in place rather than
+> edited out, because the pattern is the lesson. The generalised version of those lessons lives in
+> [docs/perf-method.md](../perf-method.md); this section is its worked example.
+
 Not part of the regression pass — a **pass/fail run and a benchmark run want different
 things** (fast and deterministic vs. many warmed-up iterations). The harness mod carries an
 opt-in profiling mode, useful **while actively working on a performance change** to confirm

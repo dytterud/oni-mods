@@ -53,6 +53,11 @@ properties gets the whole packaging pipeline for free.
 See [CONTRIBUTING.md](CONTRIBUTING.md) — build and test tiers, the conventions that fail the
 build, and how to report a bug usefully.
 
+Before measuring performance, read [docs/perf-method.md](docs/perf-method.md) — the noise floor
+here is ±10% between runs, timing wrappers cost more than the methods they measure, and this repo
+has published and retracted several plausible-but-unmeasured conclusions. It is short, and it is
+the accumulated cost of learning those the hard way.
+
 ## License
 
 MIT — see [LICENSE](LICENSE), and [NOTICE](NOTICE) for the attribution chain, the bundled
