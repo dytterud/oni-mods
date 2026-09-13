@@ -6,5 +6,5 @@ contact_links:
       This mod is a fork. If the bug or feature is in the original Blueprints Expanded rather
       than something this fork changed, upstream is the better place for it.
   - name: Contributing guide
-    url: https://github.com/dytterud/BlueprintsIncluded/blob/main/CONTRIBUTING.md
+    url: https://github.com/dytterud/oni-mods/blob/main/CONTRIBUTING.md
     about: Building the mod, running the tests, and the conventions a PR has to meet.

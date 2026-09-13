@@ -378,8 +378,8 @@ The short SHA in the title is the dedupe key — or, for an issue-stream finding
 have gone out as a PR:
 
 ```bash
-gh issue list --repo dytterud/BlueprintsIncluded --search "<short-sha>" --state all
-gh pr list   --repo dytterud/BlueprintsIncluded --search "<short-sha>" --state all
+gh issue list --repo dytterud/oni-mods --search "<short-sha>" --state all
+gh pr list   --repo dytterud/oni-mods --search "<short-sha>" --state all
 ```
 
 Dedupe across the two streams as well: an upstream report and the commit that fixed it are **one**
