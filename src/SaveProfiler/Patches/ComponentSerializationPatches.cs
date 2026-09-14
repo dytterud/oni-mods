@@ -42,6 +42,14 @@ internal static class ComponentSerializationPatches
         PatchInstaller.TryPatch(harmony, "KSerialization.Serializer.SerializeTypeless",
             () => PatchInstaller.WidestOverload(typeof(KSerialization.Serializer), "SerializeTypeless"),
             typeof(ComponentSerializationPatches), nameof(ComponentPrefix), nameof(ComponentPostfix));
+
+        // Every component writes its type name as a length-prefixed UTF-8 string before its data,
+        // so this runs at least once per component - and again for every string field inside one.
+        // The same ~413 distinct names are re-encoded every save, which is the first thing a
+        // type-name cache would remove. Measured rather than assumed to be worth removing.
+        PatchInstaller.TryPatch(harmony, "IOHelper.WriteKleiString",
+            () => PatchInstaller.WidestOverload(typeof(KSerialization.IOHelper), "WriteKleiString"),
+            typeof(ComponentSerializationPatches), nameof(StringPrefix), nameof(StringPostfix));
     }
 
     // ---------------------------------------------------------------- per GameObject
@@ -80,17 +88,53 @@ internal static class ComponentSerializationPatches
 
     internal static void ComponentPostfix(object __0, BinaryWriter __1, ComponentState __state)
     {
-        // Recorded before leaving the nesting level: ExitComponent is what makes the next sibling
-        // an outermost call again, and the depth decides which bucket this one lands in.
-        // ExitComponent still runs when we are not recording, so the depth stays balanced with
-        // ComponentPrefix rather than drifting upwards and mis-bucketing every later component.
+        // Stop the clock BEFORE resolving the type name. C# evaluates arguments left to right, so
+        // passing `__0.GetType().Name` as the first argument put a reflection lookup inside the
+        // measured window - 419,032 of them per save, charged to the components being measured and
+        // silently subtracted from the per-object overhead derived from them. docs/perf-method.md:
+        // "watch for the harness measuring itself".
+        double elapsedMs = __state.ElapsedMs();
+        long bytes = __state.BytesWritten(__1);
+
         if (SaveProfileRecorder.Recording)
+            SaveProfileRecorder.AddComponent(__0?.GetType().Name ?? "(null)", elapsedMs, bytes);
+
+        // ExitComponent runs whether or not we recorded, so the depth stays balanced with
+        // ComponentPrefix rather than drifting upwards and mis-bucketing every later component.
+        SaveProfileRecorder.ExitComponent();
+    }
+
+    // ---------------------------------------------------------------- type-name strings
+
+    private const string StringPhase = "IOHelper.WriteKleiString";
+
+    /// <summary>
+    /// Recorded as a nested phase rather than a bucket of its own, so that
+    /// <c>SaveWithoutTransform</c>'s <em>self</em> time has it subtracted out. The question this
+    /// exists to answer is how much of the per-object overhead is type-name encoding, and that only
+    /// works if the two are separated in the tree.
+    ///
+    /// It is reached from two depths - once per component for the type name, and again for any
+    /// string field inside a component - so its parent is whichever came first. The total and the
+    /// call count are what matter here; the position in the tree is not load-bearing.
+    /// </summary>
+    internal static void StringPrefix(out SavePhasePatches.PhaseState __state)
+    {
+        SaveProfileRecorder.EnterPhase(StringPhase);
+        __state = new SavePhasePatches.PhaseState(Stopwatch.GetTimestamp());
+    }
+
+    internal static void StringPostfix(SavePhasePatches.PhaseState __state)
+    {
+        double elapsedMs = __state.ElapsedMs();
+
+        if (!SaveProfileRecorder.Recording)
         {
-            SaveProfileRecorder.AddComponent(
-                __0?.GetType().Name ?? "(null)", __state.ElapsedMs(), __state.BytesWritten(__1));
+            SaveProfileRecorder.PopPhase(StringPhase);
+            return;
         }
 
-        SaveProfileRecorder.ExitComponent();
+        SaveProfileRecorder.ExitPhase(StringPhase, elapsedMs);
     }
 
     /// <summary>
