@@ -41,6 +41,10 @@ not treated as a finding.
 `FieldInfo.GetValue` → `Helper.WriteValue` loop in `KSerialization.SerializationTemplate`. It is the
 thing that grows with colony age, and it is the only target worth optimising first.
 
+Later broken down further in [where-the-time-goes.md](where-the-time-goes.md): roughly half of it is
+419,032 component serializations at ~2 µs each with no dominant type, and half is per-object
+overhead outside any component.
+
 **Compression is 16.3%**, and the ratio is 8.3% — the data is extremely compressible. A cheaper
 compression level would trade into this 601 ms, not into the 53%.
 
