@@ -116,12 +116,15 @@ removable from the game's own settings.
 Same colony and configuration, changing one option: `{"BackgroundSave":false,"Mode":1,"DelegateSave":true}`,
 confirmed from Fast Save's own config rather than from the options UI.
 
-| | delegates off (n=2) | delegates on (n=2) | Δ |
+| | delegates off (n=5) | delegates on (n=3) | Δ |
 |---|---:|---:|---:|
-| serialize | 1640.5, 1657.4 → **1649.0** | 1540.1, 1444.2 → **1492.2** | **−157 ms (−9.5%)** |
+| serialize | 1612.3, 1618.1, 1640.5, 1657.4, 1683.2 → **1642.3** | 1444.2, 1506.0, 1540.1 → **1496.8** | **−146 ms (−8.9%)** |
 | total minus the `Sim`+unaccounted bucket | 2239.5 | 2085.0 | −155 ms |
 
-Two independent routes agree at ~155 ms, about **4.6% of a ~3,380 ms save**.
+About **4.4% of a ~3,380 ms save**. The two clusters do not overlap, and the delegates-off set spans
+two sessions and both a cloud and a local save — three later delegates-off runs on local storage
+landed directly on top of the original cloud ones, which is the strongest corroboration available
+here: same measurement, different session, different disk.
 
 Read serialization, not the raw totals. Those came in at 2766.3 and 3147.0 ms, but the 381 ms
 between them is `Sim.Save` + unaccounted swinging 629 → 1114 — the bimodal bucket documented in the

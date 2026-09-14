@@ -52,10 +52,8 @@ compression level would trade into this 601 ms, not into the 53%.
 document claimed it was, on two runs that agreed by coincidence; a third measured 1108.5 ms. What is
 stable is `Sim.Save` + unaccounted taken together (see below). `PrepSaveFile` (0.2 ms) and
 `SaveColonyPreview` (0.0 ms) are measured and ruled out, so by elimination it is the write of the
-compressed buffer to disk. Its flatness across two very different invocations suggests a fixed cost
-rather than anything proportional. **Untested and worth testing: this colony lives in
-`cloud_save_files/`, so Steam Cloud may be in that path.** Profiling a local save of similar size
-would settle it.
+compressed buffer to disk — see [the storage test](#ruled-out-steam-cloud) for what that is and is
+not.
 
 ## Seven runs, and the noise floor
 
@@ -121,6 +119,33 @@ later saves and into the unmeasured remainder on the first. That reframes the qu
 wait whose position shifts with sim-thread state, not a cost that appears and disappears. Mechanism
 still not established.
 
+## RULED OUT: Steam Cloud
+
+The colony lived in `cloud_save_files/`, raising the possibility that Steam Cloud sat in the
+~520 ms write path — which would have made moving the colony local the largest zero-code win
+available. Tested by converting the same colony to a local save and running three autosaves.
+
+The metric is `Sim.Save` + unaccounted **combined**, since the ~520 ms moves between the two
+depending on the run.
+
+```
+cloud : 611, 629, 1071, 1078, 1083, 1091, 1093, 1100, 1102, 1114, 1121, 1129, 1134, 1141, 1176, 1181
+LOCAL : 569, 1051, 1054
+```
+
+Same bimodal shape, same two modes. Local's high mode sits perhaps 50 ms under cloud's, which at
+n=2 is not a finding. **Steam Cloud is not a meaningful part of the cost**, and the idea is dead.
+
+Worth recording how close this came to a false positive. The prediction registered beforehand was
+"all three local runs at ~600 confirms cloud is the cost" — and the *first* local run came back at
+569.3. A single run would have looked exactly like confirmation. It was only the pre-registered
+requirement for three runs, added because the cloud data already showed two low outliers, that
+stopped it. Two runs earlier in this investigation were published on less.
+
+What remains is that the ~520 ms is real, location-independent, and bimodal: in one run it split
+evenly between `Sim.Save` (527.1 ms) and unaccounted (524.3 ms), in others it is entirely in one or
+absent. Mechanism not established.
+
 ## PARTLY RULED OUT, then corrected: cycle-boundary work outside the save
 
 The measured save (3.7–3.9 s) ran consistently below a wristwatch reading of ~4.2 s, and the
@@ -157,9 +182,10 @@ report trimming buys, it is not that — and the
 [Fast Save comparison](fast-save-comparison.md) bears that out, finding the gain entirely in
 serialization rather than in report generation.
 
-And the frequency, from six runs with the bucket active: **it fires on three of six cycle
-boundaries, at 530.6 / 558.7 / 569.0 ms, with and without Fast Save alike.** Roughly every other
-cycle, costing ~553 ms outside the save. That makes it the largest single item measured anywhere in
+And the frequency, from twelve runs with the bucket active: **it fires on roughly half of cycle
+boundaries, with and without Fast Save alike.** Its cost is far more variable than the first three
+samples suggested — **249, 531, 559, 569, 581, 777 ms**, a three-fold range, against the "~553 ms"
+an early draft of this document claimed off three readings. That makes it the largest single item measured anywhere in
 this investigation after serialization itself, and the only large one the game already has a setting
 to switch off.
 
