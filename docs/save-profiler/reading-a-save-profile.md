@@ -121,8 +121,10 @@ If the section is absent, every target bound and a zero is real.
 
 - [first-measurements.md](first-measurements.md) — the baseline, the noise floor, and the wrong
   turns taken getting there.
-- [fast-save-comparison.md](fast-save-comparison.md) — Fast Save's report trimming, isolated and
-  measured.
+- [fast-save-comparison.md](fast-save-comparison.md) — Fast Save's report trimming and delegates,
+  isolated and measured.
+- [where-the-time-goes.md](where-the-time-goes.md) — the per-component-type breakdown: no hot type,
+  419,032 calls, and why the cost is per-call rather than per-byte.
 
 ## If another mod is on the save path
 
