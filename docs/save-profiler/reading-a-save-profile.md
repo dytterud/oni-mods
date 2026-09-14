@@ -117,6 +117,13 @@ an optional parameter was added.
 
 If the section is absent, every target bound and a zero is real.
 
+## Measured elsewhere
+
+- [first-measurements.md](first-measurements.md) — the baseline, the noise floor, and the wrong
+  turns taken getting there.
+- [fast-save-comparison.md](fast-save-comparison.md) — Fast Save's report trimming, isolated and
+  measured.
+
 ## If another mod is on the save path
 
 The report lists the active mods for this reason. **Fast Save** in particular replaces the
