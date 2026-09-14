@@ -74,6 +74,11 @@ report, not this save.** Some of it runs before the save and some after — the 
 coroutine, so its frames land once the save has already returned and the report has been written.
 With an autosave every cycle, the window is the previous cycle boundary.
 
+**A consequence worth knowing: a setting change shows up one report late.** Turning the timelapse
+off mid-cycle still leaves its cost in the *next* report, because that report covers the window the
+setting was changed during. A single non-zero reading after switching something off is not evidence
+the switch failed — the report after it is.
+
 `Timelapser.Render()` is deliberately not patched: it returns an `IEnumerator`, so a prefix/postfix
 pair would time the construction of the coroutine — microseconds — and present that as the cost of
 the screenshot. A wrapper that measures the wrong thing is worse than none, because it produces a
