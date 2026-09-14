@@ -156,6 +156,19 @@ public class PatchTargetResolutionTests
     }
 
     [RequiresGameInstallFact]
+    public void WriteKleiString_TakesTheWriterThenTheString()
+    {
+        // Called at least once per component, to write its type name before its data. StringPrefix
+        // and StringPostfix time it to answer how much of the per-object overhead is type-name
+        // encoding - the same ~413 names re-encoded on every save.
+        var p = Widest(typeof(KSerialization.IOHelper), "WriteKleiString");
+
+        Assert.Equal(2, p.Length);
+        Assert.Equal(typeof(BinaryWriter), p[0].ParameterType);
+        Assert.Equal(typeof(string), p[1].ParameterType);
+    }
+
+    [RequiresGameInstallFact]
     public void WidestOverload_ReturnsNullForAMethodThatIsNotThere()
     {
         // The contract PatchInstaller.TryPatch relies on to record an unresolved target instead of
