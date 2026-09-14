@@ -153,9 +153,11 @@ report trimming buys, it is not that — and the
 [Fast Save comparison](fast-save-comparison.md) bears that out, finding the gain entirely in
 serialization rather than in report generation.
 
-What is now open again: the timelapse costs ~550 ms when it fires, which is the same order as the
-gap between the wristwatch and the report. How often it fires is not established, and it is the
-number that decides whether Fast Save improves the felt hitch at all.
+And the frequency, from six runs with the bucket active: **it fires on three of six cycle
+boundaries, at 530.6 / 558.7 / 569.0 ms, with and without Fast Save alike.** Roughly every other
+cycle, costing ~553 ms outside the save. That makes it the largest single item measured anywhere in
+this investigation after serialization itself, and the only large one the game already has a setting
+to switch off.
 
 ## Two bugs these runs found
 
