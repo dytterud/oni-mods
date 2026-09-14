@@ -111,6 +111,58 @@ What it leaves is a separate finding, and a more useful one: **the timelapse cos
 is the largest single item measured anywhere in this investigation — and unlike serialization it is
 removable from the game's own settings.
 
+## Use Delegates: ~155 ms, and a failed prediction
+
+Same colony and configuration, changing one option: `{"BackgroundSave":false,"Mode":1,"DelegateSave":true}`,
+confirmed from Fast Save's own config rather than from the options UI.
+
+| | delegates off (n=2) | delegates on (n=2) | Δ |
+|---|---:|---:|---:|
+| serialize | 1640.5, 1657.4 → **1649.0** | 1540.1, 1444.2 → **1492.2** | **−157 ms (−9.5%)** |
+| total minus the `Sim`+unaccounted bucket | 2239.5 | 2085.0 | −155 ms |
+
+Two independent routes agree at ~155 ms, about **4.6% of a ~3,380 ms save**.
+
+Read serialization, not the raw totals. Those came in at 2766.3 and 3147.0 ms, but the 381 ms
+between them is `Sim.Save` + unaccounted swinging 629 → 1114 — the bimodal bucket documented in the
+baseline, which delegates do not touch. Crediting delegates with an 18% total would be reading that
+bucket's coin-flip as an effect.
+
+### The prediction, and why it was wrong
+
+Registered before the run: serialization would land at **800–1200 ms**, on the basis of a
+standalone benchmark measuring delegate field access at 6–8× reflection. Measured: **1492 ms**.
+
+The benchmark was not wrong; the extrapolation from it was. Field access turns out to be a thin
+slice of serialization next to stream writes, string encoding and the type dispatch in
+`Helper.WriteValue` — a 6–8× speedup on that slice bought 9.5% of the phase.
+
+This corrects the framing this investigation opened with, where the delegate serializer was called
+the highest-ceiling optimization available and its safety the only thing holding it back. The
+ceiling is roughly 4.6% of a save. Having a microbenchmark in hand made the over-extrapolation
+easier to believe, not harder — which is the same failure docs/perf-method.md describes, committed
+with better tooling than usual.
+
+### Integrity: one clean round trip
+
+The documented risk is not a crash but a save that writes successfully and fails to load — Fast
+Save's issue #273, closed won't-fix. So the reload is the test, not the save.
+
+After two delegate-written autosaves: quit to desktop, relaunch, load the colony. **It loaded
+cleanly.** No deserialization errors in `Player.log`; the only warning was
+`BubbleManager.OnDeserialized is deleting bubbles`, which is vanilla noise.
+
+That is **n=1 on one colony**, and it clears nothing. A silent-corruption bug that depends on
+particular type shapes is exactly the kind that survives a hundred successful round trips and then
+eats a save. One clean reload says the path is not catastrophically broken here; it does not say the
+option is safe.
+
+### The trade, now measured
+
+~155 ms — 4.6% — against a failure mode whose worst case is an unloadable colony and whose bug
+report was closed won't-fix. At this colony size that is a bad trade, and it is now a measurement
+rather than an argument.
+
 ## What this does and does not support
 
 **Supported:** on this colony, Fast Save's trimming takes ~9% off autosave time and 22% off the file
@@ -118,10 +170,16 @@ on disk, entirely by serializing less report data, after a one-time penalty on t
 benefit belongs to the deleted data, not to the mod running — with the mod disabled afterwards the
 numbers are unchanged.
 
-**Not supported:** anything about Fast Save's headline figure. Background Save and Use Delegates were
-both off, and those are the features the larger claims rest on. Background Save in particular
-shortens the freeze by moving work off the main thread rather than by doing less of it, and this
-profiler cannot measure it without reporting a shorter total for the wrong reason.
+**Supported:** Use Delegates adds ~155 ms (4.6%) on top of trimming, and a delegate-written save
+reloaded cleanly once. Neither number recommends the option.
+
+**Not supported:** anything about Background Save, still untested here. It shortens the freeze by
+moving work off the main thread rather than by doing less of it, and this profiler currently cannot
+measure it honestly — work finishing on a background thread after the root phase exits is recorded
+after the report is written and then cleared, so it vanishes without the report saying so.
+
+**Not supported:** that Use Delegates is safe. One clean reload on one colony is not evidence about
+a defect class that depends on type shapes.
 
 **Not supported:** generalising past this colony, this cycle count, this machine or this save
 location. A colony with fewer accumulated reports has less for trimming to remove.
