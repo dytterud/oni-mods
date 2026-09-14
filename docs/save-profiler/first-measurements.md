@@ -117,7 +117,7 @@ later saves and into the unmeasured remainder on the first. That reframes the qu
 wait whose position shifts with sim-thread state, not a cost that appears and disappears. Mechanism
 still not established.
 
-## RULED OUT: cycle-boundary work outside the save
+## PARTLY RULED OUT, then corrected: cycle-boundary work outside the save
 
 The measured save (3.7–3.9 s) ran consistently below a wristwatch reading of ~4.2 s, and the
 standing hypothesis — raised from watching the game, not from the code — was that a new cycle does
@@ -134,16 +134,28 @@ Measured, on run 19:08:
 | `Timelapser.RenderAndPrint` | **0** | — |
 | **total** | | **1.4** |
 
-**1.4 ms. The hypothesis is ruled out.** `unresolvedTargets` was empty, so those zeros are real
-calls-never-made rather than targets that failed to bind.
+**1.4 ms**, and this was written up as the hypothesis being ruled out. `unresolvedTargets` was
+empty, so the zeros were real calls-never-made rather than targets that failed to bind.
 
-Two caveats on how far that generalises. The timelapse never ran at all on this machine, which most
-likely means it is disabled in these settings — so this rules the idea out *for these runs*, not for
-a player with timelapse on. And at cycle 585, building the daily report costs 1.1 ms: whatever Fast
-Save's report trimming buys, on this colony it is not that.
+### Correction: the timelapse was not absent, it had not fired yet
 
-The residual ~350–450 ms between watch and report now sits inside stopwatch-and-reaction error with
-its one concrete alternative explanation eliminated, and is not treated as a finding.
+Three later runs measured `Timelapser.RenderAndPrint` at **569.0 ms, 530.7 ms**, and zero — one
+call, outside the save, in two runs out of three.
+
+So the 1.4 ms reading was the cost of the timelapse **not firing**, reported as the cost of the
+timelapse. Measuring something once while it happens to be idle and concluding it is cheap is the
+same error as the two `Sim.Save` passes, in a different costume: the run was not labelled by whether
+the thing under test actually ran.
+
+What survives from the original measurement is narrower and still useful: **daily report generation
+costs ~1.1 ms at cycle 585**, measured with `OnNightTime` genuinely executing. Whatever Fast Save's
+report trimming buys, it is not that — and the
+[Fast Save comparison](fast-save-comparison.md) bears that out, finding the gain entirely in
+serialization rather than in report generation.
+
+What is now open again: the timelapse costs ~550 ms when it fires, which is the same order as the
+gap between the wristwatch and the report. How often it fires is not established, and it is the
+number that decides whether Fast Save improves the felt hitch at all.
 
 ## Two bugs these runs found
 
