@@ -124,6 +124,9 @@ If the section is absent, every target bound and a zero is real.
 
 ## Measured elsewhere
 
+- [conclusions.md](conclusions.md) — where the investigation ended: the answer, what is worth
+  doing, the three ideas measurement killed, and the seven corrections.
+
 - [first-measurements.md](first-measurements.md) — the baseline, the noise floor, and the wrong
   turns taken getting there.
 - [fast-save-comparison.md](fast-save-comparison.md) — Fast Save's report trimming and delegates,
