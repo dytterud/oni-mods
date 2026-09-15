@@ -100,11 +100,60 @@ mechanisms, none of which change the file format:
 None is individually large — each is plausibly 40–90 ms — but they are additive, low-risk, and
 unexplored. Their real size is unknown until measured, which is the point.
 
-## Caveat: attribution perturbs this run
+## Follow-up: the type-name cache idea, measured and withdrawn
 
-Per-component wrappers cost time inside the phase totals they sit in. This run's serialization read
-1,970.8 ms against ~1,492 ms in comparable runs without attribution — roughly 478 ms of wrapper
-across 419,032 calls.
+`IOHelper.WriteKleiString` was instrumented to answer how much of the per-object overhead is
+re-encoding the same ~413 type names.
+
+| run | calls | total | per call |
+|---|---:|---:|---:|
+| 04:22 | 792,009 | 182.2 ms | 0.23 µs |
+| 04:26 | 792,339 | 147.9 ms | 0.19 µs |
+
+**792,000 calls — 1.9 per component**: the type name, plus on average about one string field inside
+the component. Predicted beforehand at 100–250 ms; it landed.
+
+And it kills the idea. Only ~420k of those calls are type names, the rest being string *data* a
+cache cannot touch; and a cache removes only the UTF-8 encoding, not the length write or the byte
+copy. The realistic ceiling is **well under 50 ms** of a ~3,400 ms save. **Withdrawn** — the third
+idea in this investigation killed by measuring it.
+
+Two failures worth recording alongside it.
+
+**The subtraction this was designed for never happened.** `WriteKleiString` was made a nested phase
+so that `SaveWithoutTransform`'s *self* time would have it removed. Its parent resolved to
+`SaveLoader.Save (inner)` instead, because first-writer-wins picked a call from outside the
+per-object loop. Self time was unchanged and the decomposition did not occur.
+
+**Two variables changed at once.** The same build both fixed the `Type.Name` timing bug below and
+added this instrumentation, so the bug's cost cannot be isolated: component totals came back 668.7
+and 975.9 ms against the earlier 787.2, a 46% spread between consecutive runs, because attribution
+now wraps 1.2M calls rather than 420k. The fix should have shipped alone and been measured before
+anything was added to it.
+
+## The per-object overhead is where this instrument stops
+
+The other two candidate mechanisms — a `GetComponents<T>()` allocation per object and roughly 1.7
+million `Stream.Position` calls for length backpatching — are a Unity generic and a BCL property.
+Neither is cleanly patchable. Harmony wraps method boundaries; what remains is inside a method.
+
+So the ~705 ms is real and **not further decomposable with this tool**. Going further needs a
+sampling profiler attached to Mono. Estimating the two mechanisms from call counts and publishing
+the estimate is exactly the move this investigation kept catching, so it is not made here.
+
+## Caveat: attribution perturbs these runs
+
+Per-component wrappers cost time inside the phase totals they sit in. The first attribution run's
+serialization read 1,970.8 ms against ~1,492 ms in comparable runs without attribution — roughly
+478 ms of wrapper across 419,032 calls. Later runs, wrapping `WriteKleiString` as well, reach 1.2M
+wrapped calls and are noisier still: 2,210.4 and 2,962.8 ms for the same phase.
+
+**A timing bug affected the per-component figures below.** `ComponentPostfix` passed
+`__0.GetType().Name` as its first argument and the elapsed time as its second; C# evaluates
+arguments left to right, so 419,032 reflection lookups sat inside the measured window. Fixed, but
+in the same build that added new instrumentation, so the correction's size is unknown. **Treat the
+787.2 ms component total and the ~705 ms per-object overhead derived from it as approximate.** The
+per-type *ranking* and the call counts are unaffected, and those are what the conclusions rest on.
 
 The per-component figures themselves are measured inside the wrapper bracket and are not inflated by
 it; the phase totals are. **Do not compare this run's totals against an unattributed run**, which is
