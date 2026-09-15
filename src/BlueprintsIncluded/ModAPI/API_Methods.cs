@@ -289,8 +289,12 @@ internal class API_Methods
             {
                 if (data == null)
                 {
+                    //skip this entry, don't abandon the rest: a single bad value must not cost the
+                    //building every other setting the blueprint carries. Not reachable through this
+                    //mod's own code - every writer of AdditionalBuildingData filters nulls - but the
+                    //field is public, so a third-party mod can still put one there.
                     SgtLogger.l("data was null for " + key);
-                    return;
+                    continue;
                 }
 
                 if (isUnderConstruction)
