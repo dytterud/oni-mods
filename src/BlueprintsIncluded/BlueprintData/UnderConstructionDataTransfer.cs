@@ -64,6 +64,31 @@ public class UnderConstructionDataTransfer : KMonoBehaviour
         return new(ToApplyData);
     }
 
+    /// <summary>
+    /// <see cref="GetStoredData"/> parsed back into <see cref="JObject"/>s, for
+    /// <see cref="API_Methods.GetAllAdditionalBuildingData"/>.
+    ///
+    /// A malformed entry is skipped and logged rather than thrown: this feeds a public API surface
+    /// that external mods reflect into, and the stored strings come from
+    /// <see cref="SetDataToApply(string, string)"/>, which any caller can reach.
+    /// </summary>
+    internal Dictionary<string, JObject> GetDataDeserialized()
+    {
+        var result = new Dictionary<string, JObject>();
+        foreach (var data in GetStoredData())
+        {
+            try
+            {
+                result[data.Key] = JObject.Parse(data.Value);
+            }
+            catch (Exception e)
+            {
+                SgtLogger.error($"Could not deserialize stored data for {data.Key}:\n{e.Message}");
+            }
+        }
+        return result;
+    }
+
     public static void TransferDataTo(GameObject targetBuilding, Dictionary<string, string> toApply)
     {
         foreach (var data in toApply)

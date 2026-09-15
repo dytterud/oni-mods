@@ -266,23 +266,62 @@ internal class API_Methods
     }
 
     /// <summary>
+    /// Returns ALL building data stored on a gameobject, including data parked on an
+    /// <see cref="UnderConstructionDataTransfer"/> carrier - so an unfinished building yields its
+    /// pending settings too, which <see cref="GetAdditionalBuildingData"/> does not.
+    ///
+    /// Part of the reflection-friendly surface for external mods; nothing in this mod calls it.
+    /// </summary>
+    public static Dictionary<string, JObject> GetAllAdditionalBuildingData(GameObject gameObject)
+    {
+        var buildingData = GetAdditionalBuildingData(gameObject);
+        if (gameObject.TryGetComponent<UnderConstructionDataTransfer>(out var dataCarrier))
+        {
+            foreach (var kvp in dataCarrier.GetDataDeserialized())
+            {
+                if (kvp.Value == null || kvp.Key.IsNullOrWhiteSpace())
+                    continue;
+                buildingData[kvp.Key] = kvp.Value;
+            }
+        }
+        return buildingData;
+    }
+
+    /// <summary>
     /// applies any additional data stored in the blueprint to the newly placed blueprint building plan (or finished building in sandbox)
     /// </summary>
     /// <param name="gameObject"></param>
     /// <param name="buildingConfig"></param>
     public static void ApplyAdditionalBuildingData(GameObject gameObject, BuildingConfig buildingConfig, ulong playerId = BlueprintState.PlayerId_DefaultTilePreviews)
+        => ApplyAdditionalBuildingData(gameObject, buildingConfig?.BuildingDef!, buildingConfig?.AdditionalBuildingData!, playerId);
+
+    /// <summary>
+    /// Reflection-friendly entry point: <see cref="BuildingConfig"/> is this mod's own type and an
+    /// external mod cannot name it without a hard assembly reference, whereas
+    /// <see cref="BuildingDef"/> and a plain dictionary are both reachable by reflection.
+    ///
+    /// The three-argument form is redundant with the four-argument one and exists only so a
+    /// reflecting caller can bind a method without supplying the optional player id. Upstream
+    /// ships both and external callers look them up by signature, so dropping either would defeat
+    /// the point of having the surface at all.
+    /// </summary>
+    public static void ApplyAdditionalBuildingData(GameObject gameObject, BuildingDef configDef, Dictionary<string, JObject> buildingData)
+        => ApplyAdditionalBuildingData(gameObject, configDef, buildingData, BlueprintState.PlayerId_DefaultTilePreviews);
+
+    /// <inheritdoc cref="ApplyAdditionalBuildingData(GameObject, BuildingDef, Dictionary{string, JObject})"/>
+    public static void ApplyAdditionalBuildingData(GameObject gameObject, BuildingDef configDef, Dictionary<string, JObject> buildingData, ulong playerId = BlueprintState.PlayerId_DefaultTilePreviews)
     {
         //A *runtime* guard the nullable annotations cannot express: Unity's fake-null means a
         //destroyed GameObject still satisfies the compiler's non-null contract while failing
         //== null at runtime. Replacement can tear a building down before a deferred apply runs,
         //so liveness is checked once here rather than in each of the ~37 registered handlers.
-        if (gameObject.IsNullOrDestroyed() || buildingConfig == null)
+        if (gameObject.IsNullOrDestroyed() || configDef.IsNullOrDestroyed() || buildingData == null)
             return;
 
         if (BlueprintState.CurrentStateInfo(playerId).ApplyBlueprintSettings == false)
             return;
 
-        if (gameObject.TryGetComponent<Building>(out var building) && building.Def != buildingConfig.BuildingDef)
+        if (gameObject.TryGetComponent<Building>(out var building) && building.Def != configDef)
             return;
 
         bool isUnderConstruction = (gameObject.TryGetComponent<UnderConstructionDataTransfer>(out var transfer));
@@ -292,7 +331,7 @@ internal class API_Methods
             var DataHandler = kvp.Value;
             string key = kvp.Key;
 
-            if (buildingConfig.TryGetDataValue(key, out var data))
+            if (buildingData.TryGetValue(key, out var data))
             {
                 if (data == null)
                 {
