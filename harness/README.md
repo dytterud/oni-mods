@@ -106,8 +106,8 @@ The §3 case table from [`docs/blueprints-included/in-game-regression-testing.md
 is covered. Natural extensions: more building types / layers, place-with-settings applied to the
 built object, replacement visualizers over occupied terrain.
 
-**Four things worth knowing before writing a case**, each of which cost a run while adding
-`replacement-vis-places-once-per-cell`. None of them fail loudly, which is what makes them
+**Five things worth knowing before writing a case**, most of which cost a run, found while adding
+the replacement-vis and data-transfer cases. None of them fail loudly, which is what makes them
 expensive:
 
 - **The sim is paused for the whole regression run**, so `GameScheduler` callbacks never fire.
@@ -140,6 +140,13 @@ expensive:
   happily and lets a dupe dig it out, so `BuildingDef.TryPlace` succeeds there. To make a
   placement fail on purpose, occupy the cell with a finished building on the same object
   layer instead.
+- **`Constructable.OnCompleteWork(null)` does not finish a build.** It is the work callback;
+  nothing completes, with the clock running or stopped. `Constructable.FinishConstruction(
+  UtilityConnections, WorkerBase)` — non-public, so reached by reflection — is the step that
+  swaps the plan for the finished building and fires the gameplay event the mod listens for.
+  `completed-construction-applies-stored-settings` builds its argument list from
+  `GetParameters()` rather than pinning that signature. (`Deconstructable.OnCompleteWork(null)`
+  *does* work, which is what makes this asymmetry easy to walk into.)
 - **An exception inside a nested `yield return`-ed `IEnumerator` used to kill the whole run.**
   Fixed: `HarnessRunner` now drives nested enumerators on its own stack instead of handing them
   to Unity, so a throw anywhere in a case's call tree fails *that case* — reported with the

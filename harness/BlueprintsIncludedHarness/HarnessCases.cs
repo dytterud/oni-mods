@@ -81,6 +81,7 @@ internal static class HarnessCases
         new HarnessCase("mod-component-lookup-resolves-and-caches", ModComponentLookupResolvesAndCaches),
         new HarnessCase("replacement-vis-places-once-per-cell", ReplacementVisPlacesOnce),
         new HarnessCase("scheduled-seating-kick-delivers-when-time-runs", SeatingKickDelivers),
+        new HarnessCase("completed-construction-applies-stored-settings", CompletionAppliesStoredSettings),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -1231,6 +1232,166 @@ internal static class HarnessCases
             cfg.RequireConstructable_Tech = savedTech;
             cfg.RequireConstructable_Material = savedMat;
         }
+    }
+
+    // ---- settings land when construction finishes --------------------
+
+    /// <summary>
+    /// The other end of blueprint data transfer, and the one path `dotnet test` is furthest from:
+    /// a blueprint queues a building, the plan carries the captured settings on an
+    /// <c>UnderConstructionDataTransfer</c>, and when a dupe finishes building it
+    /// <c>DataTransferPatches.OnBuildingConstructed</c> schedules
+    /// <c>UnderConstructionDataTransfer.TransferDataTo</c> for the next frame.
+    ///
+    /// That last hop rides on <c>GameScheduler</c>, so it never ran in the harness before
+    /// <see cref="WithSimRunning"/> existed - this whole path has been untested until now.
+    ///
+    /// The case reads the priority twice, before and after the clock runs, because only the
+    /// difference isolates the scheduled hop. If the finished building already carried the
+    /// setting with the clock stopped, something else put it there and this would be asserting
+    /// nothing.
+    /// </summary>
+    private static IEnumerator CompletionAppliesStoredSettings()
+    {
+        ///non-default on both axes, so neither a default class nor a default value passes by luck
+        var captured = new PrioritySetting(PriorityScreen.PriorityClass.high, 7);
+
+        ///Stamp every building in the captured row, not one chosen up front: placement on this
+        ///terrain does not always get all three down (see blueprint-rotation-rotates-the-layout),
+        ///so which building this case ends up asserting on has to be decided after the fact.
+        var stamped = new List<(Prioritizable prio, PrioritySetting original)>();
+        foreach (var spec in FixtureLayout.Buildings.Where(s => s.Dy == -5))
+        {
+            var go = Grid.Objects[FixtureLayout.CellOf(spec, AnchorCell), (int)ObjectLayer.Building];
+            if (go != null && go.TryGetComponent<Prioritizable>(out var p))
+            {
+                stamped.Add((p, p.GetMasterPriority()));
+                p.SetMasterPriority(captured);
+            }
+        }
+        Assert.True(stamped.Count > 0, "at least one prioritizable building in the captured row");
+        yield return null;
+
+        Blueprint bp;
+        try
+        {
+            bp = Snapshot(TileRowTopLeft(), TileRowBottomRight());
+        }
+        finally
+        {
+            foreach (var (p, original) in stamped)
+                p.SetMasterPriority(original);
+        }
+
+        var carriers = bp.BuildingConfigurations
+            .Where(b => b.BuildingDef != null && b.TryGetDataValue("Prioritizable", out _))
+            .Select(b => b.BuildingDef!.PrefabID)
+            .ToHashSet();
+        Log?.Line($"  captured Prioritizable data on: {string.Join(", ", carriers)}");
+        Assert.True(carriers.Count > 0, "the capture carries Prioritizable data for at least one building");
+
+        var xy = Grid.CellToXY(AnchorCell);
+        var result = new PlacementResult();
+
+        ///a plan, not an instabuilt building - the whole path under test starts from a plan
+        bool savedInstant = DebugHandler.InstantBuildMode;
+        DebugHandler.InstantBuildMode = false;
+        try
+        {
+            ///well clear of every other case's dig region, including the y-20 row the
+            ///replacement-vis cases use (x-8 .. x+7)
+            yield return PlaceAt(bp, new Vector2I(xy.x + 24, xy.y - 20), rotateSteps: 0, result);
+        }
+        finally
+        {
+            DebugHandler.InstantBuildMode = savedInstant;
+        }
+
+        Assert.True(result.Finished.Count == 0, "nothing was instabuilt, so these are genuinely plans");
+        Log?.Line($"  queued: {string.Join(", ", result.Orders.Select(o => $"{o.id}@{o.cell}"))}");
+
+        var order = result.Orders.FirstOrDefault(o => carriers.Contains(o.id));
+        Assert.True(order.id != null && carriers.Contains(order.id),
+            $"a building carrying Prioritizable data was queued (got {result.Orders.Count} order(s): " +
+            string.Join(", ", result.Orders.Select(o => o.id)) + ")");
+
+        var targetDef = Assets.GetBuildingDef(order.id);
+        Assert.True(targetDef != null, $"resolved the BuildingDef for the queued {order.id}");
+
+        int cell = Grid.XYToCell(order.cell.x, order.cell.y);
+        var plan = Grid.Objects[cell, (int)targetDef!.ObjectLayer];
+        Assert.True(plan != null, $"found the queued {order.id} at {order.cell}");
+        Assert.True(plan!.TryGetComponent<UnderConstructionDataTransfer>(out var transfer),
+            "the plan carries an UnderConstructionDataTransfer");
+        Assert.True(transfer.GetStoredData().ContainsKey("Prioritizable"),
+            "the plan is holding the captured priority to apply on completion");
+
+        ///finish the build the way a dupe would - this is what fires the gameplay event that
+        ///DataTransferPatches listens for
+        Assert.True(plan!.TryGetComponent<Constructable>(out var constructable), "the plan is constructable");
+
+        ///OnCompleteWork(null) is not enough - it is the work callback, and the build still does
+        ///not finish (verified: nothing completes in 30 frames, clock running or stopped).
+        ///FinishConstruction is the step that actually swaps the plan for the finished building,
+        ///and it is what fires the gameplay event DataTransferPatches listens for.
+        var finish = typeof(Constructable)
+            .GetMethod("FinishConstruction", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+        Assert.True(finish != null, "Constructable.FinishConstruction exists to complete the build with");
+
+        ///its signature is not part of any API this mod uses, so build the argument list from
+        ///whatever it declares rather than pinning a shape that a game update could change
+        var pars = finish!.GetParameters();
+        Log?.Line($"  FinishConstruction({string.Join(", ", pars.Select(p => p.ParameterType.Name + " " + p.Name))})");
+        var args = pars.Select(p => p.ParameterType.IsValueType
+                ? Activator.CreateInstance(p.ParameterType)
+                : null)
+            .ToArray();
+        finish.Invoke(constructable, args);
+
+        ///Poll with the clock still stopped. If the building finishes here, the priority read
+        ///below is the control: the scheduled transfer cannot have run yet.
+        GameObject? built = null;
+        for (int i = 0; i < 30 && built == null; i++)
+        {
+            yield return null;
+            var at = Grid.Objects[cell, (int)targetDef!.ObjectLayer];
+            if (at != null && at.GetComponent<BuildingComplete>() != null)
+                built = at;
+        }
+
+        PrioritySetting? beforeClock = null;
+        if (built != null && built.TryGetComponent<Prioritizable>(out var prioBefore))
+            beforeClock = prioBefore.GetMasterPriority();
+        Log?.Line($"  clock stopped: completed={built != null}" +
+                  (beforeClock == null ? "" : $", priority={beforeClock.Value.priority_class}/{beforeClock.Value.priority_value}") +
+                  $" (captured {captured.priority_class}/{captured.priority_value})");
+
+        yield return WithSimRunning(frames: 30);
+
+        built ??= Grid.Objects[cell, (int)targetDef!.ObjectLayer];
+        Assert.True(built != null && built.GetComponent<BuildingComplete>() != null,
+            "construction completed, so there is a finished building to apply settings to");
+        Assert.True(built!.TryGetComponent<Prioritizable>(out var builtPrio), $"the finished {order.id} is prioritizable");
+
+        var afterClock = builtPrio.GetMasterPriority();
+        Log?.Line($"  after the clock ran: priority={afterClock.priority_class}/{afterClock.priority_value}");
+
+        Assert.Equal(captured.priority_class, afterClock.priority_class,
+            "the scheduled transfer applied the captured priority class");
+        Assert.Equal(captured.priority_value, afterClock.priority_value,
+            "the scheduled transfer applied the captured priority value");
+
+        ///Only meaningful when the building finished before the clock ran - otherwise there was no
+        ///moment at which to observe "completed but not yet transferred", and the assertions above
+        ///are all this case can claim.
+        if (beforeClock != null)
+            Assert.True(beforeClock.Value.priority_class != captured.priority_class
+                        || beforeClock.Value.priority_value != captured.priority_value,
+                "the setting was NOT already on the finished building before the clock ran - " +
+                "otherwise something other than the scheduled transfer put it there");
+        else
+            Log?.Line("  NOTE: construction did not complete with the clock stopped, so the " +
+                      "before/after control could not be taken - see the case comment");
     }
 
     // ---- a GameScheduler-driven path delivers for real ---------------
