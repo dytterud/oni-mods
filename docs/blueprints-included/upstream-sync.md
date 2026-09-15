@@ -297,11 +297,14 @@ record durable.
 A fix may go straight to a PR only when **every** one of these holds. Any doubt on any point
 means an issue instead — the whole value of the bar is that it fails closed.
 
-1. **The correct result is mechanically determinable**, either because
+1. **The correct result is mechanically determinable**, because one of:
    - the changed file is data or an asset and the port makes it **byte-identical to upstream's
-     blob**, or
+     blob**; or
    - the change is a self-contained substitution whose replacement **already exists in this
-     fork and is already used elsewhere for the same purpose**.
+     fork and is already used elsewhere for the same purpose**; or
+   - the change is a **single statement or token in one C# file** — a control-flow keyword, an
+     operator, a comparison, a literal — that adds no state, no new type, no new member, and
+     changes no signature or public API shape.
 2. **Nothing about the intended behaviour is ambiguous.** If choosing correctly needs a fact
    that isn't in the code, stop and open an issue.
 3. **The blast radius is confined** — one file, or several that are pure data. Not eligible:
@@ -312,6 +315,22 @@ means an issue instead — the whole value of the bar is that it fails closed.
 5. **Correctness doesn't rest on looking at the game.** A PR may still *want* in-game
    confirmation — it must then say so plainly — but if the only way to know it's right is to
    watch it, that's an issue.
+6. **The defect is shown to be reachable in this fork** — traced through the writers and callers
+   on *this* side, not inferred from the fact that upstream changed it. Name the paths you
+   followed. If it turns out to be unreachable, that is not automatically a veto: say so in the
+   issue, and if a PR still goes out, it is framed as hardening rather than a defect repair.
+
+Clause 6 guards something the others don't. Clauses 1–5 ask whether the *diff* is right; clause 6
+asks whether the *justification* is. A PR carrying a correct one-line change under a body claiming
+a user-visible bug that cannot occur is still a bad PR — the code survives review, the false
+rationale doesn't, and it costs a reviewer the time to work out which half to believe. This is the
+same failure that produced issue #4 and, later, [#52](https://github.com/dytterud/oni-mods/issues/52):
+both were written up as live bugs on the strength of upstream having touched the code, and both
+turned out to be unreachable here. #52's reachability was only established when someone sat down to
+port it by hand.
+
+The cheap version of clause 6 is usually one `grep`: find every writer of the state the guard
+protects, or every caller of the method, and check whether the bad input can actually arrive.
 
 Worked examples from real ports:
 
@@ -322,6 +341,9 @@ Worked examples from real ports:
 | `901b123` spawn temperature | **PR** | one line, swapped to `ModAssets.GetSpawnTemperature`, already used by every other build path |
 | `21d4a4d` conduit rotation | **issue** | correct behaviour depends on whether stored `ConduitFlags` are absolute or relative — not knowable from the code. Also the cautionary case for reading issues: it was written up as a rendering bug when upstream called it cleanup, and an in-game sweep later showed the "bug" was unreachable |
 | `901b123` planned-building transfer | **issue** | widened a signature across five call sites, each needing its own judgement; also surfaced a latent NRE |
+| `c67f777` null data value | **issue, then a hand PR** | one token (`return` -> `continue`), so it clears clause 1's C# branch — but the scan had not established reachability, and the branch turns out to be unreachable here (every writer of `AdditionalBuildingData` filters nulls). Under clause 6 the scan may now PR it, provided the body calls it hardening for the public field and not a defect repair |
+| `f64b19d` rotation in same-building detection | **issue** | one small hunk, but it changes six call sites in *opposite* directions — two of them do more work afterwards, not less. Fails clause 2 and clause 5 |
+| `f64b19d` destroyed-object guards | **issue** | upstream guarded 2 of ~37 handlers; the right port here centralises at the two dispatch sites instead. Small, but a design call, so it fails clause 1 |
 
 ### Issue and PR shape
 
@@ -344,6 +366,13 @@ of what changed and why upstream did it, the relevant upstream hunks, the corres
 here with line references, reachability for a `UtilLibs` change, and a note on how the fork's
 divergence affects the port.
 
+For a **fix**, it also carries the clause-6 reachability question, answered as far as the scan
+took it: either the trace showing the defect can occur here, or an explicit *"reachability not
+established"*. Do not assert a symptom the trace hasn't supported — write "upstream's change
+implies X would happen here" rather than "X happens here", and leave the confirmation to whoever
+picks the issue up. An issue that overstates a defect sends someone hunting for a reproduction
+that does not exist.
+
 It must also carry an **upstream issue** line — the report the change came from, or the words
 "none found". When there is none, say explicitly that intent was read from the commit message and
 the diff, so a reader knows the framing is inferred rather than sourced. Quote upstream's own words
@@ -357,9 +386,16 @@ obliges them to port it.
 
 A **pull request** references its issue with `Closes #N` and does not repeat the whole analysis
 — the issue holds that. It states which safety-bar clause it cleared and how that was checked
-(the blob SHA it matched, or the existing helper it reused), the build and test results, and an
-explicit list of what was **not** verified — in-game behaviour above all. It follows
-[the PR template](../../.github/pull_request_template.md) and keeps the AI-assisted disclosure.
+(the blob SHA it matched, or the existing helper it reused), **the reachability trace from clause
+6** — the writers or callers followed, and whether the defect can actually occur here — the build
+and test results, and an explicit list of what was **not** verified, in-game behaviour above all.
+It follows [the PR template](../../.github/pull_request_template.md) and keeps the AI-assisted
+disclosure.
+
+Where the trace shows the defect is *not* reachable, the PR must say so in its own words rather
+than inheriting the issue's framing. "Fixes a bug where settings were silently dropped" and
+"corrects a guard that cannot currently be reached, because the field is public API" are different
+claims, and only one of them is true.
 
 Rules the scan follows for its own PRs:
 
