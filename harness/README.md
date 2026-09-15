@@ -106,8 +106,8 @@ The §3 case table from [`docs/blueprints-included/in-game-regression-testing.md
 is covered. Natural extensions: more building types / layers, place-with-settings applied to the
 built object, replacement visualizers over occupied terrain.
 
-**Five things worth knowing before writing a case**, most of which cost a run, found while adding
-the replacement-vis and data-transfer cases. None of them fail loudly, which is what makes them
+**Six things worth knowing before writing a case**, most of which cost a run, found while adding
+the replacement-vis and scheduled-path cases. None of them fail loudly, which is what makes them
 expensive:
 
 - **The sim is paused for the whole regression run**, so `GameScheduler` callbacks never fire.
@@ -140,6 +140,11 @@ expensive:
   happily and lets a dupe dig it out, so `BuildingDef.TryPlace` succeeds there. To make a
   placement fail on purpose, occupy the cell with a finished building on the same object
   layer instead.
+- **Nothing a dupe would have to carry actually happens.** No material gets delivered, so a
+  reconstruct never goes ahead — `TryCommenceReconstruct` leaves the original building in the
+  cell and no replacement plan appears. `reconstruct-reapplies-stored-settings` works anyway
+  because the mod patches it with a *prefix*: the store-and-schedule runs either way. When a
+  case needs an effect that normally waits on a dupe, look for a seam that does not.
 - **`Constructable.OnCompleteWork(null)` does not finish a build.** It is the work callback;
   nothing completes, with the clock running or stopped. `Constructable.FinishConstruction(
   UtilityConnections, WorkerBase)` — non-public, so reached by reflection — is the step that

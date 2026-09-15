@@ -8,6 +8,7 @@ using BlueprintsV2.BlueprintData;
 using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 using BlueprintsV2.Visualizers;
 using BlueprintsV2.Visualizers.ReplacementVisualizers;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace BlueprintsV2.Harness;
@@ -82,6 +83,8 @@ internal static class HarnessCases
         new HarnessCase("replacement-vis-places-once-per-cell", ReplacementVisPlacesOnce),
         new HarnessCase("scheduled-seating-kick-delivers-when-time-runs", SeatingKickDelivers),
         new HarnessCase("completed-construction-applies-stored-settings", CompletionAppliesStoredSettings),
+        new HarnessCase("reconstruct-reapplies-stored-settings", ReconstructReappliesSettings),
+        new HarnessCase("preconfigure-screen-loads-the-plan's-settings", PreconfigureLoadsStoredSettings),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -1392,6 +1395,177 @@ internal static class HarnessCases
         else
             Log?.Line("  NOTE: construction did not complete with the clock stopped, so the " +
                       "before/after control could not be taken - see the case comment");
+    }
+
+    // ---- reconstruct carries settings to the replacement plan --------
+
+    /// <summary>
+    /// A material swap tears the finished building down and queues a new plan in its place.
+    /// <c>ReconstructablePatches</c> stashes the building's settings in a prefix on
+    /// <c>TryCommenceReconstruct</c> and re-applies them 0.1 s of game time later, to whatever
+    /// occupies the cell by then - in real play the new plan.
+    ///
+    /// The reconstruct does not actually go ahead here: nothing delivers the swap material in a
+    /// harness, so no plan appears and the cell still holds the original building. That does not
+    /// matter for what is under test, because the patch is a *prefix* - the store-and-schedule
+    /// runs either way, and the scheduled callback applies to the cell's occupant regardless of
+    /// which building that is.
+    ///
+    /// The delay is <c>GameScheduler.Schedule(0.1f)</c>, not a next-frame callback, so this needs
+    /// real game time to elapse rather than just frames.
+    /// </summary>
+    private static IEnumerator ReconstructReappliesSettings()
+    {
+        var source = Components.BuildingCompletes.Items.FirstOrDefault(b =>
+            b != null && b.Def != null
+            && b.TryGetComponent<Reconstructable>(out var r) && r.AllowReconstruct
+            && b.TryGetComponent<Prioritizable>(out _));
+        if (source == null)
+        {
+            Log?.Line("  REACHABILITY: no reconstructable, prioritizable building in the fixture - " +
+                      "nothing to exercise the reconstruct path with");
+            yield break;
+        }
+
+        int cell = Grid.PosToCell(source.gameObject);
+        var def = source.Def;
+        var reconstructable = source.GetComponent<Reconstructable>();
+        var sourcePrio = source.GetComponent<Prioritizable>();
+
+        ///a material the building is not already made of, or the swap is a no-op
+        var currentElement = source.GetComponent<PrimaryElement>().Element.tag;
+        var newElement = FixtureBuilder.SelectElements(def)
+            .Concat(new[] { ElementLoader.FindElementByHash(SimHashes.SandStone).tag })
+            .FirstOrDefault(t => t != currentElement);
+        Log?.Line($"  reconstructing {def.PrefabID}@{Grid.CellToXY(cell)} from {currentElement} to {newElement}");
+
+        var captured = new PrioritySetting(PriorityScreen.PriorityClass.high, 9);
+        var originalPriority = sourcePrio.GetMasterPriority();
+        sourcePrio.SetMasterPriority(captured);
+        yield return null;
+
+        try
+        {
+            reconstructable.RequestReconstruct(newElement);
+            for (int i = 0; i < 5; i++) yield return null;
+
+            ///TryCommenceReconstruct is what the mod patches; its signature is not an API this
+            ///harness should pin, so build the arguments from what it declares
+            var commence = typeof(Reconstructable).GetMethod("TryCommenceReconstruct",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.True(commence != null, "Reconstructable.TryCommenceReconstruct exists");
+            var pars = commence!.GetParameters();
+            Log?.Line($"  TryCommenceReconstruct({string.Join(", ", pars.Select(p => p.ParameterType.Name + " " + p.Name))})");
+            var args = pars.Select(p => p.ParameterType == typeof(Tag)
+                    ? (object?)newElement
+                    : p.ParameterType.IsValueType ? Activator.CreateInstance(p.ParameterType) : null)
+                .ToArray();
+            object? commenced = commence.Invoke(reconstructable, args);
+            for (int i = 0; i < 5; i++) yield return null;
+
+            ///The patch is a *prefix*, so the store-and-schedule runs whether or not the
+            ///reconstruct itself goes ahead - and in a harness it does not, because no dupe
+            ///delivers the swap material. That is fine for what is under test: the scheduled
+            ///callback re-applies the stored data to whatever occupies the cell 0.1 s later,
+            ///which in real play is the new plan and here is the original building.
+            ///
+            ///So overwrite the priority now. If the scheduled re-apply runs it will put the
+            ///captured value back; if it never fires, the overwrite stands. That is a sharper
+            ///control than reading a plan's default would have been.
+            var overwritten = new PrioritySetting(PriorityScreen.PriorityClass.basic, 1);
+            sourcePrio.SetMasterPriority(overwritten);
+            var occupant = Grid.Objects[cell, (int)def.ObjectLayer];
+            Log?.Line($"  TryCommenceReconstruct returned {commenced}; " +
+                      $"cell now holds {(occupant == null ? "nothing" : occupant.name)}");
+
+            var beforeClock = sourcePrio.GetMasterPriority();
+            Log?.Line($"  clock stopped: priority={beforeClock.priority_class}/{beforeClock.priority_value} " +
+                      $"(overwritten; captured was {captured.priority_class}/{captured.priority_value})");
+            Assert.Equal(overwritten.priority_value, beforeClock.priority_value,
+                "the overwrite took, so the scheduled re-apply is the only thing that can undo it");
+
+            ///0.1s of game time, and a frame is worth ~0.014s here, so give it room
+            yield return WithSimRunning(frames: 60);
+
+            var afterClock = sourcePrio.GetMasterPriority();
+            Log?.Line($"  after the clock ran: priority={afterClock.priority_class}/{afterClock.priority_value}");
+
+            Assert.Equal(captured.priority_class, afterClock.priority_class,
+                "the scheduled re-apply restored the stored priority class");
+            Assert.Equal(captured.priority_value, afterClock.priority_value,
+                "the scheduled re-apply restored the stored priority value");
+        }
+        finally
+        {
+            sourcePrio.SetMasterPriority(originalPriority);
+        }
+    }
+
+    // ---- the preconfigure screen loads a plan's stored settings ------
+
+    /// <summary>
+    /// The "preconfigure this building" side-screen button spawns a throwaway copy of the finished
+    /// building, and one frame later <c>UnderConstructionDataSettingHelper</c> copies the plan's
+    /// stored settings onto it so the player edits something that already reflects the blueprint.
+    /// That copy is the <c>GameScheduler</c> hop under test.
+    ///
+    /// Note this path calls <c>SpeedControlScreen.Unpause</c> itself, which does nothing in the
+    /// harness (see the README) - harmless here, because it re-pauses in the same callback and
+    /// <see cref="WithSimRunning"/> is what actually lets the callback arrive.
+    /// </summary>
+    private static IEnumerator PreconfigureLoadsStoredSettings()
+    {
+        var transferComponent = UnityEngine.Object
+            .FindObjectsByType<UnderConstructionDataTransfer>(FindObjectsSortMode.None)
+            .FirstOrDefault(t => t != null && t.GetStoredData().ContainsKey("Prioritizable"));
+        var plan = transferComponent == null ? null : transferComponent.building;
+        if (plan == null)
+        {
+            Log?.Line("  REACHABILITY: no queued building carrying stored Prioritizable data - " +
+                      "earlier cases normally leave one behind");
+            yield break;
+        }
+
+        var transfer = plan.GetComponent<UnderConstructionDataTransfer>();
+        Log?.Line($"  editing the stored settings of {plan.Def.PrefabID}@{Grid.CellToXY(Grid.PosToCell(plan))}");
+
+        try
+        {
+            UnderConstructionDataSettingHelper.StartEditingUnderConstructionData(transfer);
+
+            var beforeSelectable = UnderConstructionDataSettingHelper.TemporarySelectable;
+            Log?.Line($"  clock stopped: temporary building selected={beforeSelectable != null}");
+
+            yield return WithSimRunning(frames: 30);
+
+            var temp = UnderConstructionDataSettingHelper.TemporarySelectable;
+            Assert.True(temp != null, "the preconfigure flow spawned a temporary building to edit");
+            Assert.True(temp!.TryGetComponent<Prioritizable>(out var tempPrio),
+                "the temporary building is prioritizable");
+
+            ///priority_value is nested inside the serialized Prioritizable, not a top-level
+            ///property, so find it wherever it sits rather than assuming the shape
+            var stored = JObject.Parse(transfer.GetStoredData()["Prioritizable"]);
+            var valueToken = stored.Descendants().OfType<JProperty>()
+                .FirstOrDefault(prop => prop.Name == "priority_value");
+            Assert.True(valueToken != null, $"the stored Prioritizable carries a priority_value: {stored}");
+            int storedValue = valueToken!.Value.Value<int>();
+            var applied = tempPrio.GetMasterPriority();
+            Log?.Line($"  temporary building priority={applied.priority_class}/{applied.priority_value}, " +
+                      $"plan stored priority_value={storedValue}");
+
+            Assert.Equal(storedValue, applied.priority_value,
+                "the scheduled transfer put the plan's stored priority on the temporary building");
+        }
+        finally
+        {
+            ///CleanUp is internal to the mod assembly
+            typeof(UnderConstructionDataSettingHelper)
+                .GetMethod("CleanUp", BindingFlags.NonPublic | BindingFlags.Static)
+                ?.Invoke(null, null);
+            if (SelectTool.Instance != null)
+                SelectTool.Instance.Select(null);
+        }
     }
 
     // ---- a GameScheduler-driven path delivers for real ---------------
