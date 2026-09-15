@@ -80,6 +80,7 @@ internal static class HarnessCases
         new HarnessCase("preview-follows-the-cursor", PreviewFollowsTheCursor),
         new HarnessCase("mod-component-lookup-resolves-and-caches", ModComponentLookupResolvesAndCaches),
         new HarnessCase("replacement-vis-places-once-per-cell", ReplacementVisPlacesOnce),
+        new HarnessCase("scheduled-seating-kick-delivers-when-time-runs", SeatingKickDelivers),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -1232,6 +1233,79 @@ internal static class HarnessCases
         }
     }
 
+    // ---- a GameScheduler-driven path delivers for real ---------------
+
+    /// <summary>
+    /// <see cref="ReplacementVisPlacesOnce"/> hand-delivers the placement callback, because the
+    /// colony is paused for the whole run and <c>GameScheduler</c> never ticks. That leaves the
+    /// scheduled delivery itself untested - the case proves the callback's *body* is right, not
+    /// that anything ever calls it.
+    ///
+    /// This closes that: seat a vis, let game time run briefly, and require the building to be
+    /// placed with no hand-delivered kick. It fails if `SeatVis` stops scheduling the check, or
+    /// if the harness's pause behaviour changes such that scheduled work silently stops arriving.
+    /// </summary>
+    private static IEnumerator SeatingKickDelivers()
+    {
+        Blueprint bp = Snapshot(TileRowTopLeft(), TileRowBottomRight());
+        var config = bp.BuildingConfigurations.FirstOrDefault(b => b.BuildingDef?.PrefabID == "Ladder");
+        Assert.True(config != null, "captured the fixture's Ladder to queue as a replacement");
+
+        var xy = Grid.CellToXY(AnchorCell);
+        var cfg = ModConfig();
+        bool savedTech = cfg.RequireConstructable_Tech, savedMat = cfg.RequireConstructable_Material;
+        cfg.RequireConstructable_Tech = false;
+        cfg.RequireConstructable_Material = false;
+        bool savedInstant = DebugHandler.InstantBuildMode;
+        DebugHandler.InstantBuildMode = false;
+
+        ReplacementVis? vis = null;
+        try
+        {
+            int cell = Grid.XYToCell(xy.x + 7, xy.y - 20);
+            yield return ClearCell(cell);
+            AssertCellEmpty(cell, "scheduled-kick");
+
+            var before = Constructables();
+            var spawn = SpawnSeatedVis(config!, cell);
+            yield return spawn;
+            vis = spawn.Vis;
+
+            ///paused, the scheduled check cannot arrive - so nothing should have happened yet
+            Assert.True(!GetBool(vis, "placementSuccessful"),
+                "nothing is placed while the clock is stopped, so the run below is what delivers it");
+
+            bool firedWhileRunning = false;
+            GameScheduler.Instance.ScheduleNextFrame("bpi-harness-kick-probe", _ => firedWhileRunning = true);
+
+            float clockBefore = GameClock.Instance.GetTime();
+            yield return WithSimRunning(frames: 30);
+            Log?.Line($"  game clock advanced {GameClock.Instance.GetTime() - clockBefore:F2}s");
+
+            var placed = Constructables().Where(c => !before.Contains(c))
+                .Where(c => Grid.PosToCell(c.gameObject) == cell).ToList();
+            Log?.Line($"  with the sim running: GameScheduler fired={firedWhileRunning}, " +
+                      $"{placed.Count} build order(s) at {Grid.CellToXY(cell)}, " +
+                      $"latched={GetBool(vis!, "placementSuccessful")}");
+
+            Assert.True(firedWhileRunning,
+                "GameScheduler delivers once game time runs - if this fails the blind spot is back");
+            Assert.Equal(1, placed.Count,
+                "the vis's own scheduled seating check placed the building, with no hand-delivered callback");
+            ///timeScale, not IsPaused: the speed screen reports paused the whole time, so it says
+            ///nothing about whether the clock was left running for the cases that follow
+            Assert.Equal(0f, Time.timeScale,
+                "the clock is stopped again, so later cases are unaffected");
+        }
+        finally
+        {
+            DestroyVis(vis);
+            DebugHandler.InstantBuildMode = savedInstant;
+            cfg.RequireConstructable_Tech = savedTech;
+            cfg.RequireConstructable_Material = savedMat;
+        }
+    }
+
     /// <summary>
     /// Records why <see cref="Kick"/> has to deliver the placement callback by hand: whether the
     /// sim is paused, and whether a freshly scheduled <c>GameScheduler</c> callback lands at all.
@@ -1251,6 +1325,40 @@ internal static class HarnessCases
         Log?.Line($"  scheduler probe: simPaused={SpeedControlScreen.Instance?.IsPaused}, " +
                   $"timeScale={Time.timeScale}, " +
                   $"GameScheduler fired={gameFired}, UIScheduler fired={uiFired}");
+    }
+
+    /// <summary>
+    /// Lets game time run for <paramref name="frames"/> frames, then puts the clock back where it
+    /// was. The colony is paused for the whole harness run, so <c>GameScheduler</c> callbacks never
+    /// land otherwise - and four paths in this mod are driven by them
+    /// (<c>ReplacementVis</c> seating, the delayed settings application in
+    /// <c>DataTransferPatches</c>, <c>ReconstructablePatches</c>, and
+    /// <c>UnderConstructionDataSettingHelper</c>).
+    ///
+    /// Keep the window short and restore the clock in a <c>finally</c>: with the sim running,
+    /// dupes act, temperatures move and debris settles, and every later case inherits whatever
+    /// that did to the colony.
+    ///
+    /// <c>Time.timeScale</c> is the lever, not the speed UI. Measured: with the harness driving,
+    /// <c>SpeedControlScreen.Unpause(false)</c> and <c>SetSpeed(0)</c> are both no-ops -
+    /// <c>IsPaused</c> stays true and <c>timeScale</c> stays 0. Since <c>GameScheduler</c> ticks on
+    /// scaled time (which is exactly why <c>UIScheduler</c> fires during a run and it does not),
+    /// setting <c>timeScale</c> is enough to make scheduled work land. The speed screen keeps
+    /// reporting paused throughout, so assert on <c>timeScale</c> rather than on <c>IsPaused</c>.
+    /// </summary>
+    private static IEnumerator WithSimRunning(int frames)
+    {
+        float savedScale = Time.timeScale;
+        Time.timeScale = 1f;
+        try
+        {
+            for (int i = 0; i < frames; i++)
+                yield return null;
+        }
+        finally
+        {
+            Time.timeScale = savedScale;
+        }
     }
 
     /// <summary>
