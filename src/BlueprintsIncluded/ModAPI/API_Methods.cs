@@ -272,6 +272,13 @@ internal class API_Methods
     /// <param name="buildingConfig"></param>
     public static void ApplyAdditionalBuildingData(GameObject gameObject, BuildingConfig buildingConfig, ulong playerId = BlueprintState.PlayerId_DefaultTilePreviews)
     {
+        //A *runtime* guard the nullable annotations cannot express: Unity's fake-null means a
+        //destroyed GameObject still satisfies the compiler's non-null contract while failing
+        //== null at runtime. Replacement can tear a building down before a deferred apply runs,
+        //so liveness is checked once here rather than in each of the ~37 registered handlers.
+        if (gameObject.IsNullOrDestroyed() || buildingConfig == null)
+            return;
+
         if (BlueprintState.CurrentStateInfo(playerId).ApplyBlueprintSettings == false)
             return;
 
@@ -319,6 +326,10 @@ internal class API_Methods
     }
     public static void TryApplyingStoredData(GameObject gameObject, string Key, JObject? data)
     {
+        //see ApplyAdditionalBuildingData for why liveness is checked at the dispatch sites
+        if (gameObject.IsNullOrDestroyed())
+            return;
+
         if (AdditionalBuildingDataEntries.TryGetValue(Key, out var Methods) && data != null)
         {
             try
@@ -334,9 +345,11 @@ internal class API_Methods
 
 
     public delegate JObject GetBlueprintDataDelegate(GameObject go);
-    /// <summary><paramref name="data"/> is never null: both dispatch paths
-    /// (<see cref="ApplyAdditionalBuildingData"/>, <see cref="TryApplyingStoredData"/>)
-    /// null-check before invoking, so handlers do not need to.</summary>
+    /// <summary><paramref name="go"/> is alive and <paramref name="data"/> is never null: both
+    /// dispatch paths (<see cref="ApplyAdditionalBuildingData"/>,
+    /// <see cref="TryApplyingStoredData"/>) check both before invoking, so handlers do not need
+    /// to. The liveness half cannot be expressed in the signature - a destroyed GameObject is
+    /// non-null to the compiler and null to Unity - so it is a runtime check at those two sites.</summary>
     public delegate void SetBlueprintDataDelegate(GameObject go, JObject data);
 
 
