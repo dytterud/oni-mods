@@ -1,4 +1,4 @@
-# In-game regression test harness (dev only)
+﻿# In-game regression test harness (dev only)
 
 A separate ONI mod (`staticID` **`BlueprintsIncludedHarness`**) that boots the game, loads a
 committed fixture colony, and either runs assertions against the live blueprint pipeline — the
@@ -116,9 +116,17 @@ expensive:
   `SpeedControlScreen.Instance.Pause` is perf-only; the game simply loads paused. `UIScheduler`
   runs on real time and does fire, so the cause is game time being stopped rather than the
   scheduling machinery. **Anything the mod schedules on `GameScheduler` is dead during a
-  regression run** and has to be driven by hand — `SchedulerProbe` in `HarnessCases.cs` is the
-  check, and `Kick` shows the workaround. That is a coverage blind spot, not just an
-  inconvenience: a `GameScheduler`-driven path cannot be asserted here at all as things stand.
+  regression run** and has to be driven by hand: `SchedulerProbe` in `HarnessCases.cs` is the
+  check, and `Kick` shows the workaround. That is a coverage blind spot rather than an
+  inconvenience — a `GameScheduler`-driven path cannot be asserted here at all as things stand
+  (tracked in #57).
+
+  **The scene partitioner is not affected**, and that distinction matters when writing a case:
+  it fires on grid writes rather than game time, so a `GameScenePartitioner` callback still
+  arrives when something in its extents changes. In `replacement-vis-places-once-per-cell` the
+  blocked vis retries entirely on its own the moment the obstruction is deconstructed — no
+  hand-delivered kick needed. Expect real callbacks from grid changes; expect nothing from the
+  clock.
 - **`OnSpawn` lands a frame or two after `SetActive`, not inside it.** Read a `KMonoBehaviour`'s
   state straight after activating it and you read it before `OnSpawn` has run. `SeatedVisSpawn`
   exists so this cannot be got wrong for replacement visualizers: yield it, then read `.Vis`.

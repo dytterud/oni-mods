@@ -1099,6 +1099,7 @@ internal static class HarnessCases
 
         ReplacementVis? placing = null;
         ReplacementVis? latched = null;
+        ReplacementVis? blocked = null;
         try
         {
             ///--- the normal path: one vis, one build order, latch set ---
@@ -1159,11 +1160,72 @@ internal static class HarnessCases
                       $"markedForDeletion={GetBool(latched, "markedForDeletion")}, " +
                       $"replacementInProgress={GetBool(latched, "replacementInProgress")}");
             Assert.Equal(0, extra.Count, "a latched vis places nothing, so a re-entrant callback cannot duplicate");
+
+            ///--- the retry path: a failed placement must NOT latch, and a later callback must
+            ///--- still place. This is the risk in the fix - latching too eagerly would strand a
+            ///--- vis whose cell has not cleared yet, and the building would silently never appear.
+            ///The obstruction is a finished building of the same def already in the cell - TryPlace
+            ///refuses to put a second one on the same object layer. Solid rock does NOT work: ONI
+            ///queues a build order inside rock quite happily and lets a dupe dig it out.
+            ///SeatVis queues the occupant for deconstruction, which never completes while the sim
+            ///is paused, so the cell stays blocked until this case clears it by hand.
+            int blockedCell = Grid.XYToCell(xy.x + 2, xy.y - 20);
+            yield return ClearCell(blockedCell);
+            AssertCellEmpty(blockedCell, "blocked");
+
+            var blocker = config!.BuildingDef!.Build(blockedCell, Orientation.Neutral,
+                resource_storage: null, FixtureBuilder.SelectElements(config.BuildingDef),
+                temperature: 293.15f, playsound: false, timeBuilt: 0f);
+            Assert.True(blocker != null, "built the obstructing building the retry has to wait on");
+            for (int i = 0; i < 5; i++) yield return null;
+
+            var beforeBlocked = Constructables();
+            var blockedSpawn = SpawnSeatedVis(config!, blockedCell);
+            yield return blockedSpawn;
+            blocked = blockedSpawn.Vis;
+
+            yield return Kick(blocked);
+
+            var whileBlocked = Constructables().Where(c => !beforeBlocked.Contains(c))
+                .Where(c => Grid.PosToCell(c.gameObject) == blockedCell).ToList();
+            Log?.Line($"  blocked: {whileBlocked.Count} build order(s), " +
+                      $"latched={GetBool(blocked, "placementSuccessful")}, " +
+                      $"markedForDeletion={GetBool(blocked, "markedForDeletion")}");
+            Assert.Equal(0, whileBlocked.Count, "placement into an occupied cell produces no build order");
+            Assert.True(!GetBool(blocked, "placementSuccessful"),
+                "a FAILED placement does not latch - this is what keeps the retry path open");
+            Assert.True(!GetBool(blocked, "markedForDeletion"),
+                "the vis survives a failed placement, so it is still there to retry");
+
+            ///Complete the deconstruct SeatVis already queued, which is what would happen on its own
+            ///if the sim were running. This is the mod's own instant-deconstruct call
+            ///(DoDeconstrucThingsAt uses it under InstantBuild).
+            Assert.True(blocker!.TryGetComponent<Deconstructable>(out var blockerDecon),
+                "the obstructing building is deconstructable, so the cell can be cleared");
+            blockerDecon.OnCompleteWork(null);
+
+            ///Freeing the cell changes the grid, and the scene partitioner delivers that even with
+            ///the sim paused - unlike GameScheduler, it is driven by grid writes rather than game
+            ///time. So the vis usually retries on its own here. The extra Kick covers the case
+            ///where it has not, and is a no-op once the latch is set.
+            for (int i = 0; i < 10; i++) yield return null;
+            yield return Kick(blocked);
+
+            var afterClear = Constructables().Where(c => !beforeBlocked.Contains(c))
+                .Where(c => Grid.PosToCell(c.gameObject) == blockedCell).ToList();
+            Log?.Line($"  after clearing: {afterClear.Count} build order(s) at {Grid.CellToXY(blockedCell)}, " +
+                      $"latched={GetBool(blocked!, "placementSuccessful")}");
+            Assert.Equal(1, afterClear.Count,
+                "once the cell clears the retrying vis places exactly one building - not zero " +
+                "(the latch would have stranded it) and not two");
+            Assert.True(GetBool(blocked!, "placementSuccessful"),
+                "and only then does it latch");
         }
         finally
         {
             DestroyVis(placing);
             DestroyVis(latched);
+            DestroyVis(blocked);
             DebugHandler.InstantBuildMode = savedInstant;
             cfg.RequireConstructable_Tech = savedTech;
             cfg.RequireConstructable_Material = savedMat;
