@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -125,14 +126,35 @@ internal sealed class HarnessRunner : MonoBehaviour
             try { body = testCase.Body(); }
             catch (Exception e) { err = e; }
 
-            while (err == null && body != null)
+            ///Drive nested enumerators here rather than handing them to Unity. `yield return
+            ///SomeHelper()` would make Unity own that helper's execution, and an exception thrown
+            ///inside it then escapes this try/catch and kills this coroutine outright: no results
+            ///file, and run-ingame.ps1 waits out its timeout with nothing to show for it. Keeping
+            ///the whole call tree on one stack means a throw anywhere in a case fails *that case*
+            ///and lets the rest of the suite finish.
+            var stack = new Stack<IEnumerator>();
+            if (body != null)
+                stack.Push(body);
+
+            while (err == null && stack.Count > 0)
             {
+                var frame = stack.Peek();
                 bool moved;
-                try { moved = body.MoveNext(); }
+                try { moved = frame.MoveNext(); }
                 catch (Exception e) { err = e; break; }
+
                 if (!moved)
-                    break;
-                yield return body.Current;
+                {
+                    stack.Pop();
+                    continue;
+                }
+
+                ///a yielded IEnumerator is a nested helper - run it on this stack. Anything else
+                ///(null, a YieldInstruction) is Unity's to interpret, so pass it up.
+                if (frame.Current is IEnumerator nested)
+                    stack.Push(nested);
+                else
+                    yield return frame.Current;
             }
 
             var result = err == null

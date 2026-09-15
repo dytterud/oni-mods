@@ -106,8 +106,8 @@ The §3 case table from [`docs/blueprints-included/in-game-regression-testing.md
 is covered. Natural extensions: more building types / layers, place-with-settings applied to the
 built object, replacement visualizers over occupied terrain.
 
-**Four things that each cost a run**, found while adding
-`replacement-vis-places-once-per-cell`. None of them fail loudly, which is what makes them
+**Six things worth knowing before writing a case**, most of which cost a run, found while adding
+the replacement-vis and scheduled-path cases. None of them fail loudly, which is what makes them
 expensive:
 
 - **The sim is paused for the whole regression run**, so `GameScheduler` callbacks never fire.
@@ -115,11 +115,17 @@ expensive:
   fired=True`. Nothing in the harness pauses it — the perf run's explicit
   `SpeedControlScreen.Instance.Pause` is perf-only; the game simply loads paused. `UIScheduler`
   runs on real time and does fire, so the cause is game time being stopped rather than the
-  scheduling machinery. **Anything the mod schedules on `GameScheduler` is dead during a
-  regression run** and has to be driven by hand: `SchedulerProbe` in `HarnessCases.cs` is the
-  check, and `Kick` shows the workaround. That is a coverage blind spot rather than an
-  inconvenience — a `GameScheduler`-driven path cannot be asserted here at all as things stand
-  (tracked in #57).
+  scheduling machinery. Four paths in this mod ride on it: `ReplacementVis` seating, the delayed
+  settings application in `DataTransferPatches`, `ReconstructablePatches`, and
+  `UnderConstructionDataSettingHelper`. `SchedulerProbe` in `HarnessCases.cs` is the check.
+
+  **To let scheduled work land, yield `WithSimRunning` — and note the lever is `Time.timeScale`,
+  not the speed UI.** Measured with the harness driving: `SpeedControlScreen.Unpause(false)` and
+  `SetSpeed(0)` are both no-ops, `IsPaused` stays true and `timeScale` stays 0. Since
+  `GameScheduler` ticks on scaled time, setting `timeScale` directly is enough. The speed screen
+  goes on reporting paused throughout, so assert on `timeScale` rather than `IsPaused` when
+  checking the clock was put back. Keep the window short and restore it in a `finally`: with time
+  running, dupes act and temperatures move, and every later case inherits that.
 
   **The scene partitioner is not affected**, and that distinction matters when writing a case:
   it fires on grid writes rather than game time, so a `GameScenePartitioner` callback still
@@ -134,11 +140,24 @@ expensive:
   happily and lets a dupe dig it out, so `BuildingDef.TryPlace` succeeds there. To make a
   placement fail on purpose, occupy the cell with a finished building on the same object
   layer instead.
-- **An exception inside a nested `yield return`-ed `IEnumerator` kills the whole run**, rather
-  than failing the case. `HarnessRunner` try/catches its own `body.MoveNext()`, but a helper the
-  case yields is driven by Unity, so an assertion failing in there takes out the runner
-  coroutine: no `results.xml`, and `run-ingame.ps1` sits until its 300 s timeout with no clue
-  what happened. Keep assertions in the case body, or expect a silent hang.
+- **Nothing a dupe would have to carry actually happens.** No material gets delivered, so a
+  reconstruct never goes ahead — `TryCommenceReconstruct` leaves the original building in the
+  cell and no replacement plan appears. `reconstruct-reapplies-stored-settings` works anyway
+  because the mod patches it with a *prefix*: the store-and-schedule runs either way. When a
+  case needs an effect that normally waits on a dupe, look for a seam that does not.
+- **`Constructable.OnCompleteWork(null)` does not finish a build.** It is the work callback;
+  nothing completes, with the clock running or stopped. `Constructable.FinishConstruction(
+  UtilityConnections, WorkerBase)` — non-public, so reached by reflection — is the step that
+  swaps the plan for the finished building and fires the gameplay event the mod listens for.
+  `completed-construction-applies-stored-settings` builds its argument list from
+  `GetParameters()` rather than pinning that signature. (`Deconstructable.OnCompleteWork(null)`
+  *does* work, which is what makes this asymmetry easy to walk into.)
+- **An exception inside a nested `yield return`-ed `IEnumerator` used to kill the whole run.**
+  Fixed: `HarnessRunner` now drives nested enumerators on its own stack instead of handing them
+  to Unity, so a throw anywhere in a case's call tree fails *that case* — reported with the
+  helper's own stack frame — and the rest of the suite still runs. Worth knowing because the old
+  symptom told you nothing: no `results.xml`, and `run-ingame.ps1` sitting out its 300 s timeout
+  in silence.
 
 ## Adding a perf operation
 
