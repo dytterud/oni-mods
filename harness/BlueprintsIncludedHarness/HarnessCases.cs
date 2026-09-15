@@ -7,6 +7,7 @@ using System.Text;
 using BlueprintsV2.BlueprintData;
 using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 using BlueprintsV2.Visualizers;
+using BlueprintsV2.Visualizers.ReplacementVisualizers;
 using UnityEngine;
 
 namespace BlueprintsV2.Harness;
@@ -78,6 +79,7 @@ internal static class HarnessCases
         new HarnessCase("tile-seating-map-tracks-the-drag", TileSeatingMapTracksTheDrag),
         new HarnessCase("preview-follows-the-cursor", PreviewFollowsTheCursor),
         new HarnessCase("mod-component-lookup-resolves-and-caches", ModComponentLookupResolvesAndCaches),
+        new HarnessCase("replacement-vis-places-once-per-cell", ReplacementVisPlacesOnce),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -1059,6 +1061,337 @@ internal static class HarnessCases
         flags = (int)args[0];
         return ok;
     }
+
+    // ---- a replacement vis places once, not once per callback -----
+
+    /// <summary>
+    /// <c>ReplacementVis</c> kept no record that a placement had already succeeded, so a second
+    /// callback arriving before the vis was torn down placed the queued building again -
+    /// overwriting a cell N times stacked N overlapping construction orders.
+    ///
+    /// The unguarded window is narrow and specific: inside <c>TryPlacingQueuedBP</c>, after
+    /// <c>replacementInProgress</c> goes back to false but before <c>FinalizePlacementCheck</c>
+    /// reaches <c>DestroySelf</c> (which is what sets <c>markedForDeletion</c>). A
+    /// <c>GameScenePartitioner</c> callback landing there found every guard clear.
+    ///
+    /// Winning that race on demand is not something a harness case can do, and probing the vis
+    /// after it has placed means probing a destroyed object. So this asserts on the guard itself,
+    /// the way <see cref="PlannedBuildingMatch"/> asserts on its predicate: one vis takes the
+    /// normal path and must latch, a second has the latch pre-set and must then refuse to start a
+    /// placement check at all. The second is the re-entry the race produces.
+    /// </summary>
+    private static IEnumerator ReplacementVisPlacesOnce()
+    {
+        Blueprint bp = Snapshot(TileRowTopLeft(), TileRowBottomRight());
+        var config = bp.BuildingConfigurations.FirstOrDefault(b => b.BuildingDef?.PrefabID == "Ladder");
+        Assert.True(config != null, "captured the fixture's Ladder to queue as a replacement");
+
+        var xy = Grid.CellToXY(AnchorCell);
+        var cfg = ModConfig();
+        bool savedTech = cfg.RequireConstructable_Tech, savedMat = cfg.RequireConstructable_Material;
+        cfg.RequireConstructable_Tech = false;
+        cfg.RequireConstructable_Material = false;
+
+        ///instabuild would take TryPlacingQueuedBP's def.Build branch and hand back finished
+        ///buildings; the reported bug is about unfinished ones stacking, so count Constructables
+        bool savedInstant = DebugHandler.InstantBuildMode;
+        DebugHandler.InstantBuildMode = false;
+
+        ReplacementVis? placing = null;
+        ReplacementVis? latched = null;
+        ReplacementVis? blocked = null;
+        try
+        {
+            ///--- the normal path: one vis, one build order, latch set ---
+            ///below every other case's dig region (PlaceAt reaches y-18 at its deepest), so these
+            ///two cells are this case's alone - a collision would silently test nothing
+            int placeCell = Grid.XYToCell(xy.x - 8, xy.y - 20);
+            yield return ClearCell(placeCell);
+            AssertCellEmpty(placeCell, "normal-path");
+
+            var before = Constructables();
+            var spawn = SpawnSeatedVis(config!, placeCell);
+            yield return spawn;
+            placing = spawn.Vis;
+
+            Assert.True(!GetBool(placing, "placementSuccessful"),
+                "a freshly seated vis has not latched - the retry path stays open until something is built");
+            Assert.True(GetPrivate(placing, "scheduledSpawnCheck") is SchedulerHandle handle
+                        && !handle.Equals(default(SchedulerHandle)),
+                "SeatVis kept the next-frame handle, so UnseatVis has something to clear");
+
+            ///records why the kick below has to be delivered by hand - see SchedulerProbe
+            yield return SchedulerProbe();
+
+            yield return Kick(placing);
+
+            var placed = Constructables().Where(c => !before.Contains(c))
+                .Where(c => Grid.PosToCell(c.gameObject) == placeCell).ToList();
+            Log?.Line($"  normal path: {placed.Count} build order(s) at {Grid.CellToXY(placeCell)}, " +
+                      $"latched={GetBool(placing!, "placementSuccessful")}");
+            Assert.Equal(1, placed.Count, "a replacement vis over a clear cell queues exactly one building");
+            Assert.True(GetBool(placing!, "placementSuccessful"),
+                "the vis latched placementSuccessful once it actually built something");
+
+            ///--- the re-entry the race produces: latch set, callback must do nothing ---
+            int guardCell = Grid.XYToCell(xy.x - 3, xy.y - 20);
+            yield return ClearCell(guardCell);
+            AssertCellEmpty(guardCell, "guard");
+
+            var beforeGuard = Constructables();
+            var guardSpawn = SpawnSeatedVis(config!, guardCell);
+            yield return guardSpawn;
+            latched = guardSpawn.Vis;
+
+            Assert.True(!GetBool(latched, "placementSuccessful"),
+                "the guard vis has not placed on its own, so the latch below is the only thing under test");
+            ///the state the vis holds during the window described above: placement done, teardown
+            ///not yet reached, so markedForDeletion and replacementInProgress are both still false
+            SetBool(latched, "placementSuccessful", true);
+
+            yield return Kick(latched);
+
+            Assert.True(GetPrivate(latched, "check") == null,
+                "a latched vis does not start a placement check when a callback arrives");
+
+            var extra = Constructables().Where(c => !beforeGuard.Contains(c))
+                .Where(c => Grid.PosToCell(c.gameObject) == guardCell).ToList();
+            Log?.Line($"  latched vis: {extra.Count} build order(s) at {Grid.CellToXY(guardCell)}, " +
+                      $"markedForDeletion={GetBool(latched, "markedForDeletion")}, " +
+                      $"replacementInProgress={GetBool(latched, "replacementInProgress")}");
+            Assert.Equal(0, extra.Count, "a latched vis places nothing, so a re-entrant callback cannot duplicate");
+
+            ///--- the retry path: a failed placement must NOT latch, and a later callback must
+            ///--- still place. This is the risk in the fix - latching too eagerly would strand a
+            ///--- vis whose cell has not cleared yet, and the building would silently never appear.
+            ///The obstruction is a finished building of the same def already in the cell - TryPlace
+            ///refuses to put a second one on the same object layer. Solid rock does NOT work: ONI
+            ///queues a build order inside rock quite happily and lets a dupe dig it out.
+            ///SeatVis queues the occupant for deconstruction, which never completes while the sim
+            ///is paused, so the cell stays blocked until this case clears it by hand.
+            int blockedCell = Grid.XYToCell(xy.x + 2, xy.y - 20);
+            yield return ClearCell(blockedCell);
+            AssertCellEmpty(blockedCell, "blocked");
+
+            var blocker = config!.BuildingDef!.Build(blockedCell, Orientation.Neutral,
+                resource_storage: null, FixtureBuilder.SelectElements(config.BuildingDef),
+                temperature: 293.15f, playsound: false, timeBuilt: 0f);
+            Assert.True(blocker != null, "built the obstructing building the retry has to wait on");
+            for (int i = 0; i < 5; i++) yield return null;
+
+            var beforeBlocked = Constructables();
+            var blockedSpawn = SpawnSeatedVis(config!, blockedCell);
+            yield return blockedSpawn;
+            blocked = blockedSpawn.Vis;
+
+            yield return Kick(blocked);
+
+            var whileBlocked = Constructables().Where(c => !beforeBlocked.Contains(c))
+                .Where(c => Grid.PosToCell(c.gameObject) == blockedCell).ToList();
+            Log?.Line($"  blocked: {whileBlocked.Count} build order(s), " +
+                      $"latched={GetBool(blocked, "placementSuccessful")}, " +
+                      $"markedForDeletion={GetBool(blocked, "markedForDeletion")}");
+            Assert.Equal(0, whileBlocked.Count, "placement into an occupied cell produces no build order");
+            Assert.True(!GetBool(blocked, "placementSuccessful"),
+                "a FAILED placement does not latch - this is what keeps the retry path open");
+            Assert.True(!GetBool(blocked, "markedForDeletion"),
+                "the vis survives a failed placement, so it is still there to retry");
+
+            ///Complete the deconstruct SeatVis already queued, which is what would happen on its own
+            ///if the sim were running. This is the mod's own instant-deconstruct call
+            ///(DoDeconstrucThingsAt uses it under InstantBuild).
+            Assert.True(blocker!.TryGetComponent<Deconstructable>(out var blockerDecon),
+                "the obstructing building is deconstructable, so the cell can be cleared");
+            blockerDecon.OnCompleteWork(null);
+
+            ///Freeing the cell changes the grid, and the scene partitioner delivers that even with
+            ///the sim paused - unlike GameScheduler, it is driven by grid writes rather than game
+            ///time. So the vis usually retries on its own here. The extra Kick covers the case
+            ///where it has not, and is a no-op once the latch is set.
+            for (int i = 0; i < 10; i++) yield return null;
+            yield return Kick(blocked);
+
+            var afterClear = Constructables().Where(c => !beforeBlocked.Contains(c))
+                .Where(c => Grid.PosToCell(c.gameObject) == blockedCell).ToList();
+            Log?.Line($"  after clearing: {afterClear.Count} build order(s) at {Grid.CellToXY(blockedCell)}, " +
+                      $"latched={GetBool(blocked!, "placementSuccessful")}");
+            Assert.Equal(1, afterClear.Count,
+                "once the cell clears the retrying vis places exactly one building - not zero " +
+                "(the latch would have stranded it) and not two");
+            Assert.True(GetBool(blocked!, "placementSuccessful"),
+                "and only then does it latch");
+        }
+        finally
+        {
+            DestroyVis(placing);
+            DestroyVis(latched);
+            DestroyVis(blocked);
+            DebugHandler.InstantBuildMode = savedInstant;
+            cfg.RequireConstructable_Tech = savedTech;
+            cfg.RequireConstructable_Material = savedMat;
+        }
+    }
+
+    /// <summary>
+    /// Records why <see cref="Kick"/> has to deliver the placement callback by hand: whether the
+    /// sim is paused, and whether a freshly scheduled <c>GameScheduler</c> callback lands at all.
+    /// <c>UIScheduler</c> is the control - it runs on real time, so if it fires and
+    /// <c>GameScheduler</c> does not, the cause is game time being stopped rather than the
+    /// scheduling machinery being broken.
+    /// </summary>
+    private static IEnumerator SchedulerProbe()
+    {
+        bool gameFired = false, uiFired = false;
+        GameScheduler.Instance.ScheduleNextFrame("bpi-harness-probe-game", _ => gameFired = true);
+        UIScheduler.Instance.ScheduleNextFrame("bpi-harness-probe-ui", _ => uiFired = true);
+
+        for (int i = 0; i < 10; i++)
+            yield return null;
+
+        Log?.Line($"  scheduler probe: simPaused={SpeedControlScreen.Instance?.IsPaused}, " +
+                  $"timeScale={Time.timeScale}, " +
+                  $"GameScheduler fired={gameFired}, UIScheduler fired={uiFired}");
+    }
+
+    /// <summary>
+    /// Delivers the <c>OnPreoccupiedCellChanged</c> callback the scene partitioner would deliver,
+    /// then lets the one-frame <c>DelayedPlacementCheck</c> coroutine run to completion.
+    /// </summary>
+    private static IEnumerator Kick(ReplacementVis vis)
+    {
+        typeof(ReplacementVis)
+            .GetMethod("OnPreoccupiedCellChanged", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(vis, new object?[] { null });
+
+        for (int i = 0; i < 10; i++)
+            yield return null;
+    }
+
+    /// <summary>
+    /// The cells this case uses must start free of buildings, or it would be measuring another
+    /// case's leftovers instead of its own placement. Only buildings count: digging leaves loose
+    /// debris on the <c>Pickupables</c> layer, which does not obstruct a placement.
+    /// </summary>
+    private static void AssertCellEmpty(int cell, string which)
+    {
+        for (int layer = 0; layer < (int)ObjectLayer.NumLayers; layer++)
+        {
+            var occupant = Grid.Objects[cell, layer];
+            if (occupant == null || !occupant.TryGetComponent<Building>(out var occupying))
+                continue;
+
+            Assert.True(false,
+                $"{which} cell {Grid.CellToXY(cell)} starts free of buildings " +
+                $"(found {occupying.Def?.PrefabID ?? "?"} on layer {(ObjectLayer)layer})");
+        }
+    }
+
+    /// <summary>Digs and reveals a small area around <paramref name="cell"/> so a placement there
+    /// is not fighting terrain or fog of war.</summary>
+    private static IEnumerator ClearCell(int cell)
+    {
+        var xy = Grid.CellToXY(cell);
+        var region = new List<int>();
+        for (int dx = -2; dx <= 2; dx++)
+            for (int dy = -2; dy <= 2; dy++)
+            {
+                int c = Grid.XYToCell(xy.x + dx, xy.y + dy);
+                if (Grid.IsValidCell(c))
+                    region.Add(c);
+            }
+        foreach (int c in region)
+        {
+            if (Grid.IsSolidCell(c))
+                SimMessages.Dig(c, skipEvent: true);
+            Grid.Reveal(c, byte.MaxValue, forceReveal: true);
+        }
+        float waited = 0f;
+        while (region.Any(Grid.IsSolidCell) && waited < 20f)
+        {
+            waited += Time.unscaledDeltaTime;
+            yield return null;
+        }
+    }
+
+    ///BPV2_BuildingReplacer is ReplacementVisualizerMultiEntityConfig.BUILDING_ID - that type is
+    ///internal to the mod, so the id is spelled out here; Assets.GetPrefab fails loudly on a rename.
+    private const string BuildingReplacerPrefabId = "BPV2_BuildingReplacer";
+
+    private static SeatedVisSpawn SpawnSeatedVis(BuildingConfig config, int cell) => new(config, cell);
+
+    /// <summary>
+    /// Spawns a replacement vis and does not hand it back until it is actually seated.
+    /// <c>OnSpawn</c> - and so <c>SeatVis</c> - lands a frame or two after <c>SetActive</c> rather
+    /// than inside it, so a caller reading vis state straight after spawning reads it before
+    /// <c>SeatVis</c> has run: <c>scheduledSpawnCheck</c> is still <c>default</c> and
+    /// <c>occupiedCells</c> is still empty. Waiting here rather than at each call site means a
+    /// later case cannot get that wrong.
+    ///
+    /// Yield it, then read <see cref="Vis"/>.
+    /// </summary>
+    private sealed class SeatedVisSpawn : IEnumerator
+    {
+        private readonly IEnumerator steps;
+
+        /// <summary>The seated vis. Only valid once this has been yielded to completion.</summary>
+        public ReplacementVis Vis = null!;
+
+        public SeatedVisSpawn(BuildingConfig config, int cell) => steps = Run(config, cell);
+
+        private IEnumerator Run(BuildingConfig config, int cell)
+        {
+            var prefab = Assets.GetPrefab(BuildingReplacerPrefabId);
+            Assert.True(prefab != null, $"resolved the replacement-vis prefab '{BuildingReplacerPrefabId}'");
+
+            var go = Util.KInstantiate(prefab, Grid.CellToPosCBC(cell, config.BuildingDef!.SceneLayer));
+            var vis = go.GetComponent<ReplacementVis>();
+            Assert.True(vis != null, "the replacement-vis prefab carries a ReplacementVis");
+
+            vis!.Configure(cell, config, Orientation.Neutral, config.SelectedElements, flags: -1);
+            go.SetActive(true);
+            Vis = vis;
+
+            float waited = 0f;
+            while (!IsSeated(vis) && waited < 5f)
+            {
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            Assert.True(IsSeated(vis), $"the vis seated within {waited:F1}s of SetActive");
+        }
+
+        ///SeatVis fills occupiedCells via DetermineOccupiedCells, so a non-empty set is the signal
+        ///that OnSpawn has been through. HashSet<T> does NOT implement the non-generic
+        ///ICollection, so match the concrete type - a pattern on ICollection never matches and
+        ///this silently never seats.
+        private static bool IsSeated(ReplacementVis vis) =>
+            GetPrivate(vis, "occupiedCells") is HashSet<int> cells && cells.Count > 0;
+
+        public bool MoveNext() => steps.MoveNext();
+        public object Current => steps.Current;
+        public void Reset() => steps.Reset();
+    }
+
+    private static void DestroyVis(ReplacementVis? vis)
+    {
+        if (vis == null)
+            return;
+        typeof(ReplacementVis)
+            .GetMethod("DestroySelf", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(vis, null);
+    }
+
+    private static object? GetPrivate(ReplacementVis vis, string field) =>
+        typeof(ReplacementVis)
+            .GetField(field, BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(vis);
+
+    private static bool GetBool(ReplacementVis vis, string field) => (bool)GetPrivate(vis, field)!;
+
+    private static void SetBool(ReplacementVis vis, string field, bool value) =>
+        typeof(ReplacementVis)
+            .GetField(field, BindingFlags.NonPublic | BindingFlags.Instance)!
+            .SetValue(vis, value);
 
     // ---- placement helper ----------------------------------------
 

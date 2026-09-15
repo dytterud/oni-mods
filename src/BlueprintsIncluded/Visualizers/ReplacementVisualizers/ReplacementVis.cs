@@ -48,6 +48,15 @@ public class ReplacementVis : KMonoBehaviour
     Coroutine? check = null;
     bool replacementInProgress = false;
     bool markedForDeletion = false;
+    ///<summary>Latched once <see cref="TryPlacingQueuedBP"/> has actually built something.
+    ///The vis is destroyed on the same frame it places, but a partitioner callback can still
+    ///arrive before that teardown completes - and by then <see cref="replacementInProgress"/>
+    ///is back to false, so without this latch the callback places the building a second time.</summary>
+    bool placementSuccessful = false;
+    ///<summary>Handle for the next-frame kick scheduled in <see cref="SeatVis"/>, so
+    ///<see cref="UnseatVis"/> can cancel it. A vis unseated in the same frame it was seated
+    ///would otherwise still get a placement check fired at it afterwards.</summary>
+    SchedulerHandle scheduledSpawnCheck = default;
     HashSet<ObjectLayer> layersToReplace = null!;
 
     public void Configure(int cell, BuildingConfig building, Orientation orientation, IEnumerable<Tag> elements, int flags, ulong playerId = BlueprintState.PlayerId_DefaultTilePreviews)
@@ -150,6 +159,7 @@ public class ReplacementVis : KMonoBehaviour
         {
             RefreshPendingDeconstructs(false);
             GameScenePartitioner.Instance.Free(ref this.partitionerEntry);
+            scheduledSpawnCheck.ClearScheduler();
         }
     }
     protected virtual void SeatVis()
@@ -168,7 +178,7 @@ public class ReplacementVis : KMonoBehaviour
         {
             RefreshPendingDeconstructs(true);
             partitionerEntry = GameScenePartitioner.Instance.Add("ReplacementVis.ReCheckPlacement", (object)this.gameObject, new Extents(this.extents.x - 1, this.extents.y - 1, this.extents.width + 2, this.extents.height + 2), GameScenePartitioner.Instance.objectLayers[(int)def.ObjectLayer], OnPreoccupiedCellChanged);
-            GameScheduler.Instance.ScheduleNextFrame("ReplacementVisInitialCheck", OnPreoccupiedCellChanged);
+            scheduledSpawnCheck = GameScheduler.Instance.ScheduleNextFrame("ReplacementVisInitialCheck", OnPreoccupiedCellChanged);
         }
     }
     void RefreshPendingDeconstructs(bool deconstruct)
@@ -242,7 +252,7 @@ public class ReplacementVis : KMonoBehaviour
     void FinalizePlacementCheck()
     {
         check = null;
-        if (!TryReplacing || replacementInProgress)
+        if (!TryReplacing || replacementInProgress || placementSuccessful)
             return;
         if (TryPlacingQueuedBP())
         {
@@ -254,7 +264,7 @@ public class ReplacementVis : KMonoBehaviour
     }
     void OnPreoccupiedCellChanged(object data)
     {
-        if (check != null || replacementInProgress || markedForDeletion)
+        if (check != null || replacementInProgress || markedForDeletion || placementSuccessful)
             return;
         check = StartCoroutine(DelayedPlacementCheck());
     }
@@ -306,6 +316,10 @@ public class ReplacementVis : KMonoBehaviour
         replacementInProgress = false;
         if (builtItem == null)
             return false;
+
+        //only latched on an actual build, so a vis whose cell has not cleared yet
+        //keeps retrying on later callbacks
+        placementSuccessful = true;
 
         ApplyExtraDataToBuilt(builtItem);
 
