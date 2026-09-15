@@ -106,7 +106,7 @@ The §3 case table from [`docs/blueprints-included/in-game-regression-testing.md
 is covered. Natural extensions: more building types / layers, place-with-settings applied to the
 built object, replacement visualizers over occupied terrain.
 
-**Three traps that each cost a run**, found while adding
+**Four things that each cost a run**, found while adding
 `replacement-vis-places-once-per-cell`. None of them fail loudly, which is what makes them
 expensive:
 
@@ -130,6 +130,10 @@ expensive:
 - **`OnSpawn` lands a frame or two after `SetActive`, not inside it.** Read a `KMonoBehaviour`'s
   state straight after activating it and you read it before `OnSpawn` has run. `SeatedVisSpawn`
   exists so this cannot be got wrong for replacement visualizers: yield it, then read `.Vis`.
+- **Solid rock does not block a placement.** ONI queues a build order inside rock quite
+  happily and lets a dupe dig it out, so `BuildingDef.TryPlace` succeeds there. To make a
+  placement fail on purpose, occupy the cell with a finished building on the same object
+  layer instead.
 - **An exception inside a nested `yield return`-ed `IEnumerator` kills the whole run**, rather
   than failing the case. `HarnessRunner` try/catches its own `body.MoveNext()`, but a helper the
   case yields is driven by Unity, so an assertion failing in there takes out the runner
