@@ -1109,9 +1109,9 @@ internal static class HarnessCases
             AssertCellEmpty(placeCell, "normal-path");
 
             var before = Constructables();
-            placing = SpawnReplacementVis(config!, placeCell);
-            ///OnSpawn - and so SeatVis - lands a frame or two after SetActive, not inside it
-            for (int i = 0; i < 5; i++) yield return null;
+            var spawn = SpawnSeatedVis(config!, placeCell);
+            yield return spawn;
+            placing = spawn.Vis;
 
             Assert.True(!GetBool(placing, "placementSuccessful"),
                 "a freshly seated vis has not latched - the retry path stays open until something is built");
@@ -1119,8 +1119,9 @@ internal static class HarnessCases
                         && !handle.Equals(default(SchedulerHandle)),
                 "SeatVis kept the next-frame handle, so UnseatVis has something to clear");
 
-            ///the colony is paused for the whole harness run, so GameScheduler's next-frame kick
-            ///never lands - deliver the callback the scene partitioner would have delivered
+            ///records why the kick below has to be delivered by hand - see SchedulerProbe
+            yield return SchedulerProbe();
+
             yield return Kick(placing);
 
             var placed = Constructables().Where(c => !before.Contains(c))
@@ -1137,8 +1138,9 @@ internal static class HarnessCases
             AssertCellEmpty(guardCell, "guard");
 
             var beforeGuard = Constructables();
-            latched = SpawnReplacementVis(config!, guardCell);
-            for (int i = 0; i < 5; i++) yield return null;
+            var guardSpawn = SpawnSeatedVis(config!, guardCell);
+            yield return guardSpawn;
+            latched = guardSpawn.Vis;
 
             Assert.True(!GetBool(latched, "placementSuccessful"),
                 "the guard vis has not placed on its own, so the latch below is the only thing under test");
@@ -1166,6 +1168,27 @@ internal static class HarnessCases
             cfg.RequireConstructable_Tech = savedTech;
             cfg.RequireConstructable_Material = savedMat;
         }
+    }
+
+    /// <summary>
+    /// Records why <see cref="Kick"/> has to deliver the placement callback by hand: whether the
+    /// sim is paused, and whether a freshly scheduled <c>GameScheduler</c> callback lands at all.
+    /// <c>UIScheduler</c> is the control - it runs on real time, so if it fires and
+    /// <c>GameScheduler</c> does not, the cause is game time being stopped rather than the
+    /// scheduling machinery being broken.
+    /// </summary>
+    private static IEnumerator SchedulerProbe()
+    {
+        bool gameFired = false, uiFired = false;
+        GameScheduler.Instance.ScheduleNextFrame("bpi-harness-probe-game", _ => gameFired = true);
+        UIScheduler.Instance.ScheduleNextFrame("bpi-harness-probe-ui", _ => uiFired = true);
+
+        for (int i = 0; i < 10; i++)
+            yield return null;
+
+        Log?.Line($"  scheduler probe: simPaused={SpeedControlScreen.Instance?.IsPaused}, " +
+                  $"timeScale={Time.timeScale}, " +
+                  $"GameScheduler fired={gameFired}, UIScheduler fired={uiFired}");
     }
 
     /// <summary>
@@ -1232,18 +1255,59 @@ internal static class HarnessCases
     ///internal to the mod, so the id is spelled out here; Assets.GetPrefab fails loudly on a rename.
     private const string BuildingReplacerPrefabId = "BPV2_BuildingReplacer";
 
-    private static ReplacementVis SpawnReplacementVis(BuildingConfig config, int cell)
+    private static SeatedVisSpawn SpawnSeatedVis(BuildingConfig config, int cell) => new(config, cell);
+
+    /// <summary>
+    /// Spawns a replacement vis and does not hand it back until it is actually seated.
+    /// <c>OnSpawn</c> - and so <c>SeatVis</c> - lands a frame or two after <c>SetActive</c> rather
+    /// than inside it, so a caller reading vis state straight after spawning reads it before
+    /// <c>SeatVis</c> has run: <c>scheduledSpawnCheck</c> is still <c>default</c> and
+    /// <c>occupiedCells</c> is still empty. Waiting here rather than at each call site means a
+    /// later case cannot get that wrong.
+    ///
+    /// Yield it, then read <see cref="Vis"/>.
+    /// </summary>
+    private sealed class SeatedVisSpawn : IEnumerator
     {
-        var prefab = Assets.GetPrefab(BuildingReplacerPrefabId);
-        Assert.True(prefab != null, $"resolved the replacement-vis prefab '{BuildingReplacerPrefabId}'");
+        private readonly IEnumerator steps;
 
-        var go = Util.KInstantiate(prefab, Grid.CellToPosCBC(cell, config.BuildingDef!.SceneLayer));
-        var vis = go.GetComponent<ReplacementVis>();
-        Assert.True(vis != null, "the replacement-vis prefab carries a ReplacementVis");
+        /// <summary>The seated vis. Only valid once this has been yielded to completion.</summary>
+        public ReplacementVis Vis = null!;
 
-        vis!.Configure(cell, config, Orientation.Neutral, config.SelectedElements, flags: -1);
-        go.SetActive(true);
-        return vis;
+        public SeatedVisSpawn(BuildingConfig config, int cell) => steps = Run(config, cell);
+
+        private IEnumerator Run(BuildingConfig config, int cell)
+        {
+            var prefab = Assets.GetPrefab(BuildingReplacerPrefabId);
+            Assert.True(prefab != null, $"resolved the replacement-vis prefab '{BuildingReplacerPrefabId}'");
+
+            var go = Util.KInstantiate(prefab, Grid.CellToPosCBC(cell, config.BuildingDef!.SceneLayer));
+            var vis = go.GetComponent<ReplacementVis>();
+            Assert.True(vis != null, "the replacement-vis prefab carries a ReplacementVis");
+
+            vis!.Configure(cell, config, Orientation.Neutral, config.SelectedElements, flags: -1);
+            go.SetActive(true);
+            Vis = vis;
+
+            float waited = 0f;
+            while (!IsSeated(vis) && waited < 5f)
+            {
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            Assert.True(IsSeated(vis), $"the vis seated within {waited:F1}s of SetActive");
+        }
+
+        ///SeatVis fills occupiedCells via DetermineOccupiedCells, so a non-empty set is the signal
+        ///that OnSpawn has been through. HashSet<T> does NOT implement the non-generic
+        ///ICollection, so match the concrete type - a pattern on ICollection never matches and
+        ///this silently never seats.
+        private static bool IsSeated(ReplacementVis vis) =>
+            GetPrivate(vis, "occupiedCells") is HashSet<int> cells && cells.Count > 0;
+
+        public bool MoveNext() => steps.MoveNext();
+        public object Current => steps.Current;
+        public void Reset() => steps.Reset();
     }
 
     private static void DestroyVis(ReplacementVis? vis)

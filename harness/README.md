@@ -106,6 +106,28 @@ The §3 case table from [`docs/blueprints-included/in-game-regression-testing.md
 is covered. Natural extensions: more building types / layers, place-with-settings applied to the
 built object, replacement visualizers over occupied terrain.
 
+**Three traps that each cost a run**, found while adding
+`replacement-vis-places-once-per-cell`. None of them fail loudly, which is what makes them
+expensive:
+
+- **The sim is paused for the whole regression run**, so `GameScheduler` callbacks never fire.
+  Measured, not inferred: `simPaused=True, timeScale=0, GameScheduler fired=False, UIScheduler
+  fired=True`. Nothing in the harness pauses it — the perf run's explicit
+  `SpeedControlScreen.Instance.Pause` is perf-only; the game simply loads paused. `UIScheduler`
+  runs on real time and does fire, so the cause is game time being stopped rather than the
+  scheduling machinery. **Anything the mod schedules on `GameScheduler` is dead during a
+  regression run** and has to be driven by hand — `SchedulerProbe` in `HarnessCases.cs` is the
+  check, and `Kick` shows the workaround. That is a coverage blind spot, not just an
+  inconvenience: a `GameScheduler`-driven path cannot be asserted here at all as things stand.
+- **`OnSpawn` lands a frame or two after `SetActive`, not inside it.** Read a `KMonoBehaviour`'s
+  state straight after activating it and you read it before `OnSpawn` has run. `SeatedVisSpawn`
+  exists so this cannot be got wrong for replacement visualizers: yield it, then read `.Vis`.
+- **An exception inside a nested `yield return`-ed `IEnumerator` kills the whole run**, rather
+  than failing the case. `HarnessRunner` try/catches its own `body.MoveNext()`, but a helper the
+  case yields is driven by Unity, so an assertion failing in there takes out the runner
+  coroutine: no `results.xml`, and `run-ingame.ps1` sits until its 300 s timeout with no clue
+  what happened. Keep assertions in the case body, or expect a silent hang.
+
 ## Adding a perf operation
 
 Add a `TimeOp(...)` call inside `PerfRunner.Run` (or, for placement, inside
