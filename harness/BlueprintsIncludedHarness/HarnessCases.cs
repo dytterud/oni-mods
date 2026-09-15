@@ -7,6 +7,7 @@ using System.Text;
 using BlueprintsV2.BlueprintData;
 using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 using BlueprintsV2.Visualizers;
+using BlueprintsV2.Visualizers.ReplacementVisualizers;
 using UnityEngine;
 
 namespace BlueprintsV2.Harness;
@@ -78,6 +79,7 @@ internal static class HarnessCases
         new HarnessCase("tile-seating-map-tracks-the-drag", TileSeatingMapTracksTheDrag),
         new HarnessCase("preview-follows-the-cursor", PreviewFollowsTheCursor),
         new HarnessCase("mod-component-lookup-resolves-and-caches", ModComponentLookupResolvesAndCaches),
+        new HarnessCase("replacement-vis-places-once-per-cell", ReplacementVisPlacesOnce),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -1059,6 +1061,211 @@ internal static class HarnessCases
         flags = (int)args[0];
         return ok;
     }
+
+    // ---- a replacement vis places once, not once per callback -----
+
+    /// <summary>
+    /// <c>ReplacementVis</c> kept no record that a placement had already succeeded, so a second
+    /// callback arriving before the vis was torn down placed the queued building again -
+    /// overwriting a cell N times stacked N overlapping construction orders.
+    ///
+    /// The unguarded window is narrow and specific: inside <c>TryPlacingQueuedBP</c>, after
+    /// <c>replacementInProgress</c> goes back to false but before <c>FinalizePlacementCheck</c>
+    /// reaches <c>DestroySelf</c> (which is what sets <c>markedForDeletion</c>). A
+    /// <c>GameScenePartitioner</c> callback landing there found every guard clear.
+    ///
+    /// Winning that race on demand is not something a harness case can do, and probing the vis
+    /// after it has placed means probing a destroyed object. So this asserts on the guard itself,
+    /// the way <see cref="PlannedBuildingMatch"/> asserts on its predicate: one vis takes the
+    /// normal path and must latch, a second has the latch pre-set and must then refuse to start a
+    /// placement check at all. The second is the re-entry the race produces.
+    /// </summary>
+    private static IEnumerator ReplacementVisPlacesOnce()
+    {
+        Blueprint bp = Snapshot(TileRowTopLeft(), TileRowBottomRight());
+        var config = bp.BuildingConfigurations.FirstOrDefault(b => b.BuildingDef?.PrefabID == "Ladder");
+        Assert.True(config != null, "captured the fixture's Ladder to queue as a replacement");
+
+        var xy = Grid.CellToXY(AnchorCell);
+        var cfg = ModConfig();
+        bool savedTech = cfg.RequireConstructable_Tech, savedMat = cfg.RequireConstructable_Material;
+        cfg.RequireConstructable_Tech = false;
+        cfg.RequireConstructable_Material = false;
+
+        ///instabuild would take TryPlacingQueuedBP's def.Build branch and hand back finished
+        ///buildings; the reported bug is about unfinished ones stacking, so count Constructables
+        bool savedInstant = DebugHandler.InstantBuildMode;
+        DebugHandler.InstantBuildMode = false;
+
+        ReplacementVis? placing = null;
+        ReplacementVis? latched = null;
+        try
+        {
+            ///--- the normal path: one vis, one build order, latch set ---
+            ///below every other case's dig region (PlaceAt reaches y-18 at its deepest), so these
+            ///two cells are this case's alone - a collision would silently test nothing
+            int placeCell = Grid.XYToCell(xy.x - 8, xy.y - 20);
+            yield return ClearCell(placeCell);
+            AssertCellEmpty(placeCell, "normal-path");
+
+            var before = Constructables();
+            placing = SpawnReplacementVis(config!, placeCell);
+            ///OnSpawn - and so SeatVis - lands a frame or two after SetActive, not inside it
+            for (int i = 0; i < 5; i++) yield return null;
+
+            Assert.True(!GetBool(placing, "placementSuccessful"),
+                "a freshly seated vis has not latched - the retry path stays open until something is built");
+            Assert.True(GetPrivate(placing, "scheduledSpawnCheck") is SchedulerHandle handle
+                        && !handle.Equals(default(SchedulerHandle)),
+                "SeatVis kept the next-frame handle, so UnseatVis has something to clear");
+
+            ///the colony is paused for the whole harness run, so GameScheduler's next-frame kick
+            ///never lands - deliver the callback the scene partitioner would have delivered
+            yield return Kick(placing);
+
+            var placed = Constructables().Where(c => !before.Contains(c))
+                .Where(c => Grid.PosToCell(c.gameObject) == placeCell).ToList();
+            Log?.Line($"  normal path: {placed.Count} build order(s) at {Grid.CellToXY(placeCell)}, " +
+                      $"latched={GetBool(placing!, "placementSuccessful")}");
+            Assert.Equal(1, placed.Count, "a replacement vis over a clear cell queues exactly one building");
+            Assert.True(GetBool(placing!, "placementSuccessful"),
+                "the vis latched placementSuccessful once it actually built something");
+
+            ///--- the re-entry the race produces: latch set, callback must do nothing ---
+            int guardCell = Grid.XYToCell(xy.x - 3, xy.y - 20);
+            yield return ClearCell(guardCell);
+            AssertCellEmpty(guardCell, "guard");
+
+            var beforeGuard = Constructables();
+            latched = SpawnReplacementVis(config!, guardCell);
+            for (int i = 0; i < 5; i++) yield return null;
+
+            Assert.True(!GetBool(latched, "placementSuccessful"),
+                "the guard vis has not placed on its own, so the latch below is the only thing under test");
+            ///the state the vis holds during the window described above: placement done, teardown
+            ///not yet reached, so markedForDeletion and replacementInProgress are both still false
+            SetBool(latched, "placementSuccessful", true);
+
+            yield return Kick(latched);
+
+            Assert.True(GetPrivate(latched, "check") == null,
+                "a latched vis does not start a placement check when a callback arrives");
+
+            var extra = Constructables().Where(c => !beforeGuard.Contains(c))
+                .Where(c => Grid.PosToCell(c.gameObject) == guardCell).ToList();
+            Log?.Line($"  latched vis: {extra.Count} build order(s) at {Grid.CellToXY(guardCell)}, " +
+                      $"markedForDeletion={GetBool(latched, "markedForDeletion")}, " +
+                      $"replacementInProgress={GetBool(latched, "replacementInProgress")}");
+            Assert.Equal(0, extra.Count, "a latched vis places nothing, so a re-entrant callback cannot duplicate");
+        }
+        finally
+        {
+            DestroyVis(placing);
+            DestroyVis(latched);
+            DebugHandler.InstantBuildMode = savedInstant;
+            cfg.RequireConstructable_Tech = savedTech;
+            cfg.RequireConstructable_Material = savedMat;
+        }
+    }
+
+    /// <summary>
+    /// Delivers the <c>OnPreoccupiedCellChanged</c> callback the scene partitioner would deliver,
+    /// then lets the one-frame <c>DelayedPlacementCheck</c> coroutine run to completion.
+    /// </summary>
+    private static IEnumerator Kick(ReplacementVis vis)
+    {
+        typeof(ReplacementVis)
+            .GetMethod("OnPreoccupiedCellChanged", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(vis, new object?[] { null });
+
+        for (int i = 0; i < 10; i++)
+            yield return null;
+    }
+
+    /// <summary>
+    /// The cells this case uses must start free of buildings, or it would be measuring another
+    /// case's leftovers instead of its own placement. Only buildings count: digging leaves loose
+    /// debris on the <c>Pickupables</c> layer, which does not obstruct a placement.
+    /// </summary>
+    private static void AssertCellEmpty(int cell, string which)
+    {
+        for (int layer = 0; layer < (int)ObjectLayer.NumLayers; layer++)
+        {
+            var occupant = Grid.Objects[cell, layer];
+            if (occupant == null || !occupant.TryGetComponent<Building>(out var occupying))
+                continue;
+
+            Assert.True(false,
+                $"{which} cell {Grid.CellToXY(cell)} starts free of buildings " +
+                $"(found {occupying.Def?.PrefabID ?? "?"} on layer {(ObjectLayer)layer})");
+        }
+    }
+
+    /// <summary>Digs and reveals a small area around <paramref name="cell"/> so a placement there
+    /// is not fighting terrain or fog of war.</summary>
+    private static IEnumerator ClearCell(int cell)
+    {
+        var xy = Grid.CellToXY(cell);
+        var region = new List<int>();
+        for (int dx = -2; dx <= 2; dx++)
+            for (int dy = -2; dy <= 2; dy++)
+            {
+                int c = Grid.XYToCell(xy.x + dx, xy.y + dy);
+                if (Grid.IsValidCell(c))
+                    region.Add(c);
+            }
+        foreach (int c in region)
+        {
+            if (Grid.IsSolidCell(c))
+                SimMessages.Dig(c, skipEvent: true);
+            Grid.Reveal(c, byte.MaxValue, forceReveal: true);
+        }
+        float waited = 0f;
+        while (region.Any(Grid.IsSolidCell) && waited < 20f)
+        {
+            waited += Time.unscaledDeltaTime;
+            yield return null;
+        }
+    }
+
+    ///BPV2_BuildingReplacer is ReplacementVisualizerMultiEntityConfig.BUILDING_ID - that type is
+    ///internal to the mod, so the id is spelled out here; Assets.GetPrefab fails loudly on a rename.
+    private const string BuildingReplacerPrefabId = "BPV2_BuildingReplacer";
+
+    private static ReplacementVis SpawnReplacementVis(BuildingConfig config, int cell)
+    {
+        var prefab = Assets.GetPrefab(BuildingReplacerPrefabId);
+        Assert.True(prefab != null, $"resolved the replacement-vis prefab '{BuildingReplacerPrefabId}'");
+
+        var go = Util.KInstantiate(prefab, Grid.CellToPosCBC(cell, config.BuildingDef!.SceneLayer));
+        var vis = go.GetComponent<ReplacementVis>();
+        Assert.True(vis != null, "the replacement-vis prefab carries a ReplacementVis");
+
+        vis!.Configure(cell, config, Orientation.Neutral, config.SelectedElements, flags: -1);
+        go.SetActive(true);
+        return vis;
+    }
+
+    private static void DestroyVis(ReplacementVis? vis)
+    {
+        if (vis == null)
+            return;
+        typeof(ReplacementVis)
+            .GetMethod("DestroySelf", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(vis, null);
+    }
+
+    private static object? GetPrivate(ReplacementVis vis, string field) =>
+        typeof(ReplacementVis)
+            .GetField(field, BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(vis);
+
+    private static bool GetBool(ReplacementVis vis, string field) => (bool)GetPrivate(vis, field)!;
+
+    private static void SetBool(ReplacementVis vis, string field, bool value) =>
+        typeof(ReplacementVis)
+            .GetField(field, BindingFlags.NonPublic | BindingFlags.Instance)!
+            .SetValue(vis, value);
 
     // ---- placement helper ----------------------------------------
 
