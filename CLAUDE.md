@@ -98,6 +98,8 @@ params (`__instance`, `__result`, `___privateField`). Patches auto-apply via `Us
 
 ## Contributing
 
-- Commit messages end with: `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`
+- Commit messages end with a `Co-Authored-By:` trailer naming the model that wrote them,
+  e.g. `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>` - not a fixed model name, or
+  it goes stale the moment a different one does the work.
 - PR descriptions end with the "Generated with Claude Code" footer and follow
   [.github/pull_request_template.md](.github/pull_request_template.md).
