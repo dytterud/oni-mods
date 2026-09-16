@@ -1350,6 +1350,26 @@ internal static class HarnessCases
                 ? Activator.CreateInstance(p.ParameterType)
                 : null)
             .ToArray();
+
+        ///FinishConstruction reads Constructable.initialTemperature and hands it straight to
+        ///BuildingDef.Build (verified in the shipped assembly's IL: OnCompleteWork is the only
+        ///thing that writes that field, FinishConstruction reads it). OnCompleteWork is the step
+        ///a dupe goes through and this case deliberately skips, so the field is still 0 here -
+        ///and a zero trips Klei's "temperature <= 0" assert, which hands the run to ONI's crash
+        ///reporter and submits a crash report to Klei from what is only a test finishing a build
+        ///by hand. Seed it the way OnCompleteWork would have.
+        var initialTemperature = typeof(Constructable)
+            .GetField("initialTemperature", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.True(initialTemperature != null,
+            "Constructable.initialTemperature exists to seed the finished building's temperature");
+        ///room temperature: the case asserts on priority, never on temperature, so this only has
+        ///to be a plausible value above zero. The cell's own temperature would be the realistic
+        ///choice, but the harness digs this area out to vacuum, so it is always the fallback that
+        ///runs - a branch that never executes is worse than the constant it hides.
+        const float buildTemperature = 293.15f;
+        initialTemperature!.SetValue(constructable, buildTemperature);
+        Log?.Line($"  seeded initialTemperature={buildTemperature:F1}K (OnCompleteWork would have)");
+
         finish.Invoke(constructable, args);
 
         ///Poll with the clock still stopped. If the building finishes here, the priority read
