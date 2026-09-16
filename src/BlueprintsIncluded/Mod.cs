@@ -16,6 +16,9 @@ public class Mod : UserMod2
     public override void OnLoad(Harmony harmony)
     {
         SgtLogger.LogVersion(this, harmony);
+        ///before anything else: a consumer that reflects for upstream's assembly name may do
+        ///so as soon as it loads, and the resolver is inert until something asks for it
+        UpstreamAssemblyAlias.Install();
         ModAssets.LoadAssets();
         PUtil.InitLibrary();
         new POptions().RegisterOptions(this, typeof(Config));
