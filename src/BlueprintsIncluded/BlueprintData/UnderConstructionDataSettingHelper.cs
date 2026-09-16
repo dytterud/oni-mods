@@ -80,17 +80,22 @@ public static class UnderConstructionDataSettingHelper
         if (temporaryTargetBuilding.TryGetComponent<Deconstructable>(out var decon))
             decon.allowDeconstruction = false;
 
-        bool isPaused = SpeedControlScreen.Instance.IsPaused;
-        if (isPaused)
-            SpeedControlScreen.Instance.Unpause(false);
-
-        //1 frame delay to properly load the extra buttons on the menu screen
-        GameScheduler.Instance.ScheduleNextFrame("pause", (_) =>
+        //1 frame delay to properly load the extra buttons on the menu screen.
+        //UIScheduler, not GameScheduler: the game scheduler runs off the sim clock and does not
+        //tick while the game is paused, so the callback would sit queued until the player
+        //unpaused and then fire against a building that had long since been cleaned up.
+        var target = temporaryTargetBuilding;
+        UIScheduler.Instance.ScheduleNextFrame("preconfigure select", (_) =>
         {
-            UnderConstructionDataTransfer.TransferDataTo(temporaryTargetBuilding, origin.GetStoredData());
-            Game.Instance.Trigger((int)GameHashes.SelectObject, temporaryTargetBuilding);
-            if (isPaused)
-                SpeedControlScreen.Instance.Pause(false);
+            if (target == null) //destroyed while the callback was pending
+            {
+                //only tidy up if a newer edit session has not already taken over
+                if (ReferenceEquals(target, temporaryTargetBuilding))
+                    CleanUp();
+                return;
+            }
+            UnderConstructionDataTransfer.TransferDataTo(target, origin.GetStoredData());
+            Game.Instance.Trigger((int)GameHashes.SelectObject, target);
         });
     }
     public static void HandleDeselection(DataTransferCleanup data)

@@ -85,6 +85,7 @@ internal static class HarnessCases
         new HarnessCase("completed-construction-applies-stored-settings", CompletionAppliesStoredSettings),
         new HarnessCase("reconstruct-reapplies-stored-settings", ReconstructReappliesSettings),
         new HarnessCase("preconfigure-screen-loads-the-plan's-settings", PreconfigureLoadsStoredSettings),
+        new HarnessCase("preconfigure-screen-opens-while-the-game-is-paused", PreconfigureWorksWhilePaused),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -1349,6 +1350,26 @@ internal static class HarnessCases
                 ? Activator.CreateInstance(p.ParameterType)
                 : null)
             .ToArray();
+
+        ///FinishConstruction reads Constructable.initialTemperature and hands it straight to
+        ///BuildingDef.Build (verified in the shipped assembly's IL: OnCompleteWork is the only
+        ///thing that writes that field, FinishConstruction reads it). OnCompleteWork is the step
+        ///a dupe goes through and this case deliberately skips, so the field is still 0 here -
+        ///and a zero trips Klei's "temperature <= 0" assert, which hands the run to ONI's crash
+        ///reporter and submits a crash report to Klei from what is only a test finishing a build
+        ///by hand. Seed it the way OnCompleteWork would have.
+        var initialTemperature = typeof(Constructable)
+            .GetField("initialTemperature", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.True(initialTemperature != null,
+            "Constructable.initialTemperature exists to seed the finished building's temperature");
+        ///room temperature: the case asserts on priority, never on temperature, so this only has
+        ///to be a plausible value above zero. The cell's own temperature would be the realistic
+        ///choice, but the harness digs this area out to vacuum, so it is always the fallback that
+        ///runs - a branch that never executes is worse than the constant it hides.
+        const float buildTemperature = 293.15f;
+        initialTemperature!.SetValue(constructable, buildTemperature);
+        Log?.Line($"  seeded initialTemperature={buildTemperature:F1}K (OnCompleteWork would have)");
+
         finish.Invoke(constructable, args);
 
         ///Poll with the clock still stopped. If the building finishes here, the priority read
@@ -1507,11 +1528,11 @@ internal static class HarnessCases
     /// The "preconfigure this building" side-screen button spawns a throwaway copy of the finished
     /// building, and one frame later <c>UnderConstructionDataSettingHelper</c> copies the plan's
     /// stored settings onto it so the player edits something that already reflects the blueprint.
-    /// That copy is the <c>GameScheduler</c> hop under test.
+    /// That copy is the one-frame scheduler hop under test.
     ///
-    /// Note this path calls <c>SpeedControlScreen.Unpause</c> itself, which does nothing in the
-    /// harness (see the README) - harmless here, because it re-pauses in the same callback and
-    /// <see cref="WithSimRunning"/> is what actually lets the callback arrive.
+    /// This is the clock-running half. <see cref="PreconfigureWorksWhilePaused"/> is the other
+    /// half, and the one that matters: reaching for <see cref="WithSimRunning"/> here is what let
+    /// the paused bug through.
     /// </summary>
     private static IEnumerator PreconfigureLoadsStoredSettings()
     {
@@ -1556,6 +1577,79 @@ internal static class HarnessCases
 
             Assert.Equal(storedValue, applied.priority_value,
                 "the scheduled transfer put the plan's stored priority on the temporary building");
+        }
+        finally
+        {
+            ///CleanUp is internal to the mod assembly
+            typeof(UnderConstructionDataSettingHelper)
+                .GetMethod("CleanUp", BindingFlags.NonPublic | BindingFlags.Static)
+                ?.Invoke(null, null);
+            if (SelectTool.Instance != null)
+                SelectTool.Instance.Select(null);
+        }
+    }
+
+    /// <summary>
+    /// The paused half of <see cref="PreconfigureLoadsStoredSettings"/>, and the regression that
+    /// case structurally could not catch, because it runs the clock before it asserts.
+    ///
+    /// Reported 2026-09-16: preconfiguring a building from a blueprint pasted while the game was
+    /// paused did nothing at all - no side screen - and unpausing minutes later threw a
+    /// NullReferenceException out of <c>DetailsScreen.OnSelectObject</c>. The one-frame hop rode
+    /// on <c>GameScheduler</c>, which is driven by the sim clock, so the callback sat in the queue
+    /// for the whole pause and then fired against a temporary building that had long since been
+    /// cleaned up. It rides <c>UIScheduler</c> now, which ticks on real time.
+    ///
+    /// So there is deliberately no <see cref="WithSimRunning"/> here: the colony is paused for the
+    /// whole harness run, which is exactly the condition under test. Plain frames only.
+    /// </summary>
+    private static IEnumerator PreconfigureWorksWhilePaused()
+    {
+        var transferComponent = UnityEngine.Object
+            .FindObjectsByType<UnderConstructionDataTransfer>(FindObjectsSortMode.None)
+            .FirstOrDefault(t => t != null && t.GetStoredData().ContainsKey("Prioritizable"));
+        var plan = transferComponent == null ? null : transferComponent.building;
+        if (plan == null)
+        {
+            Log?.Line("  REACHABILITY: no queued building carrying stored Prioritizable data - " +
+                      "earlier cases normally leave one behind");
+            yield break;
+        }
+
+        ///if something ever starts the clock for the harness, this case silently stops testing
+        ///the thing it exists to test, so say so rather than passing on a technicality
+        Assert.True(Time.timeScale == 0f,
+            $"the colony is paused, so the sim clock is stopped (timeScale={Time.timeScale})");
+
+        var transfer = plan.GetComponent<UnderConstructionDataTransfer>();
+        Log?.Line($"  editing the stored settings of {plan.Def.PrefabID}@{Grid.CellToXY(Grid.PosToCell(plan))} while paused");
+
+        try
+        {
+            UnderConstructionDataSettingHelper.StartEditingUnderConstructionData(transfer);
+
+            ///the hop is one frame; give it a few, but never a running clock
+            for (int i = 0; i < 10; i++)
+                yield return null;
+
+            var temp = UnderConstructionDataSettingHelper.TemporarySelectable;
+            Assert.True(temp != null, "the preconfigure flow spawned a temporary building to edit");
+            Assert.True(temp!.TryGetComponent<Prioritizable>(out var tempPrio),
+                "the temporary building is prioritizable");
+
+            ///priority_value is nested inside the serialized Prioritizable, not a top-level
+            ///property, so find it wherever it sits rather than assuming the shape
+            var stored = JObject.Parse(transfer.GetStoredData()["Prioritizable"]);
+            var valueToken = stored.Descendants().OfType<JProperty>()
+                .FirstOrDefault(prop => prop.Name == "priority_value");
+            Assert.True(valueToken != null, $"the stored Prioritizable carries a priority_value: {stored}");
+            int storedValue = valueToken!.Value.Value<int>();
+            var applied = tempPrio.GetMasterPriority();
+            Log?.Line($"  paused: temporary building priority={applied.priority_class}/{applied.priority_value}, " +
+                      $"plan stored priority_value={storedValue}");
+
+            Assert.Equal(storedValue, applied.priority_value,
+                "the transfer arrived with the clock stopped, so the player sees the screen while paused");
         }
         finally
         {
