@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 Notable changes to Blueprints Included. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
@@ -21,6 +21,34 @@ and was never published under it.
   crashes during asset load and ONI's own crash handler appears before the main menu, so the queued
   dialog is never shown. What you get in that case is the log line `incompatible mod found:
   BlueprintsV2`, which names the cause in a Player.log.
+
+### Changed
+
+- **The "force build over existing buildings" tooltip now describes what the toggle actually
+  does.** It said the option replaces a finished building "of the same type" with one built from
+  the blueprint's material. The check behind it is broader: any building blocking a blueprint
+  building is marked for deconstruction, and planned buildings in the way are cancelled. The
+  same-type-different-material case is one path through it, not the whole behaviour. Text only;
+  the key had no translations yet, so nothing else changed. (#81)
+
+### Fixed
+
+- **Buildings on the gantry object layer are no longer dropped from a capture when a layer filter
+  is active.** The layer had no entry in the object-layer to filter-layer map, and an unmapped
+  layer is treated as not allowed, so those buildings were skipped whenever filtering was on. It
+  now maps onto the Buildings filter, alongside the other building layers. (#75)
+
+- **Stopped logging a warning for every hauling point in a capture.** A hauling point has neither
+  a constructable nor a deconstructable component - it is captured off its own marker component,
+  and falls through to the material-category default on purpose. That path logged "had neither
+  constructable nor deconstructable component" each time, which was noise rather than a problem.
+  The marker lookup is also skipped now when a constructable is present, since that is already
+  enough to capture the building. (#73)
+
+- **Hardening: instant-build no longer marks the tile layer for a tile piece with no block-tile
+  atlas.** Marking and refreshing the tile layer for a def that has no atlas to draw from cannot
+  produce art. No such def is known to exist in the base game; upstream added the same guard
+  without saying what hit it, so this is defensive. (#77)
 
 ## [0.1.0] - 2026-09-13
 

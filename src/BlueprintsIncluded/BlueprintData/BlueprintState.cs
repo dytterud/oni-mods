@@ -352,11 +352,16 @@ public static class BlueprintState
                         bool hasConstructable = gameObject.TryGetComponent<Constructable>(out var constructable);
                         bool hasDeconstructable = gameObject.TryGetComponent<Deconstructable>(out var deconstructable);
 
-                        ///short-circuited on hasDeconstructable, and routed through
+                        ///short-circuited on the components we already found, and routed through
                         ///ModComponentLookup: this sits in the per-cell-per-layer scan, so it ran
                         ///more often than once per building, and it was resolving a type from a
                         ///string every time even when the answer could not change the outcome.
-                        if (!hasDeconstructable && ModComponentLookup.Find(gameObject, "DeconstructableHaulingPoint") != null)
+                        ///A constructable is enough to capture the building on its own, so the
+                        ///lookup only has to run when neither component is present.
+                        bool isHaulingPoint = !hasConstructable
+                            && !hasDeconstructable
+                            && ModComponentLookup.Find(gameObject, "DeconstructableHaulingPoint") != null;
+                        if (isHaulingPoint)
                         {
                             hasDeconstructable = true;
                         }
@@ -413,7 +418,11 @@ public static class BlueprintState
                                 }
                                 else
                                 {
-                                    SgtLogger.warning("building " + building.Def.Name + " at cell " + cell + " had neither constructable nor deconstructable component");
+                                    ///a hauling point legitimately has neither component - it is captured
+                                    ///off its own marker component, so the material fallback below is the
+                                    ///expected path rather than something worth warning about.
+                                    if (!isHaulingPoint)
+                                        SgtLogger.warning("building " + building.Def.Name + " at cell " + cell + " had neither constructable nor deconstructable component");
                                     foreach (var tagCombine in building.Def.MaterialCategory)
                                     {
                                         var available = MaterialSelectionPanel.Filter(tagCombine);

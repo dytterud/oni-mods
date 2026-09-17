@@ -443,7 +443,7 @@ public class BuildingVisual : IVisual
         ApplyBuildingData(finishedBuilding);
 
         def.MarkArea(cellParam, RotatedOrientation, def.ObjectLayer, finishedBuilding);
-        if (def.IsTilePiece)
+        if (def.IsTilePiece && def.BlockTileAtlas != null)
         {
             def.MarkArea(cellParam, RotatedOrientation, def.TileLayer, finishedBuilding);
             def.RunOnArea(cellParam, RotatedOrientation, cell0 => TileVisualizer.RefreshCell(cell0, def.TileLayer, def.ReplacementLayer));

@@ -803,6 +803,7 @@ internal class ModAssets
             case ObjectLayer.AttachableBuilding:
             case ObjectLayer.PlasticTile:
             case ObjectLayer.LadderTile:
+            case ObjectLayer.Gantry:
                 filterLayerId = ToolParameterMenu.FILTERLAYERS.BUILDINGS;
                 return true;
 

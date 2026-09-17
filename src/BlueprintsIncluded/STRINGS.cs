@@ -188,7 +188,10 @@ public class STRINGS
                 {
                     //public static LocString LABEL = "Rebuild existing with mismatched material:";
                     public static LocString LABEL = "Force build over existing buildings:";
-                    public static LocString TOOLTIP = "Replaces an existing finished building of the same type with one built from the blueprint's specified material, if it differs from what's already there.";
+                    public static LocString TOOLTIP =
+                        "Existing buildings blocking a blueprint building are marked for deconstruction," +
+                        "\nand planned buildings in the way are cancelled, so the blueprint can be built in their place." +
+                        "\nA finished building of the same type is only rebuilt when the blueprint specifies a different material.";
                 }
                 public class FORCETRANSFORMATIONTOGGLE
                 {
