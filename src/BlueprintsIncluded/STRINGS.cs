@@ -88,6 +88,16 @@ public class STRINGS
             public static LocString TITLE = "Snapshot Tool Overlay Sync";
             public static LocString TOOLTIP = "Whether the Snapshot Tool syncs with the current overlay. (configurable in game too)";
         }
+        public class CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD
+        {
+            public static LocString TITLE = "Create Blueprint Tool Copy to Clipboard";
+            public static LocString TOOLTIP = "Whether creating a blueprint also copies it to your clipboard as a shareable string. (configurable in game too)";
+        }
+        public class SNAPSHOTTOOLCOPYTOCLIPBOARD
+        {
+            public static LocString TITLE = "Snapshot Tool Copy to Clipboard";
+            public static LocString TOOLTIP = "Whether taking a snapshot also copies it to your clipboard as a shareable string. (configurable in game too)";
+        }
         public class AUTOPREVIEWCUTTOFF
         {
             public static LocString TITLE = "Automatic Preview Confirmation Threshold";
@@ -635,6 +645,8 @@ public class STRINGS
                 public static LocString TOOLTIP = "Create blueprint {0}";
                 public static LocString EMPTY = "Blueprint would have been empty!";
                 public static LocString CREATED = "Created blueprint!";
+                public static LocString CREATED_COPIED = "Created blueprint and copied it to clipboard!";
+                public static LocString RETAKEN_COPIED = "Copied the re-taken blueprint to clipboard!";
                 public static LocString CANCELLED = "Cancelled blueprint!";
                 public static LocString TOOLTIP_TITLE = "CREATE BLUEPRINT TOOL";
                 public static LocString TOOLTIP_TITLE_RETAKE = "RE-TAKE BLUEPRINT TOOL";
@@ -694,6 +706,7 @@ public class STRINGS
                 public static LocString TOOLTIP = "Take snapshot {0} or reuse last snapshot {1} \n\nCreate a blueprint and quickly place it elsewhere\nwhile not cluttering your blueprint collection!\nSnapshots do not persist between games or worlds.";
                 public static LocString EMPTY = "Snapshot would have been empty!";
                 public static LocString TAKEN = "Snapshot taken!";
+                public static LocString TAKEN_COPIED = "Snapshot taken and copied to clipboard!";
                 public static LocString TOOLTIP_TITLE = "SNAPSHOT TOOL";
                 public static LocString NEWSNAPSHOT = "Press {0} to take new snapshot.";
                 public static LocString REUSELASTSNAPSHOT = "Press {0} to reuse your last taken snapshot.";
@@ -707,6 +720,8 @@ public class STRINGS
                 public static LocString NONE = "None";
                 public static LocString AUTOSYNC = "Auto. Sync to Overlays";
                 public static LocString AUTOSYNC_TOOLTIP = "Automatically synchronize the filters with the active overlay";
+                public static LocString COPYTOCLIPBOARD = "Copy to Clipboard";
+                public static LocString COPYTOCLIPBOARD_TOOLTIP = "Also copy every blueprint this tool creates to your clipboard as a shareable string, ready to paste into the blueprint editor website";
                 public class BLUEPRINTV2_PRESERVEAIRTILES
                 {
                     public static LocString NAME = "Air/Liquid Bubbles";

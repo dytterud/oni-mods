@@ -12,6 +12,15 @@ and was never published under it.
 
 ### Added
 
+- **"Copy to Clipboard" for the snapshot and create-blueprint tools.** A new checkbox under
+  *Auto. Sync to Overlays* in both tools' filter menus. With it ticked, what you drag out is also
+  exported to your clipboard as the same shareable string the blueprint list's export button
+  produces, so it can be pasted straight into the blueprint editor website — no round trip through a
+  saved file. Snapshots are copied as soon as they are taken; a new blueprint is copied once you
+  confirm its name, so the string carries that name, and re-taking an existing blueprint copies the
+  updated version. Each tool remembers its own setting, and both are in the mod options as *Create
+  Blueprint Tool Copy to Clipboard* and *Snapshot Tool Copy to Clipboard* (off by default).
+
 - **Detects a conflicting blueprint mod at load.** Upstream Blueprints Expanded, or a second copy
   of this mod, is now found during startup and logged by name, and a warning is queued for the main
   menu. Both carry the same root namespace and patch the same game methods, so running them together

@@ -10,11 +10,13 @@ namespace BlueprintsV2.Tools;
 public class MultiToolParameterMenu : KMonoBehaviour
 {
     public delegate void SyncChanged(bool synced);
+    public delegate void ClipboardCopyChanged(bool enabled);
     public delegate void ParamsChanged(Dictionary<string, ToolParameterMenu.ToggleState> changed);
 
     public static MultiToolParameterMenu Instance = null!;
 
     public event SyncChanged? OnSyncChanged;
+    public event ClipboardCopyChanged? OnClipboardCopyChanged;
     public event ParamsChanged? OnParamsChanged;
 
     private readonly Dictionary<string, GameObject> widgets = new();
@@ -23,6 +25,8 @@ public class MultiToolParameterMenu : KMonoBehaviour
     private Dictionary<string, ToolParameterMenu.ToggleState> parameters = null!;
 
     private MultiToggle syncMultiToggle = null!;
+    private MultiToggle clipboardMultiToggle = null!;
+    private GameObject clipboardPanel = null!;
 
     HashedString LastOverlay;
 
@@ -99,6 +103,31 @@ public class MultiToolParameterMenu : KMonoBehaviour
             OnSyncChanged?.Invoke(syncMultiToggle.CurrentState == PCheckBox.STATE_CHECKED);
         };
 
+        var clipboardPanelContainer = new PRelativePanel
+        {
+            BackColor = Color.black,
+            Margin = new RectOffset(1, 1, 1, 1)
+        };
+        var clipboardPanelBody = new PRelativePanel
+        {
+            BackColor = PUITuning.Colors.ButtonPinkStyle.inactiveColor,
+        };
+        PCheckBox clipboardCheckBox = new PCheckBox
+        {
+            Text = STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD
+        };
+        clipboardCheckBox.ToolTip = STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD_TOOLTIP;
+        clipboardCheckBox.OnRealize += realized =>
+        {
+            clipboardMultiToggle = realized.GetComponent<MultiToggle>();
+        };
+        clipboardCheckBox.OnChecked += (source, state) =>
+        {
+            clipboardMultiToggle.ChangeState(state == PCheckBox.STATE_CHECKED ? PCheckBox.STATE_UNCHECKED : PCheckBox.STATE_CHECKED);
+
+            OnClipboardCopyChanged?.Invoke(clipboardMultiToggle.CurrentState == PCheckBox.STATE_CHECKED);
+        };
+
         buttonsPanel.AddChild(allButton);
         buttonsPanel
             .SetLeftEdge(allButton, 0)
@@ -115,14 +144,20 @@ public class MultiToolParameterMenu : KMonoBehaviour
 
         syncPanel.AddChild(syncCheckBox);
         syncPanel.Margin = new RectOffset(1, 1, 2, 2);
-        syncPanel
-            .SetLeftEdge(syncCheckBox, 0F)
-            .SetRightEdge(syncCheckBox, 1F);
+        //left edge only: anchored left at its own width, rather than stretched and centred
+        syncPanel.SetLeftEdge(syncCheckBox, 0F);
+
+        clipboardPanelBody.AddChild(clipboardCheckBox);
+        clipboardPanelBody.Margin = new RectOffset(1, 1, 2, 2);
+        clipboardPanelBody.SetLeftEdge(clipboardCheckBox, 0F);
 
         widgetContainer = Util.KInstantiateUI(baseWidgetContainer, content, true);
         buttonsPanel.AddTo(content, 3);
         syncPanelContainer.AddChild(syncPanel);
         syncPanelContainer.AddTo(content, 4);
+        clipboardPanelContainer.AddChild(clipboardPanelBody);
+        clipboardPanel = clipboardPanelContainer.AddTo(content, 5);
+        clipboardPanel.SetActive(false);
 
         content.SetActive(false);
     }
@@ -277,6 +312,26 @@ public class MultiToolParameterMenu : KMonoBehaviour
         if (syncMultiToggle != null)
         {
             syncMultiToggle.ChangeState(synced ? PCheckBox.STATE_CHECKED : PCheckBox.STATE_UNCHECKED);
+        }
+    }
+
+    /// <summary>
+    /// Shows or hides the "Copy to Clipboard" checkbox; only the tools that can export
+    /// what they capture offer it.
+    /// </summary>
+    public void SetClipboardCopyVisible(bool visible)
+    {
+        if (clipboardPanel != null)
+        {
+            clipboardPanel.SetActive(visible);
+        }
+    }
+
+    public void SetClipboardCopy(bool enabled)
+    {
+        if (clipboardMultiToggle != null)
+        {
+            clipboardMultiToggle.ChangeState(enabled ? PCheckBox.STATE_CHECKED : PCheckBox.STATE_UNCHECKED);
         }
     }
 

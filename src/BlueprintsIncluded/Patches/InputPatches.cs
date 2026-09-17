@@ -45,7 +45,9 @@ internal class InputPatches
             __instance.tools = interfaceTools.ToArray();
 
             CreateBlueprintTool.Instance.OverlaySynced = Config.Instance.CreateBlueprintToolSync;
+            CreateBlueprintTool.Instance.ClipboardCopyEnabled = Config.Instance.CreateBlueprintToolCopyToClipboard;
             SnapshotTool.Instance.OverlaySynced = Config.Instance.SnapshotToolSync;
+            SnapshotTool.Instance.ClipboardCopyEnabled = Config.Instance.SnapshotToolCopyToClipboard;
         }
     }
 }
