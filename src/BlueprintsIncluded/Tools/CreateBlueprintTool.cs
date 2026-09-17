@@ -20,6 +20,8 @@ public sealed class CreateBlueprintTool : MultiFilteredDragTool
     public static CreateBlueprintTool Instance { get; private set; } = null!;
     CreateBlueprintToolHoverCard card = null!;
 
+    public override bool SupportsClipboardCopy => true;
+
     public CreateBlueprintTool()
     {
         Instance = this;
@@ -139,6 +141,12 @@ public sealed class CreateBlueprintTool : MultiFilteredDragTool
         if (RetakeBp == null)
             return;
         RetakeBp.UpdateFrom(newBuildings);
+
+        if (ClipboardCopyEnabled && TryCopyToClipboard(RetakeBp))
+        {
+            PopFXManager.Instance.SpawnFX(ModAssets.BLUEPRINTS_CREATE_ICON_SPRITE, STRINGS.UI.TOOLS.CREATE_TOOL.RETAKEN_COPIED, null, PlayerController.GetCursorPos(KInputManager.GetMousePos()), Config.Instance.FXTime);
+        }
+
         this.DeactivateTool();
         PlayerController.Instance.ActivateTool(UseBlueprintTool.Instance);
     }
@@ -152,8 +160,11 @@ public sealed class CreateBlueprintTool : MultiFilteredDragTool
 
             SpeedControlScreen.Instance.Unpause(false);
 
+            //copied after the rename so the shared string carries the name the user just picked
+            bool copied = ClipboardCopyEnabled && TryCopyToClipboard(blueprint);
+
             CameraController.Instance.DisableUserCameraControl = false;
-            PopFXManager.Instance.SpawnFX(ModAssets.BLUEPRINTS_CREATE_ICON_SPRITE, STRINGS.UI.TOOLS.CREATE_TOOL.CREATED, null, PlayerController.GetCursorPos(KInputManager.GetMousePos()), Config.Instance.FXTime);
+            PopFXManager.Instance.SpawnFX(ModAssets.BLUEPRINTS_CREATE_ICON_SPRITE, copied ? STRINGS.UI.TOOLS.CREATE_TOOL.CREATED_COPIED : STRINGS.UI.TOOLS.CREATE_TOOL.CREATED, null, PlayerController.GetCursorPos(KInputManager.GetMousePos()), Config.Instance.FXTime);
             UnlockCam();
         }
         void OnCancelDelegate()
@@ -178,6 +189,14 @@ public sealed class CreateBlueprintTool : MultiFilteredDragTool
         base.OnSyncChanged(synced);
 
         Config.Instance.CreateBlueprintToolSync = synced;
+        POptions.WriteSettings(Config.Instance);
+    }
+
+    public override void OnClipboardCopyChanged(bool enabled)
+    {
+        base.OnClipboardCopyChanged(enabled);
+
+        Config.Instance.CreateBlueprintToolCopyToClipboard = enabled;
         POptions.WriteSettings(Config.Instance);
     }
 }

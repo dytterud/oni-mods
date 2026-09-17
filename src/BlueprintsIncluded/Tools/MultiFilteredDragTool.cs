@@ -1,4 +1,5 @@
-﻿using UtilLibs;
+﻿using BlueprintsV2.BlueprintData;
+using UtilLibs;
 
 namespace BlueprintsV2.Tools;
 
@@ -6,6 +7,16 @@ public class MultiFilteredDragTool : DragTool
 {
     public virtual Dictionary<string, ToolParameterMenu.ToggleState> DefaultParameters { get; set; } = new Dictionary<string, ToolParameterMenu.ToggleState>();
     public virtual bool OverlaySynced { get; set; }
+
+    /// <summary>
+    /// Whether this tool offers the "Copy to Clipboard" checkbox at all.
+    /// </summary>
+    public virtual bool SupportsClipboardCopy => false;
+
+    /// <summary>
+    /// Whether what this tool captures is also exported to the clipboard.
+    /// </summary>
+    public virtual bool ClipboardCopyEnabled { get; set; }
 
     private Dictionary<string, ToolParameterMenu.ToggleState>? cachedParameters;
     private Dictionary<string, ToolParameterMenu.ToggleState>? persistentParameters;
@@ -17,7 +28,10 @@ public class MultiFilteredDragTool : DragTool
 
         MultiToolParameterMenu.Instance.PopulateMenu(persistentParameters != null && persistentParameters.Any() ? persistentParameters : DefaultParameters);
         MultiToolParameterMenu.Instance.SetOverlaySync(OverlaySynced);
+        MultiToolParameterMenu.Instance.SetClipboardCopyVisible(SupportsClipboardCopy);
+        MultiToolParameterMenu.Instance.SetClipboardCopy(ClipboardCopyEnabled);
         MultiToolParameterMenu.Instance.OnSyncChanged += OnSyncChanged;
+        MultiToolParameterMenu.Instance.OnClipboardCopyChanged += OnClipboardCopyChanged;
         MultiToolParameterMenu.Instance.OnParamsChanged += StorePersistentParamChange;
         MultiToolParameterMenu.Instance.ShowMenu();
 
@@ -33,7 +47,9 @@ public class MultiFilteredDragTool : DragTool
 
         MultiToolParameterMenu.Instance.HideMenu();
         MultiToolParameterMenu.Instance.ClearMenu();
+        MultiToolParameterMenu.Instance.SetClipboardCopyVisible(false);
         MultiToolParameterMenu.Instance.OnSyncChanged -= OnSyncChanged;
+        MultiToolParameterMenu.Instance.OnClipboardCopyChanged -= OnClipboardCopyChanged;
     }
     void StorePersistentParamChange(Dictionary<string, ToolParameterMenu.ToggleState> changedValues)
     {
@@ -48,6 +64,30 @@ public class MultiFilteredDragTool : DragTool
         if (!synced)
         {
             SetSynced(false);
+        }
+    }
+
+    public virtual void OnClipboardCopyChanged(bool enabled)
+    {
+        ClipboardCopyEnabled = enabled;
+    }
+
+    /// <summary>
+    /// Exports the blueprint to the clipboard as a shareable string, reporting whether it
+    /// landed there. A clipboard failure must not cost the user the capture itself, so it is
+    /// logged rather than thrown.
+    /// </summary>
+    protected static bool TryCopyToClipboard(Blueprint blueprint)
+    {
+        try
+        {
+            ModAssets.ExportToClipboard(blueprint);
+            return true;
+        }
+        catch (Exception e)
+        {
+            SgtLogger.logError("Failed to copy the blueprint to the clipboard: " + e.Message);
+            return false;
         }
     }
 
