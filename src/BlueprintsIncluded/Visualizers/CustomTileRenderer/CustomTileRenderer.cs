@@ -133,6 +133,28 @@ internal class CustomTileRenderer : BlockTileRenderer
         }
     }
 
+    /// <summary>
+    /// Redraws one cell of a preview tile layer.
+    ///
+    /// <para>This used to follow the rebuild with a <c>Grid.Objects[cell, tile_layer]</c> lookup and
+    /// a <c>GetComponentInChildren&lt;KAnimGraphTileVisualizer&gt;().Refresh()</c> on whatever real
+    /// building sat there. That branch could never fire, and the attribution run in
+    /// <c>docs/blueprints-included/in-game-regression-testing.md</c> §7 measured it: <b>0 calls to
+    /// <c>KAnimGraphTileVisualizer.Refresh</c> against 76,482 calls to this method</b>, in a sweep
+    /// reporting 1000/1000 cells occupied. It is not the grid lookup that comes back empty - that
+    /// one succeeds - it is the component lookup, which walked the transform hierarchy on every
+    /// refreshed cell and always missed.</para>
+    ///
+    /// <para>It misses by construction. This renderer is only reached from <c>TileVisual</c>, which
+    /// is only built for <see cref="VisualizerType.TILE"/>, and
+    /// <c>ModAssets.GetVisualizerType</c> routes every def with an <c>IHaveUtilityNetworkMgr</c> to
+    /// <c>UtilityVisual</c> instead - which is every base-game owner of a
+    /// <c>KAnimGraphTileVisualizer</c> (wires, logic wires, gas/liquid/solid conduits, travel
+    /// tubes). What is left arrives on <c>FoundationTile</c> / <c>ReplacementTile</c>, where a
+    /// finished tile draws from the block-tile atlas and carries no anim-graph visualizer at all.
+    /// Removed rather than short-circuited, so the method does not read as if it still had a job to
+    /// do there.</para>
+    /// </summary>
     public static void RefreshCellInternal(ulong playerId, int cell, ObjectLayer tile_layer)
     {
         if (Game.IsQuitting() || !Grid.IsValidCell(cell))
@@ -142,16 +164,6 @@ internal class CustomTileRenderer : BlockTileRenderer
         if (!customTileRenderers.TryGetValue(playerId, out var r))
             return;
         r.Rebuild(tile_layer, cell);
-
-        GameObject gameObject = Grid.Objects[cell, (int)tile_layer];
-        if (gameObject != null)
-        {
-            KAnimGraphTileVisualizer componentInChildren = gameObject.GetComponentInChildren<KAnimGraphTileVisualizer>();
-            if (componentInChildren != null)
-            {
-                componentInChildren.Refresh();
-            }
-        }
     }
 
     /// <summary>
