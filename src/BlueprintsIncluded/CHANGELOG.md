@@ -21,6 +21,15 @@ and was never published under it.
   updated version. Each tool remembers its own setting, and both are in the mod options as *Create
   Blueprint Tool Copy to Clipboard* and *Snapshot Tool Copy to Clipboard* (off by default).
 
+- **Snap to Grid.** A new toggle in the blueprint state panel. With it on, clicking places the
+  blueprint as usual and dragging places more copies on a grid anchored at the click, for both
+  the blueprint tool and the snapshot tool. Two fields set the step between copies. They default
+  to the blueprint's exact width and height, so copies sit edge to edge, and they follow its
+  rotation. Ported from upstream Blueprints Expanded, with these fixed along the way: a fast drag
+  no longer skips copies, a slight wobble off the drag line no longer stops placement, dragging
+  back over a copy doesn't place it twice, a click at the map's corner can start a drag, and a
+  step of 0 or a mistyped value can no longer break placement. (#79)
+
 - **Detects a conflicting blueprint mod at load.** Upstream Blueprints Expanded, or a second copy
   of this mod, is now found during startup and logged by name, and a warning is queued for the main
   menu. Both carry the same root namespace and patch the same game methods, so running them together

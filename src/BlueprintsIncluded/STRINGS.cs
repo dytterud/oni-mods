@@ -217,6 +217,12 @@ public class STRINGS
                     public static LocString LABEL = "Apply settings to existing buildings:";
                     public static LocString TOOLTIP = "Finished buildings overlapping with blueprint visualizers containing settings will receive those settings when the blueprint is placed down.";
                 }
+                public class GRIDSNAP
+                {
+                    public static LocString LABEL = "Snap to Grid:";
+                    public static LocString TOOLTIP = "Hold the mouse button and drag to place more copies of the blueprint in a grid." +
+                        "\nThe two fields set the step between copies, in cells. They default to the blueprint's own width and height, so copies sit edge to edge, and they follow its rotation.";
+                }
                 public class ROTATEACTIONS
                 {
                     public class ROTATEL

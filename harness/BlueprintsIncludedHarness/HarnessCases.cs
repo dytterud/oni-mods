@@ -91,6 +91,8 @@ internal static class HarnessCases
         new HarnessCase("preconfigure-button-shows-for-smi-backed-buildings", PreconfigureButtonShowsForSmiBackedBuildings),
         new HarnessCase("building-data-api-survives-a-dead-gameobject", BuildingDataApiSurvivesDeadGameObject),
         new HarnessCase("anim-less-previews-are-all-tile-visuals", AnimLessPreviewsAreAllTileVisuals),
+        new HarnessCase("grid-snap-row-is-in-the-bundle-and-wired", GridSnapRowIsWired),
+        new HarnessCase("grid-snap-drag-places-copies-edge-to-edge", GridSnapDragPlacesCopies),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -2657,6 +2659,141 @@ internal static class HarnessCases
         Assert.True(wasted.Count == 0,
             "no anim-less preview reaches the base ApplyColorIfChanged, got: " + string.Join(", ", wasted));
         yield break;
+    }
+
+    // ---- #79: snap-to-grid ---------------------------------------------
+
+    /// <summary>
+    /// The GridSnap row comes from the upstream cc28b8b UI bundle, which cannot be inspected
+    /// offline. This checks the row is really in it and that the screen wires it: the toggle and
+    /// both step inputs exist, and selecting a blueprint defaults the step to its footprint.
+    /// </summary>
+    // CurrentBlueprintStateScreen is internal - reach it by reflection.
+    private static readonly Type StateScreenType =
+        typeof(Blueprint).Assembly.GetType("BlueprintsV2.UnityUI.CurrentBlueprintStateScreen")!;
+
+    private static IEnumerator GridSnapRowIsWired()
+    {
+        var bp = Snapshot(TileRowTopLeft(), TileRowBottomRight());
+        var st = BlueprintState.CurrentStateInfo();
+        st.IsPlacingSnapshot = true;
+        try
+        {
+            StateScreenType.GetMethod("ShowScreen")!.Invoke(null, new object[] { true });
+            yield return null;
+            var screen = (Component?)StateScreenType.GetField("Instance")!.GetValue(null);
+            Assert.True(screen != null, "the blueprint state screen was created");
+
+            var row = screen!.transform.Find("InfoItemsContainer/GridSnap");
+            Assert.True(row != null, "the bundle's state screen has an InfoItemsContainer/GridSnap row");
+            Assert.True(row!.GetComponent<UtilLibs.UIcmp.FToggle>() != null, "the GridSnap row is wired as a toggle");
+            foreach (var input in new[] { "WidthInput", "HeightInput" })
+            {
+                var field = row.Find(input);
+                Assert.True(field != null && field.GetComponent<UtilLibs.UIcmp.FInputField2>() != null,
+                    $"GridSnap/{input} exists and is wired as an input");
+            }
+
+            StateScreenType.GetMethod("SetSelectedBlueprint")!.Invoke(screen, new object[] { bp });
+            var size = bp.FootprintSize();
+            Log?.Line($"  footprint {size.x}x{size.y}, step {st.GridSnapX}x{st.GridSnapY}");
+            Assert.Equal(size.x, st.GridSnapX, "selecting a blueprint defaults the X step to its footprint");
+            Assert.Equal(size.y, st.GridSnapY, "selecting a blueprint defaults the Y step to its footprint");
+        }
+        finally
+        {
+            StateScreenType.GetMethod("ShowScreen")!.Invoke(null, new object[] { false });
+            st.IsPlacingSnapshot = false;
+        }
+    }
+
+    /// <summary>
+    /// A snap-to-grid drag places whole copies of the blueprint, one step apart, and a cursor that
+    /// jumps two and a half steps in one mouse move still gets both copies in between (upstream
+    /// placed none). Drives the same <c>GridSnapDrag</c> the tools use, through its internal
+    /// click and move halves, against the real <c>BlueprintState.UseBlueprint</c>.
+    /// </summary>
+    private static IEnumerator GridSnapDragPlacesCopies()
+    {
+        var bp = Snapshot(TileRowTopLeft(), TileRowBottomRight());
+        var size = bp.FootprintSize();
+        int pieces = bp.BuildingConfigurations.Count(b => !b.BuildingDisabled);
+        Assert.True(pieces > 0, "the tile-row snapshot captured something");
+
+        var anchorXY = Grid.CellToXY(AnchorCell);
+        var target = new Vector2I(anchorXY.x - 30, anchorXY.y + 8);
+        var region = new List<int>();
+        for (int dx = -12; dx <= 3 * size.x + 12; dx++)
+            for (int dy = -6; dy <= size.y + 6; dy++)
+            {
+                int c = Grid.XYToCell(target.x + dx, target.y + dy);
+                if (Grid.IsValidCell(c))
+                    region.Add(c);
+            }
+        foreach (int c in region)
+        {
+            if (Grid.IsSolidCell(c))
+                SimMessages.Dig(c, skipEvent: true);
+            Grid.Reveal(c, byte.MaxValue, forceReveal: true);
+        }
+        for (int i = 0; i < 600 && region.Any(Grid.IsSolidCell); i++)
+            yield return null;
+
+        var before = Constructables();
+        var cfg = ModConfig();
+        bool savedTech = cfg.RequireConstructable_Tech, savedMat = cfg.RequireConstructable_Material;
+        cfg.RequireConstructable_Tech = false;
+        cfg.RequireConstructable_Material = false;
+        var st = BlueprintState.CurrentStateInfo();
+        st.IsPlacingSnapshot = true;
+        st.ResetRotations();
+        st.SnapToGrid = true;
+        st.GridSnapX = size.x;
+        st.GridSnapY = size.y;
+
+        var drag = new BlueprintsV2.Tools.GridSnapDrag();
+        var onPlaced = typeof(BlueprintsV2.Tools.GridSnapDrag).GetMethod("OnPlaced", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var onMoved = typeof(BlueprintsV2.Tools.GridSnapDrag).GetMethod("OnMoved", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        try
+        {
+            BlueprintState.VisualizeBlueprint(target, bp);
+            for (int i = 0; i < 5; i++) yield return null;
+
+            ///the click: place at the target and start the drag, as the tools do
+            BlueprintState.UseBlueprint(BlueprintState.PlayerId_DefaultTilePreviews, target, bp);
+            onPlaced.Invoke(drag, new object[] { target });
+            Assert.True(drag.IsDragging, "a click with snapping on starts a drag");
+
+            ///one mouse move two and a half steps to the right
+            var cursor = new Vector2I(target.x + size.x * 5 / 2, target.y);
+            BlueprintState.UpdateVisual(BlueprintState.PlayerId_DefaultTilePreviews, cursor, false, bp);
+            onMoved.Invoke(drag, new object[] { cursor, bp });
+            for (int i = 0; i < 15; i++) yield return null;
+
+            var orders = Constructables().Where(c => !before.Contains(c))
+                .Select(c => Grid.CellToXY(Grid.PosToCell(c.gameObject)))
+                .ToList();
+            Log?.Line($"  footprint {size.x}x{size.y}, {pieces} piece(s) per copy, {orders.Count} order(s): " +
+                      string.Join(" ", orders.OrderBy(o => o.x).Select(o => $"({o.x},{o.y})")));
+
+            Assert.Equal(3 * pieces, orders.Count, "three copies (click + two drag steps) of every piece");
+            ///the anchor shift moves pieces relative to the target, so measure from the leftmost
+            ///order - copy 0's footprint edge. Edge-to-edge copies each fill one footprint width.
+            int minX = orders.Min(o => o.x);
+            var perCopy = orders.GroupBy(o => (o.x - minX) / size.x)
+                .ToDictionary(g => g.Key, g => g.Count());
+            CollectionAssert.SameItems(new[] { 0, 1, 2 }, perCopy.Keys, "copies sit at step 0, 1 and 2");
+            Assert.True(perCopy.Values.All(n => n == pieces), "each copy has every piece");
+        }
+        finally
+        {
+            drag.End();
+            BlueprintState.ClearVisuals();
+            st.SnapToGrid = false;
+            st.IsPlacingSnapshot = false;
+            cfg.RequireConstructable_Tech = savedTech;
+            cfg.RequireConstructable_Material = savedMat;
+        }
     }
 
     private static HashSet<Constructable> Constructables() =>

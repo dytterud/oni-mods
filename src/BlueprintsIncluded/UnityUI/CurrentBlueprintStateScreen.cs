@@ -23,7 +23,13 @@ internal class CurrentBlueprintStateScreen : KScreen
 
     GameObject ColorPreviewPrefab = null!;
 
-    FToggle ApplyBPSettings = null!, ForceRebuildMismatchedBuildings = null!, EnableSnapshotMaterialOverrides = null!, UseToolPriority = null!, ForceOverrideTransformations = null!, ApplySettingsToExistingBuildings = null!;
+    FToggle ApplyBPSettings = null!, ForceRebuildMismatchedBuildings = null!, EnableSnapshotMaterialOverrides = null!, UseToolPriority = null!, ForceOverrideTransformations = null!, ApplySettingsToExistingBuildings = null!, EnableGridSnapping = null!;
+    FInputField2 GridSnapX = null!, GridSnapY = null!;
+    ///the blueprint, and its revision, that the grid-snap step was last defaulted from. Reopening
+    ///the tool on the same blueprint re-runs SetSelectedBlueprint, and must not throw away a step
+    ///the player typed.
+    Blueprint? gridStepSource;
+    int gridStepSourceRevision;
     //YesNoInfo CanRotate;
     FButton RotateL = null!, RotateR = null!, ChangeMaterialOverrides = null!;
     //YesNoInfo CanFlipH, CanFlipV;
@@ -65,6 +71,7 @@ internal class CurrentBlueprintStateScreen : KScreen
         }
 
         CurrentBPName.SetText(bp.FriendlyName);
+        DefaultGridStep(bp);
         EnableSnapshotMaterialOverrides.gameObject.SetActive(BlueprintState.CurrentStateInfo().IsPlacingSnapshot);
         ChangeMaterialOverrides.transform.parent.gameObject.SetActive(BlueprintState.CurrentStateInfo().IsPlacingSnapshot);
         if (BlueprintState.CurrentStateInfo().IsPlacingSnapshot)
@@ -115,6 +122,24 @@ internal class CurrentBlueprintStateScreen : KScreen
         ForceOverrideTransformations.SetOnFromCode(info.ForceOverrideTransformations);
         ApplySettingsToExistingBuildings.SetOnFromCode(info.ApplySettingsToExistingBuildings);
 
+        EnableGridSnapping.SetOnFromCode(info.SnapToGrid);
+        GridSnapX.SetTextFromData(info.GridSnapX.ToString());
+        GridSnapY.SetTextFromData(info.GridSnapY.ToString());
+    }
+
+    /// <summary>Defaults the grid-snap step to the blueprint's exact footprint, so copies sit edge to
+    /// edge - but only for a blueprint (or a revision of one) the step was not already set for.</summary>
+    void DefaultGridStep(Blueprint bp)
+    {
+        if (ReferenceEquals(bp, gridStepSource) && bp.ContentRevision == gridStepSourceRevision)
+            return;
+        gridStepSource = bp;
+        gridStepSourceRevision = bp.ContentRevision;
+
+        var size = bp.FootprintSize();
+        var info = BlueprintState.CurrentStateInfo();
+        info.GridSnapX = Math.Max(size.x, 1);
+        info.GridSnapY = Math.Max(size.y, 1);
     }
     void RefreshStateChangeBPs()
     {
@@ -199,6 +224,15 @@ internal class CurrentBlueprintStateScreen : KScreen
         ApplySettingsToExistingBuildings.OnChange += OnApplySettingsToExistingChanged;
         UIUtils.AddSimpleTooltipToObject(ApplySettingsToExistingBuildings.gameObject, APPLYSETTINGSTOEXISTING.TOOLTIP);
 
+        EnableGridSnapping = transform.Find("InfoItemsContainer/GridSnap").gameObject.AddOrGet<FToggle>();
+        EnableGridSnapping.SetCheckmark("Checkbox/Checkmark");
+        EnableGridSnapping.SetOnFromCode(BlueprintState.CurrentStateInfo().SnapToGrid);
+        EnableGridSnapping.OnChange += (on) => BlueprintState.CurrentStateInfo().SnapToGrid = on;
+        UIUtils.AddSimpleTooltipToObject(EnableGridSnapping.gameObject, GRIDSNAP.TOOLTIP);
+
+        GridSnapX = InitGridStepInput("WidthInput", (info, v) => info.GridSnapX = v, info => info.GridSnapX);
+        GridSnapY = InitGridStepInput("HeightInput", (info, v) => info.GridSnapY = v, info => info.GridSnapY);
+
         ChangeMaterialOverrides = transform.Find("InfoItemsContainer/MaterialOverrides/Button").gameObject.AddOrGet<FButton>();
         ChangeMaterialOverrides.OnClick += ShowMaterialReplacementList;
 
@@ -230,6 +264,29 @@ internal class CurrentBlueprintStateScreen : KScreen
         CanFlipV_TT = UIUtils.AddSimpleTooltipToObject(FlipV.gameObject, string.Empty);
 
         BuildColorLegend();
+    }
+
+    FInputField2 InitGridStepInput(string path, Action<BlueprintState.BlueprintTransformationInfo, int> set, Func<BlueprintState.BlueprintTransformationInfo, int> get)
+    {
+        var input = EnableGridSnapping.transform.Find(path).gameObject.AddOrGet<FInputField2>();
+        ///AddListener, not OnValueChanged.AddListener: only the former honours the DataTextUpdate
+        ///guard, so RefreshButtonStates writing the value back does not re-enter this.
+        input.AddListener(text => OnGridStepEdited(text, set));
+        input.SetTextFromData(get(BlueprintState.CurrentStateInfo()).ToString());
+        input.ClearPlace();
+        return input;
+    }
+
+    /// <summary>
+    /// Takes a typed step only if it is a whole number of at least 1. Upstream carried on after a
+    /// failed parse and stored 1, and let 0 through to a divide in the snapshot tool. Anything else
+    /// - a cleared field mid-edit, a stray letter - leaves the stored step alone; the field shows
+    /// the stored value again the next time the screen refreshes, e.g. on selecting a blueprint.
+    /// </summary>
+    static void OnGridStepEdited(string text, Action<BlueprintState.BlueprintTransformationInfo, int> set)
+    {
+        if (int.TryParse(text, out int value) && value >= 1)
+            set(BlueprintState.CurrentStateInfo(), value);
     }
 
     void OnApplySettingsToExistingChanged(bool on)

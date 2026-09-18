@@ -112,6 +112,7 @@ public class UseBlueprintTool : InterfaceTool
     public override void OnDeactivateTool(InterfaceTool newTool)
     {
         base.OnDeactivateTool(newTool);
+        gridSnap.End();
         BlueprintState.CurrentStateInfo().ForceBuild = false;
 
         BlueprintState.ClearVisuals();
@@ -128,8 +129,16 @@ public class UseBlueprintTool : InterfaceTool
 
         if (hasFocus)
         {
-            BlueprintState.UseBlueprint(BlueprintState.PlayerId_DefaultTilePreviews, Grid.PosToXY(cursorPos));
+            var cell = Grid.PosToXY(cursorPos);
+            BlueprintState.UseBlueprint(BlueprintState.PlayerId_DefaultTilePreviews, cell);
+            gridSnap.OnPlaced(cell);
         }
+    }
+
+    public override void OnLeftClickUp(Vector3 cursorPos)
+    {
+        base.OnLeftClickUp(cursorPos);
+        gridSnap.End();
     }
 
     public override void OnMouseMove(Vector3 cursorPos)
@@ -138,9 +147,13 @@ public class UseBlueprintTool : InterfaceTool
 
         if (hasFocus)
         {
-            BlueprintState.UpdateVisual(BlueprintState.PlayerId_DefaultTilePreviews, Grid.PosToXY(cursorPos));
+            var cell = Grid.PosToXY(cursorPos);
+            BlueprintState.UpdateVisual(BlueprintState.PlayerId_DefaultTilePreviews, cell);
+            gridSnap.OnMoved(cell, null);
         }
     }
+
+    private readonly GridSnapDrag gridSnap = new();
     void SetForceMaterialChange(bool enabled)
     {
         BlueprintState.CurrentStateInfo().ForceBuild = enabled;
