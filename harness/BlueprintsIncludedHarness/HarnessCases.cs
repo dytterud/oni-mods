@@ -87,6 +87,7 @@ internal static class HarnessCases
         new HarnessCase("reconstruct-reapplies-stored-settings", ReconstructReappliesSettings),
         new HarnessCase("preconfigure-screen-loads-the-plan's-settings", PreconfigureLoadsStoredSettings),
         new HarnessCase("preconfigure-screen-opens-while-the-game-is-paused", PreconfigureWorksWhilePaused),
+        new HarnessCase("preconfigure-button-shows-for-smi-backed-buildings", PreconfigureButtonShowsForSmiBackedBuildings),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -1597,6 +1598,182 @@ internal static class HarnessCases
         }
     }
 
+    // ---- preconfigure button for SMI-backed buildings ----------------
+
+    /// <summary>
+    /// Storage Tile and Radbolt Chamber had no preconfigure button on a planned building
+    /// (issue #85). <c>UnderConstructionDataSettingHelper.HasDataTransferComponents</c> decides
+    /// that by asking the <b>prefab</b> what data it carries, and their two handlers read a live
+    /// state machine, which a prefab does not have - so both returned null and the gate saw
+    /// nothing.
+    ///
+    /// <para>Asserted against the gate's own input rather than by opening the side screen: the
+    /// screen needs a selected planned building and a UI frame, while the decision being fixed is
+    /// entirely "what does the prefab report". <see cref="PreconfigureLoadsStoredSettings"/> covers
+    /// the screen end of it.</para>
+    ///
+    /// <para><c>Battery</c> is the control, and it matters as much as the positive cases. It has no
+    /// registered handler and nothing to configure, so its button is *correctly* hidden - the only
+    /// data it reports is <c>BuildingEnabledButton</c>, which the gate filters out. If a future
+    /// change made the gate answer "yes" for everything, the positive assertions alone would still
+    /// pass and this one would catch it.</para>
+    ///
+    /// <para>Probes by prefab id, since the whole point is these specific state-machine-backed
+    /// buildings; a missing def logs REACHABILITY and skips rather than failing, so a DLC layout
+    /// this fixture does not have cannot turn into a red run.</para>
+    /// </summary>
+    private static IEnumerator PreconfigureButtonShowsForSmiBackedBuildings()
+    {
+        ///API_Methods is internal to the mod, so reach it the way the other cases reach internals
+        ///rather than widening production visibility for a test.
+        var getData = typeof(Blueprint).Assembly
+            .GetType("BlueprintsV2.ModAPI.API_Methods")
+            ?.GetMethod("GetAdditionalBuildingData",
+                        BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+        Assert.True(getData != null,
+            "API_Methods.GetAdditionalBuildingData was found (is the data-transfer API still there?)");
+
+        ///Mirrors HasDataTransferComponents: everything the handlers report for the prefab, minus
+        ///the components it deliberately ignores. Non-empty means the button shows.
+        bool ButtonShowsFor(BuildingDef def, out int reported, out string keys)
+        {
+            var data = (Dictionary<string, JObject>)getData!.Invoke(
+                null, new object[] { def.BuildingComplete });
+            reported = data.Count;
+            var kept = data.Keys
+                .Where(k => !UnderConstructionDataSettingHelper.ComponentsToIgnore.Contains(k))
+                .OrderBy(k => k)
+                .ToArray();
+            keys = kept.Length > 0 ? string.Join(", ", kept) : "(none)";
+            return kept.Length > 0;
+        }
+
+        foreach (var probe in new[]
+                 {
+                     ("StorageTile", true),
+                     ("HEPBattery", true),
+                     ("Battery", false),
+                 })
+        {
+            var def = Assets.GetBuildingDef(probe.Item1);
+            if (def == null || def.BuildingComplete == null)
+            {
+                Log?.Line($"  REACHABILITY: no {probe.Item1} def in this install, not exercised");
+                continue;
+            }
+
+            bool shows = ButtonShowsFor(def, out int reported, out string keys);
+            Log?.Line($"  {probe.Item1}: {reported} handler(s) reported, kept [{keys}] -> " +
+                      $"button {(shows ? "SHOWS" : "HIDDEN")} (expected {(probe.Item2 ? "SHOWS" : "HIDDEN")})");
+
+            if (probe.Item2)
+                Assert.True(shows,
+                    $"{probe.Item1} offers a preconfigure button - its settings are transferable, so " +
+                    "a planned one must be configurable before it is built");
+            else
+                Assert.True(!shows,
+                    $"{probe.Item1} still has NO preconfigure button - it has nothing to configure, " +
+                    "so the prefab fallback must not hand one to every building");
+        }
+
+        ///--- the prefab fallback must not leak into capture ---
+        ///
+        ///This is the assertion for the one place the fix deliberately differs from upstream
+        ///03ceccc. The fallback is guarded on "no live state machine" so it answers only for a
+        ///prefab; drop that guard and an *unconfigured* storage tile starts reporting an empty
+        ///entry, which is not inert - BuildingConfig.HasAnyBuildingData counts entries rather than
+        ///content, so the preview would paint the apply-settings colour and placement would pop
+        ///"Settings applied!" over a tile with nothing to apply.
+        var storageTileDef = Assets.GetBuildingDef("StorageTile");
+        if (storageTileDef == null)
+        {
+            Log?.Line("  REACHABILITY: no StorageTile def, capture-leak guard not exercised");
+            yield break;
+        }
+
+        var xy = Grid.CellToXY(AnchorCell);
+        int tileCell = Grid.XYToCell(xy.x + 23, xy.y - 20);
+        yield return ClearCell(tileCell);
+        AssertCellEmpty(tileCell, "storage tile capture-leak");
+
+        GameObject? liveTile = null;
+        try
+        {
+            liveTile = storageTileDef.Build(tileCell, Orientation.Neutral, null,
+                                            FixtureBuilder.SelectElements(storageTileDef),
+                                            293.15f, false, 0f);
+        }
+        catch { /* fall through to the reachability note */ }
+
+        if (liveTile == null)
+        {
+            Log?.Line("  REACHABILITY: a StorageTile would not build here, capture-leak guard not exercised");
+            yield break;
+        }
+
+        for (int i = 0; i < 5; i++) yield return null;
+        try
+        {
+            var live = (Dictionary<string, JObject>)getData!.Invoke(null, new object[] { liveTile });
+            bool leaked = live.ContainsKey("StorageTile");
+            Log?.Line($"  live unconfigured StorageTile reports {live.Count} handler(s), " +
+                      $"StorageTile entry present={leaked} (expected False)");
+            Assert.True(!leaked,
+                "an unconfigured live StorageTile stores NO data entry - the prefab fallback is " +
+                "guarded on having no state machine, so capture is unchanged");
+        }
+        finally
+        {
+            liveTile.DeleteObject();
+        }
+        for (int i = 0; i < 3; i++) yield return null;
+    }
+
+    /// <summary>
+    /// Ends a preconfigure edit session the way the game does: drop the selection <b>first</b>,
+    /// give the details screen a frame to notice, and only then destroy the temporary building.
+    ///
+    /// <para>Production never has to think about this. <c>UnderConstructionDataSettingHelper.CleanUp</c>
+    /// is only reached from <c>HandleDeselection</c> - i.e. after the game has already moved the
+    /// selection - or from the scheduled callback when the target is destroyed already. A case that
+    /// calls <c>CleanUp</c> directly skips that and destroys a GameObject the details screen still
+    /// points at.</para>
+    ///
+    /// <para>Klei's <c>SimpleInfoScreen.Refresh</c> then does
+    /// <c>RefreshMovePanel(movePanel, selectedTarget)</c> with no null check, and that calls
+    /// <c>targetEntity.GetComponent&lt;CancellableMove&gt;()</c> - which throws
+    /// <c>NullReferenceException</c> on a destroyed object, once per frame, for the rest of the
+    /// run. It went unnoticed for as long as these were the last cases in the list: the harness quit
+    /// before another frame ran. <see cref="ExceptionSweep"/> could not see it either, because the
+    /// stack has no mod frame in it - which is why that sweep now has a second, unattributed
+    /// bucket.</para>
+    ///
+    /// <para>Has to be its own iterator: the deselect needs a frame to land before the destroy, and
+    /// a <c>finally</c> block cannot <c>yield</c>.</para>
+    /// </summary>
+    private static IEnumerator EndPreconfigureEditing()
+    {
+        ///Deselect through the SAME path the mod selected with. StartEditingUnderConstructionData
+        ///selects its temporary building with Game.Instance.Trigger(SelectObject, target), so
+        ///SelectTool.Select(null) alone does not undo it - SimpleInfoScreen keeps its cached
+        ///selectedTarget and NREs on it once the object is destroyed.
+        if (Game.Instance != null)
+            Game.Instance.Trigger((int)GameHashes.SelectObject, null);
+        if (SelectTool.Instance != null)
+            SelectTool.Instance.Select(null);
+
+        for (int i = 0; i < 3; i++)
+            yield return null;
+
+        PreconfigureCleanUp();
+    }
+
+    /// <summary><c>UnderConstructionDataSettingHelper.CleanUp</c> is internal to the mod assembly.</summary>
+    private static void PreconfigureCleanUp()
+        => typeof(UnderConstructionDataSettingHelper)
+            .GetMethod("CleanUp", BindingFlags.NonPublic | BindingFlags.Static)
+            ?.Invoke(null, null);
+
     /// <summary>
     /// Runs <c>SameBuildingAlreadyFinishedInPlace</c> for <paramref name="def"/> at
     /// <paramref name="cell"/>, as though the blueprint entry were captured at
@@ -1757,6 +1934,7 @@ internal static class HarnessCases
         var transfer = plan.GetComponent<UnderConstructionDataTransfer>();
         Log?.Line($"  editing the stored settings of {plan.Def.PrefabID}@{Grid.CellToXY(Grid.PosToCell(plan))}");
 
+        bool tornDown = false;
         try
         {
             UnderConstructionDataSettingHelper.StartEditingUnderConstructionData(transfer);
@@ -1784,15 +1962,22 @@ internal static class HarnessCases
 
             Assert.Equal(storedValue, applied.priority_value,
                 "the scheduled transfer put the plan's stored priority on the temporary building");
+
+            ///Ordered teardown on the success path - deselect, let the screen notice, then destroy.
+            yield return EndPreconfigureEditing();
+            tornDown = true;
         }
         finally
         {
-            ///CleanUp is internal to the mod assembly
-            typeof(UnderConstructionDataSettingHelper)
-                .GetMethod("CleanUp", BindingFlags.NonPublic | BindingFlags.Static)
-                ?.Invoke(null, null);
-            if (SelectTool.Instance != null)
-                SelectTool.Instance.Select(null);
+            ///Safety net for the failure path only: an assertion throws past the ordered teardown
+            ///above, and leaking the temporary building into later cases would be worse than the
+            ///exception storm a bare destroy causes on a run that is already red.
+            if (!tornDown)
+            {
+                PreconfigureCleanUp();
+                if (SelectTool.Instance != null)
+                    SelectTool.Instance.Select(null);
+            }
         }
     }
 
@@ -1831,6 +2016,7 @@ internal static class HarnessCases
         var transfer = plan.GetComponent<UnderConstructionDataTransfer>();
         Log?.Line($"  editing the stored settings of {plan.Def.PrefabID}@{Grid.CellToXY(Grid.PosToCell(plan))} while paused");
 
+        bool tornDown = false;
         try
         {
             UnderConstructionDataSettingHelper.StartEditingUnderConstructionData(transfer);
@@ -1857,15 +2043,22 @@ internal static class HarnessCases
 
             Assert.Equal(storedValue, applied.priority_value,
                 "the transfer arrived with the clock stopped, so the player sees the screen while paused");
+
+            ///Ordered teardown on the success path - deselect, let the screen notice, then destroy.
+            yield return EndPreconfigureEditing();
+            tornDown = true;
         }
         finally
         {
-            ///CleanUp is internal to the mod assembly
-            typeof(UnderConstructionDataSettingHelper)
-                .GetMethod("CleanUp", BindingFlags.NonPublic | BindingFlags.Static)
-                ?.Invoke(null, null);
-            if (SelectTool.Instance != null)
-                SelectTool.Instance.Select(null);
+            ///Safety net for the failure path only: an assertion throws past the ordered teardown
+            ///above, and leaking the temporary building into later cases would be worse than the
+            ///exception storm a bare destroy causes on a run that is already red.
+            if (!tornDown)
+            {
+                PreconfigureCleanUp();
+                if (SelectTool.Instance != null)
+                    SelectTool.Instance.Select(null);
+            }
         }
     }
 

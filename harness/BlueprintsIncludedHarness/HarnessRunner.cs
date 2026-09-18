@@ -170,6 +170,7 @@ internal sealed class HarnessRunner : MonoBehaviour
     private static void Finish(ResultSet results, HarnessLog log)
     {
         results.Add(ExceptionSweep.Evaluate());
+        results.Add(ExceptionSweep.EvaluateUnattributed());
         try
         {
             JUnitWriter.Write(HarnessGate.ResultsPath, results);
