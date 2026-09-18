@@ -91,6 +91,7 @@ internal static class HarnessCases
         new HarnessCase("preconfigure-button-shows-for-smi-backed-buildings", PreconfigureButtonShowsForSmiBackedBuildings),
         new HarnessCase("building-data-api-survives-a-dead-gameobject", BuildingDataApiSurvivesDeadGameObject),
         new HarnessCase("anim-less-previews-are-all-tile-visuals", AnimLessPreviewsAreAllTileVisuals),
+        new HarnessCase("note-toggle-tooltip-follows-a-rebind", NoteToggleTooltipFollowsARebind),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -2656,6 +2657,62 @@ internal static class HarnessCases
             .ToList();
         Assert.True(wasted.Count == 0,
             "no anim-less preview reaches the base ApplyColorIfChanged, got: " + string.Join(", ", wasted));
+        yield break;
+    }
+
+    // ---- #68: the note toggle's tooltip names the current key ----------------------
+
+    /// <summary>
+    /// The top-left note-visibility button's tooltip used to be written once, when the screen
+    /// activated, so a mid-session rebind left it advertising the old key (#68). Rebinds the
+    /// action in <c>GameInputMapping.KeyBindings</c> - the table <c>GetHotkeyString</c> reads - and
+    /// asserts the tooltip's text follows. The binding is restored in a <c>finally</c>.
+    /// </summary>
+    private static IEnumerator NoteToggleTooltipFollowsARebind()
+    {
+        var button = UnityEngine.Object.FindObjectsByType<MultiToggle>(FindObjectsSortMode.None)
+            .FirstOrDefault(t => t.name == "toggleNoteVisibility");
+        Assert.True(button != null, "the note-visibility button exists on the top-left screen");
+        Assert.True(button!.TryGetComponent<ToolTip>(out var tooltip), "the button has a ToolTip");
+        Assert.True(tooltip.OnToolTip != null, "the tooltip is rebuilt when shown (OnToolTip set)");
+
+        // ModAssets.Actions is internal and PAction is PLib's, which the harness doesn't
+        // reference - reach GetKAction() by reflection.
+        var pAction = typeof(Blueprint).Assembly
+            .GetType("BlueprintsV2.ModAssets+Actions")!
+            .GetProperty("BlueprintsToggleNoteVisibility", BindingFlags.Public | BindingFlags.Static)!
+            .GetValue(null)!;
+        var action = (Action)pAction.GetType().GetMethod("GetKAction")!.Invoke(pAction, null)!;
+
+        var bindings = GameInputMapping.KeyBindings;
+        int index = Array.FindIndex(bindings, b => b.mAction == action);
+        Assert.True(index >= 0, $"a key binding exists for {action}");
+
+        var saved = bindings[index];
+        try
+        {
+            ///unbound first: GetHotkeyString renders that as "[NONE]", which must not reach the
+            ///tooltip.
+            var unbound = saved;
+            unbound.mKeyCode = KKeyCode.None;
+            bindings[index] = unbound;
+            string noneKey = GameUtil.GetHotkeyString(action);
+            string before = tooltip.OnToolTip!();
+            Log?.Line($"  unbound: \"{before}\"");
+            Assert.True(!before.Contains(noneKey), $"an unbound key is not shown as [{noneKey}]");
+
+            var rebound = saved;
+            rebound.mKeyCode = KKeyCode.F9;
+            bindings[index] = rebound;
+            string expectedKey = GameUtil.GetHotkeyString(action);
+            string after = tooltip.OnToolTip!();
+            Log?.Line($"  rebound to {rebound.mKeyCode}: \"{after}\"");
+            Assert.True(after.Contains(expectedKey), $"the tooltip names the new key [{expectedKey}]");
+        }
+        finally
+        {
+            bindings[index] = saved;
+        }
         yield break;
     }
 
