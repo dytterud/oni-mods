@@ -33,6 +33,12 @@ and was never published under it.
 
 ### Changed
 
+- **All five translations are complete again.** German and French were missing about half the mod's
+  text and fell back to English; Korean, Russian and Chinese had smaller gaps. Every string the mod
+  shows is now translated in all five languages, including this fork's own additions, which have
+  never existed upstream to be translated. (#87)
+
+
 - **The "force build over existing buildings" tooltip now describes what the toggle actually
   does.** It said the option replaces a finished building "of the same type" with one built from
   the blueprint's material. The check behind it is broader: any building blocking a blueprint
