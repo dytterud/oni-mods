@@ -25,8 +25,8 @@ msgstr ""
 
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_ALL
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_ALL"
-msgid "All"
-msgstr "Alle"
+msgid "All Defaults"
+msgstr "Alle Standardwerte"
 
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_NONE
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_NONE"
@@ -504,18 +504,18 @@ msgstr "Alle"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.AUTOSYNC
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.AUTOSYNC"
-msgid "Auto. Sync"
-msgstr "Auto. Sync."
+msgid "Auto. Sync to Overlays"
+msgstr "Auto. Overlay-Synchr."
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PRESERVEAIRTILES.NAME
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PRESERVEAIRTILES.NAME"
-msgid "Air Pockets"
-msgstr "Leere Räume"
+msgid "Air/Liquid Bubbles"
+msgstr "Luft-/Flüssigkeitsblasen"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PRESERVEAIRTILES.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PRESERVEAIRTILES.TOOLTIP"
-msgid "Dig commands on tiles that are not solid"
-msgstr "Speichert nicht-feste Räume als Grabe-Befehle"
+msgid "Create Dig commands for tiles that are not solid, but otherwise empty of buildings"
+msgstr "Erstellt Grabe-Befehle für nicht-feste Kacheln, auf denen sonst keine Gebäude stehen"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.NONE
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.NONE"
@@ -614,12 +614,8 @@ msgstr "Spiegeln ({0}:{1}/{2}:{3})"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.FORCEREBUILD
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.FORCEREBUILD"
-msgid ""
-"Replace buildings with mismatched material:\n"
-"{0} (hold {1})"
-msgstr ""
-"Gebäude mit nicht passenden Materialien ersetzen:\n"
-"{0} (halte {1})"
+msgid "Force build over existing buildings:\n{0} (hold {1})"
+msgstr "Bau über bestehende Gebäude erzwingen:\n{0} (halte {1})"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.NAME
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.NAME"
@@ -723,8 +719,8 @@ msgstr "Aktueller Schnappschuss: {0}/{1}"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.LABEL"
-msgid "Rebuild existing with mismatched material:"
-msgstr "Gebäude mit nicht passenden Materialien ersetzen:"
+msgid "Force build over existing buildings:"
+msgstr "Bau über bestehende Gebäude erzwingen:"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.MATERIALOVERRIDES.BUTTON.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.MATERIALOVERRIDES.BUTTON.LABEL"
@@ -844,7 +840,7 @@ msgstr "Blaupausen mit mehr Gebäuden als diesem Wert zeigen keine automatische 
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TITLE
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TITLE"
 msgid "Create Blueprint Tool Copy to Clipboard"
-msgstr "Blaupausen-Werkzeug: In Zwischenablage kopieren"
+msgstr "Blaupausen-Tool: In Zwischenablage kopieren"
 
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TOOLTIP"
@@ -859,7 +855,7 @@ msgstr "Standard-Ausrichtung beim Platzieren"
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULT_ANCHOR.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULT_ANCHOR.TOOLTIP"
 msgid "Placed blueprints are alligned with this position under the cursor by default.\nCan be swapped through via ctrl+R, persisting between blueprint placing."
-msgstr "Platzierte Blaupausen werden standardmäßig an dieser Position unter dem Cursor ausgerichtet. \n Mit Strg+R umschaltbar, bleibt zwischen Platzierungen erhalten."
+msgstr "Platzierte Blaupausen werden standardmäßig an dieser Position unter dem Cursor ausgerichtet.\nMit Strg+R umschaltbar, bleibt zwischen Platzierungen erhalten."
 
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.EXTRA_DEFAULTS_CATEGORY
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.EXTRA_DEFAULTS_CATEGORY"
@@ -869,7 +865,7 @@ msgstr "Zusätzliche Filter-Auswahl"
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE"
 msgid "Snapshot Tool Copy to Clipboard"
-msgstr "Schnappschuss-Werkzeug: In Zwischenablage kopieren"
+msgstr "Schnappschuss-Tool: In Zwischenablage kopieren"
 
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP"
@@ -879,7 +875,7 @@ msgstr "Ob ein erstellter Schnappschuss zusätzlich als teilbarer Text in die Zw
 #. BlueprintsV2.STRINGS.BLUEPRINTS_FORCE_REPLACER.PENDING_INFO
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_FORCE_REPLACER.PENDING_INFO"
 msgid "This building plan is currently pending to be placed, as soon as the area is cleared of occupying buildings."
-msgstr "Dieser Bauplan wartet derzeit auf die Platzierung, sobald der Bereich von blockierenden Gebäuden geräumt ist."
+msgstr "Dieser Bauplan wird platziert, sobald der Bereich von blockierenden Gebäuden geräumt ist."
 
 #. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BC
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BC"
@@ -1124,7 +1120,7 @@ msgstr "Textnotiz bearbeiten"
 #. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.TITLE.TITLETEXT
 msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.TITLE.TITLETEXT"
 msgid "Note Creation Tool"
-msgstr "Notiz-Werkzeug"
+msgstr "Notiz-Tool"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.CREATED_COPIED
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.CREATED_COPIED"
@@ -1159,7 +1155,7 @@ msgstr "Blaupausen-Notizen"
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_COLLECT_NOTES.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_COLLECT_NOTES.TOOLTIP"
 msgid "Store notes from the blueprint note tool in the blueprint."
-msgstr "Notizen des Blaupausen-Notiz-Werkzeugs in der Blaupause speichern."
+msgstr "Notizen des Notiz-Tools in der Blaupause speichern."
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_FILTER_NOTES.NAME
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_FILTER_NOTES.NAME"
@@ -1179,7 +1175,7 @@ msgstr "PlanningTool-Formen"
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PLANNINGTOOL_SHAPES.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PLANNINGTOOL_SHAPES.TOOLTIP"
 msgid "Store PlanningTool-Mod Shapes in the blueprint\nOnly works when the PlanningTool mod is enabled."
-msgstr "Formen des PlanningTool-Mods in der Blaupause speichern \n Funktioniert nur, wenn der PlanningTool-Mod aktiviert ist."
+msgstr "Formen des PlanningTool-Mods in der Blaupause speichern\nFunktioniert nur, wenn der PlanningTool-Mod aktiviert ist."
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD"
@@ -1189,7 +1185,7 @@ msgstr "In Zwischenablage kopieren"
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD_TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD_TOOLTIP"
 msgid "Also copy every blueprint this tool creates to your clipboard as a shareable string, ready to paste into the blueprint editor website"
-msgstr "Jede von diesem Werkzeug erstellte Blaupause zusätzlich als teilbaren Text in die Zwischenablage kopieren, bereit zum Einfügen auf der Blaupausen-Editor-Website"
+msgstr "Jede von diesem Tool erstellte Blaupause zusätzlich als teilbaren Text in die Zwischenablage kopieren, bereit zum Einfügen auf der Blaupausen-Editor-Website"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.NOTE_TOOL.NAME
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.NOTE_TOOL.NAME"
@@ -1204,7 +1200,7 @@ msgstr "Text- und Element-Notizen in der Welt erstellen, die in Blaupausen gespe
 #. BlueprintsV2.STRINGS.UI.TOOLS.NOTE_TOOL.TOOLTIP_TITLE
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.NOTE_TOOL.TOOLTIP_TITLE"
 msgid "NOTE TOOL"
-msgstr "NOTIZ-WERKZEUG"
+msgstr "NOTIZ-TOOL"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED"
@@ -1224,7 +1220,7 @@ msgstr "Vorheriger Ordner: {0}"
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.FLIP_BLOCKED
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.FLIP_BLOCKED"
 msgid "Cannot flip the current blueprint.\nThis is prevented by the contained building: {0}"
-msgstr "Die aktuelle Blaupause kann nicht gespiegelt werden. \n Verhindert durch das enthaltene Gebäude: {0}"
+msgstr "Die aktuelle Blaupause kann nicht gespiegelt werden.\nVerhindert durch das enthaltene Gebäude: {0}"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL"
@@ -1239,12 +1235,12 @@ msgstr "Fertige Gebäude, die sich mit Blaupausen-Visualisierungen mit Einstellu
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.TOOLTIP"
 msgid "Placed buildings receive the additional settings stored in the blueprint, such as filters, priorities and conduit connections.\nDisable to build with each building's default settings instead."
-msgstr "Platzierte Gebäude erhalten die in der Blaupause gespeicherten Zusatzeinstellungen, etwa Filter, Prioritäten und Leitungsanschlüsse. \n Deaktivieren, um stattdessen mit den Standardeinstellungen jedes Gebäudes zu bauen."
+msgstr "Platzierte Gebäude erhalten die in der Blaupause gespeicherten Zusatzeinstellungen, etwa Filter, Prioritäten und Leitungsanschlüsse.\nDeaktivieren, um stattdessen mit den Standardeinstellungen jedes Gebäudes zu bauen."
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.TOOLTIP"
 msgid "Existing buildings blocking a blueprint building are marked for deconstruction,\nand planned buildings in the way are cancelled, so the blueprint can be built in their place.\nA finished building of the same type is only rebuilt when the blueprint specifies a different material."
-msgstr "Bestehende Gebäude, die ein Gebäude der Blaupause blockieren, werden zum Abriss markiert, \n und geplante Gebäude im Weg werden abgebrochen, damit die Blaupause an ihrer Stelle gebaut werden kann. \n Ein fertiges Gebäude desselben Typs wird nur dann neu gebaut, wenn die Blaupause ein anderes Material vorgibt."
+msgstr "Bestehende Gebäude, die ein Gebäude der Blaupause blockieren, werden zum Abriss markiert,\nund geplante Gebäude im Weg werden abgebrochen, damit die Blaupause an ihrer Stelle gebaut werden kann.\nEin fertiges Gebäude desselben Typs wird nur dann neu gebaut, wenn die Blaupause ein anderes Material vorgibt."
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.FX_TEXT
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.FX_TEXT"
@@ -1259,19 +1255,19 @@ msgstr "Transformationen erzwingen:"
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.TOOLTIP"
 msgid "Override checks to allow rotating/flipping of blueprints containing buildings that don't support it.\nVisualizers of buildings incompatible with the transformation will be removed from your hand\nwhen performing a rotation/flipping, until you re-select this blueprint for placement."
-msgstr "Prüfungen übergehen, um Drehen/Spiegeln von Blaupausen zu erlauben, die Gebäude ohne Unterstützung dafür enthalten. \n Visualisierungen von Gebäuden, die mit der Transformation nicht kompatibel sind, werden beim Drehen/Spiegeln aus der Hand entfernt, \n bis diese Blaupause erneut zum Platzieren ausgewählt wird."
+msgstr "Prüfungen übergehen, um Drehen/Spiegeln von Blaupausen zu erlauben, die Gebäude ohne Unterstützung dafür enthalten.\nVisualisierungen von Gebäuden, die mit der Transformation nicht kompatibel sind, werden beim Drehen/Spiegeln aus der Hand entfernt,\nbis diese Blaupause erneut zum Platzieren ausgewählt wird."
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.LABEL"
 msgid "Use tool menu priority:"
-msgstr "Priorität aus dem Werkzeugmenü verwenden:"
+msgstr "Priorität aus dem Tool-Menü verwenden:"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.TOOLTIP"
 msgid "All buildings of the blueprint are placed with the currently configured tool priority.\nOtherwise uses the individual priorities stored in the blueprint building data"
-msgstr "Alle Gebäude der Blaupause werden mit der aktuell eingestellten Werkzeug-Priorität platziert. \n Andernfalls werden die einzelnen Prioritäten aus den Gebäudedaten der Blaupause verwendet"
+msgstr "Alle Gebäude der Blaupause werden mit der aktuell eingestellten Tool-Priorität platziert.\nAndernfalls werden die einzelnen Prioritäten aus den Gebäudedaten der Blaupause verwendet"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.ROTATION_BLOCKED
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.ROTATION_BLOCKED"
 msgid "Cannot rotate the current blueprint.\nThis is prevented by the contained building: {0}"
-msgstr "Die aktuelle Blaupause kann nicht gedreht werden. \n Verhindert durch das enthaltene Gebäude: {0}"
+msgstr "Die aktuelle Blaupause kann nicht gedreht werden.\nVerhindert durch das enthaltene Gebäude: {0}"

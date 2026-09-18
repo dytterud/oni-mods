@@ -1185,7 +1185,7 @@ msgstr "Копировать ли созданный чертёж в буфер 
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE"
 msgid "Snapshot Tool Copy to Clipboard"
-msgstr "Инструмент снимка: копировать в буфер обмена"
+msgstr "Инструмент «Снимок»: копировать в буфер обмена"
 
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP"
@@ -1245,22 +1245,22 @@ msgstr "Снимок сделан и скопирован в буфер обме
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL"
 msgid "Apply settings to existing buildings:"
-msgstr "Применять настройки к существующим строениям:"
+msgstr "Применять настройки к существующим зданиям:"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.TOOLTIP"
 msgid "Finished buildings overlapping with blueprint visualizers containing settings will receive those settings when the blueprint is placed down."
-msgstr "Готовые строения, перекрывающиеся с визуализаторами чертежа, содержащими настройки, получат эти настройки при размещении чертежа."
+msgstr "Готовые здания, перекрывающиеся с визуализаторами чертежа, содержащими настройки, получат эти настройки при размещении чертежа."
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.TOOLTIP"
 msgid "Placed buildings receive the additional settings stored in the blueprint, such as filters, priorities and conduit connections.\nDisable to build with each building's default settings instead."
-msgstr "Размещённые строения получают дополнительные настройки, сохранённые в чертеже: фильтры, приоритеты и подключения труб. \n Отключите, чтобы строить с настройками по умолчанию для каждого строения."
+msgstr "Размещённые здания получают дополнительные настройки, сохранённые в чертеже: фильтры, приоритеты и подключения труб.\nОтключите, чтобы строить с настройками по умолчанию для каждого здания."
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.TOOLTIP"
 msgid "Existing buildings blocking a blueprint building are marked for deconstruction,\nand planned buildings in the way are cancelled, so the blueprint can be built in their place.\nA finished building of the same type is only rebuilt when the blueprint specifies a different material."
-msgstr "Существующие строения, мешающие строению из чертежа, помечаются на разрушение, \n а запланированные строения на пути отменяются, чтобы чертёж можно было построить на их месте. \n Готовое строение того же типа перестраивается только если чертёж задаёт другой материал."
+msgstr "Существующие здания, мешающие зданию из чертежа, помечаются на разрушение,\nа запланированные здания на пути отменяются, чтобы чертёж можно было построить на их месте.\nГотовое здание того же типа перестраивается, только если чертёж задаёт другой материал."
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.FX_TEXT
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.FX_TEXT"
@@ -1275,7 +1275,7 @@ msgstr "Принудительные преобразования:"
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.TOOLTIP"
 msgid "Override checks to allow rotating/flipping of blueprints containing buildings that don't support it.\nVisualizers of buildings incompatible with the transformation will be removed from your hand\nwhen performing a rotation/flipping, until you re-select this blueprint for placement."
-msgstr "Игнорировать проверки, чтобы разрешить поворот/отражение чертежей, содержащих строения, которые этого не поддерживают. \n Визуализаторы строений, несовместимых с преобразованием, будут убраны из рук \n при повороте или отражении, пока вы снова не выберете этот чертёж для размещения."
+msgstr "Игнорировать проверки, чтобы разрешить поворот/отражение чертежей, содержащих здания, которые этого не поддерживают.\nВизуализаторы зданий, несовместимых с преобразованием, будут убраны из рук\nпри повороте или отражении, пока вы снова не выберете этот чертёж для размещения."
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.LABEL"
@@ -1285,4 +1285,4 @@ msgstr "Использовать приоритет из меню инструм
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.TOOLTIP"
 msgid "All buildings of the blueprint are placed with the currently configured tool priority.\nOtherwise uses the individual priorities stored in the blueprint building data"
-msgstr "Все строения чертежа размещаются с текущим приоритетом, заданным в инструменте. \n Иначе используются отдельные приоритеты, сохранённые в данных строений чертежа"
+msgstr "Все здания чертежа размещаются с текущим приоритетом, заданным в инструменте.\nИначе используются отдельные приоритеты, сохранённые в данных зданий чертежа"

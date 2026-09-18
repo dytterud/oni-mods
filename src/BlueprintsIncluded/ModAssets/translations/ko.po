@@ -308,8 +308,8 @@ msgstr "매개변수"
 
 #. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.LIQUIDCOUNT.DESCRIPTOR.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.LIQUIDCOUNT.DESCRIPTOR.LABEL"
-msgid "Number of notes:"
-msgstr "메모 개수:"
+msgid "Number of notes/shapes:"
+msgstr "메모/기호 개수:"
 
 #. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.CLOSEBUTTON.TEXT
 msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.CLOSEBUTTON.TEXT"
@@ -1080,7 +1080,7 @@ msgstr "기본 배치 기준점"
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULT_ANCHOR.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULT_ANCHOR.TOOLTIP"
 msgid "Placed blueprints are alligned with this position under the cursor by default.\nCan be swapped through via ctrl+R, persisting between blueprint placing."
-msgstr "배치된 청사진은 기본적으로 커서 아래 이 위치에 정렬됩니다. \n Ctrl+R로 전환할 수 있으며 청사진을 배치하는 동안 유지됩니다."
+msgstr "배치된 청사진은 기본적으로 커서 아래 이 위치에 정렬됩니다.\nCtrl+R로 전환할 수 있으며 청사진을 배치하는 동안 유지됩니다."
 
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE"
@@ -1150,7 +1150,7 @@ msgstr "공기/액체 거품"
 #. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.TOOLTIP"
 msgid "Show this blueprint's dig commands in the preview"
-msgstr "이 청사진의 캐기 명령을 미리보기에 표시합니다"
+msgstr "이 청사진의 굴착 명령을 미리보기에 표시합니다"
 
 #. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.RESETALL
 msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.RESETALL"
@@ -1175,7 +1175,7 @@ msgstr "청사진을 생성하고 클립보드에 복사했습니다!"
 #. BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.RETAKEN_COPIED
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.RETAKEN_COPIED"
 msgid "Copied the re-taken blueprint to clipboard!"
-msgstr "다시 촬영한 청사진을 클립보드에 복사했습니다!"
+msgstr "다시 생성한 청사진을 클립보드에 복사했습니다!"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD"
@@ -1205,12 +1205,12 @@ msgstr "설정이 포함된 청사진 미리보기와 겹치는 완성된 건물
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.TOOLTIP"
 msgid "Placed buildings receive the additional settings stored in the blueprint, such as filters, priorities and conduit connections.\nDisable to build with each building's default settings instead."
-msgstr "배치된 건물은 필터, 우선순위, 배관 연결 등 청사진에 저장된 추가 설정을 적용받습니다. \n 해제하면 각 건물의 기본 설정으로 건설합니다."
+msgstr "배치된 건물은 필터, 우선순위, 배관 연결 등 청사진에 저장된 추가 설정을 적용받습니다.\n해제하면 각 건물의 기본 설정으로 건설합니다."
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.TOOLTIP"
 msgid "Existing buildings blocking a blueprint building are marked for deconstruction,\nand planned buildings in the way are cancelled, so the blueprint can be built in their place.\nA finished building of the same type is only rebuilt when the blueprint specifies a different material."
-msgstr "청사진의 건물을 가로막는 기존 건물은 해체 표시되고, \n 방해가 되는 계획된 건물은 취소되어 그 자리에 청사진을 건설할 수 있습니다. \n 같은 종류의 완성된 건물은 청사진이 다른 재료를 지정한 경우에만 다시 건설됩니다."
+msgstr "청사진의 건물을 가로막는 기존 건물은 해체 표시되고,\n방해가 되는 계획된 건물은 취소되어 그 자리에 청사진을 건설할 수 있습니다.\n같은 종류의 완성된 건물은 청사진이 다른 재료를 지정한 경우에만 다시 건설됩니다."
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.FX_TEXT
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.FX_TEXT"
@@ -1225,7 +1225,7 @@ msgstr "변형 강제:"
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.TOOLTIP"
 msgid "Override checks to allow rotating/flipping of blueprints containing buildings that don't support it.\nVisualizers of buildings incompatible with the transformation will be removed from your hand\nwhen performing a rotation/flipping, until you re-select this blueprint for placement."
-msgstr "회전/뒤집기를 지원하지 않는 건물이 포함된 청사진도 회전/뒤집을 수 있도록 검사를 무시합니다. \n 변형과 호환되지 않는 건물의 미리보기는 회전하거나 뒤집을 때 손에서 제거되며, \n 이 청사진을 배치하려고 다시 선택할 때까지 유지됩니다."
+msgstr "회전/뒤집기를 지원하지 않는 건물이 포함된 청사진도 회전/뒤집을 수 있도록 검사를 무시합니다.\n변형과 호환되지 않는 건물의 미리보기는 회전하거나 뒤집을 때 손에서 제거되며,\n이 청사진을 배치하려고 다시 선택할 때까지 유지됩니다."
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.LABEL"
@@ -1235,4 +1235,4 @@ msgstr "도구 메뉴 우선순위 사용:"
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.TOOLTIP"
 msgid "All buildings of the blueprint are placed with the currently configured tool priority.\nOtherwise uses the individual priorities stored in the blueprint building data"
-msgstr "청사진의 모든 건물이 현재 설정된 도구 우선순위로 배치됩니다. \n 그렇지 않으면 청사진 건물 데이터에 저장된 개별 우선순위를 사용합니다"
+msgstr "청사진의 모든 건물이 현재 설정된 도구 우선순위로 배치됩니다.\n그렇지 않으면 청사진 건물 데이터에 저장된 개별 우선순위를 사용합니다"
