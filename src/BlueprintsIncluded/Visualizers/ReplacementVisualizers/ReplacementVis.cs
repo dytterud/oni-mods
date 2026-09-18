@@ -248,10 +248,19 @@ public class ReplacementVis : KMonoBehaviour
     {
         yield return null;
         FinalizePlacementCheck();
+        ///Cleared here rather than on entry to FinalizePlacementCheck, so the re-entrancy guard
+        ///stays latched for the whole check.
+        ///
+        ///<para>It matters because the scene partitioner dispatches <b>synchronously</b>: Grid's
+        ///ObjectLayerIndexer setter calls GameScenePartitioner.TriggerEvent inline, which invokes
+        ///the callback on the same stack. So every Grid.Objects write inside FinalizePlacementCheck
+        ///can re-enter OnPreoccupiedCellChanged before the method has returned, and with the guard
+        ///already down that starts a second DelayedPlacementCheck against a half-finished
+        ///one.</para>
+        check = null;
     }
     void FinalizePlacementCheck()
     {
-        check = null;
         if (!TryReplacing || replacementInProgress || placementSuccessful)
             return;
         if (TryPlacingQueuedBP())
