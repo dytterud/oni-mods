@@ -42,6 +42,13 @@ and was never published under it.
 
 ### Fixed
 
+- **Storage Tiles and Radbolt Chambers can be preconfigured again.** Neither offered the
+  "preconfigure" button on a planned building, so their settings could not be set before the
+  building was built. The check behind the button asks the building's prefab what data it carries,
+  and both answer by reading a live state machine, which a prefab has none of. They now report an
+  empty entry instead, which is enough for the button without changing what a blueprint captures.
+  (#85)
+
 - **Buildings on the gantry object layer are no longer dropped from a capture when a layer filter
   is active.** The layer had no entry in the object-layer to filter-layer map, and an unmapped
   layer is treated as not allowed, so those buildings were skipped whenever filtering was on. It
