@@ -279,6 +279,59 @@ public class Blueprint : IEquatable<Blueprint>
     private int _dimensionX, _dimensionY;
 
     /// <summary>
+    /// Exact width and height, in cells, of everything the blueprint places, in its own unrotated
+    /// axes: every building's rotated placement offsets, plus the dig, note and plan cells.
+    /// <see cref="VisibleDimensions"/> is not usable for this: it widens a building by only half
+    /// its width, and it always includes the origin. This is the default grid-snap step, so a drag
+    /// lays copies edge to edge. Computed on demand; it does not touch <see cref="TileMap"/>, unlike
+    /// <see cref="CalculateDimensions"/>.
+    /// </summary>
+    public Vector2I FootprintSize()
+    {
+        bool any = false;
+        int minX = 0, maxX = 0, minY = 0, maxY = 0;
+        void Add(int x, int y)
+        {
+            if (!any)
+            {
+                minX = maxX = x;
+                minY = maxY = y;
+                any = true;
+                return;
+            }
+            minX = Math.Min(minX, x);
+            maxX = Math.Max(maxX, x);
+            minY = Math.Min(minY, y);
+            maxY = Math.Max(maxY, y);
+        }
+
+        foreach (BuildingConfig building in BuildingConfigurations)
+        {
+            if (building.BuildingDisabled)
+                continue;
+            var offset = building.Offset;
+            if (!building.IsValid())
+            {
+                Add(offset.x, offset.y);
+                continue;
+            }
+            foreach (var placementOffset in building.BuildingDef.PlacementOffsets)
+            {
+                var rotated = Rotatable.GetRotatedCellOffset(placementOffset, building.Orientation);
+                Add(offset.x + rotated.x, offset.y + rotated.y);
+            }
+        }
+        foreach (var dig in DigLocations)
+            Add(dig.x, dig.y);
+        foreach (var note in WorldNotes.Keys)
+            Add(note.x, note.y);
+        foreach (var plan in PlanningToolMod_PlanDataValues.Keys)
+            Add(plan.x, plan.y);
+
+        return any ? new Vector2I(maxX - minX + 1, maxY - minY + 1) : new Vector2I(1, 1);
+    }
+
+    /// <summary>
     /// Creates a new blueprint with the given name and folder.
     /// </summary>
     /// <param name="friendlyName">The name for the blueprint</param>
