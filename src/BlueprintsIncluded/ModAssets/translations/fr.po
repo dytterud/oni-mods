@@ -1,4 +1,4 @@
-msgid ""
+﻿msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
@@ -11,244 +11,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Application: Oxygen Not IncludedPOT Version: 2.0\n"
 "X-Generator: Poedit 3.9\n"
-
-msgid "Delete Note"
-msgstr "Supprimer la note"
-
-msgid "Delete this note entity"
-msgstr "Supprimer cette note"
-
-msgid "Planned {0} ({1}, {2})"
-msgstr "{0} prévu ({1}, {2})"
-
-msgid "There should be {1} of {0} here, at a temperature of {2}."
-msgstr "Il devrait y avoir {1} de {0} ici, à une température de {2}."
-
-msgid "Planned {0}"
-msgstr "{0} prévu"
-
-msgid "There should be {0} here."
-msgstr "Il devrait y avoir {0} ici."
-
-msgid "Planned Element Settings:"
-msgstr "Paramètres de l'élément prévu:"
-
-msgid "Element Target Mass:"
-msgstr "Masse cible de l'élément:"
-
-msgid "Planned Mass: {0}"
-msgstr "Masse prévue: {0}"
-
-msgid "Spawn Element (Sandbox)"
-msgstr "Faire apparaître l'élément (Mode bac à sable)"
-
-msgid "Spawn the configured element and remove this element note."
-msgstr "Fait apparaître l'élément configuré et supprime cette note d'élément."
-
-msgid "Element Target Temperature:"
-msgstr "Température cible de l'élément:"
-
-msgid "Planned Temperature: {0}"
-msgstr "Température prévue: {0}"
-
-msgid "No Description..."
-msgstr "Aucune description..."
-
-msgid "Unnamed Note"
-msgstr "Note sans nom"
-
-msgid "Blueprint Tool Overlay Sync"
-msgstr "Synchronisation des couches de visualisation de l'outil Plan"
-
-msgid "Whether the Blueprint Tool syncs with the current overlay. (configurable in game too)"
-msgstr "Détermine si l'outil Plan se synchronise avec la couche de visualisation actuelle. (également configurable en jeu)"
-
-msgid "All Defaults"
-msgstr "Toutes les valeurs par défaut"
-
-msgid "None"
-msgstr "Aucun"
-
-msgid "Default Menu Selections"
-msgstr "Sélections par défaut du menu"
-
-msgid "The default selections made when an advanced filter menu is opened."
-msgstr "Les sélections appliquées par défaut lors de l'ouverture d'un menu de filtrage avancé."
-
-msgid "Extra Filter Selections"
-msgstr "Sélections de filtres supplémentaires"
-
-msgid "FX Time"
-msgstr "Durée des effets"
-
-msgid "How long FX created by Blueprints remain on the screen. Measured in seconds."
-msgstr "Durée d'affichage des effets créés par Blueprints. Exprimée en secondes."
-
-msgid "Require blueprint building materials"
-msgstr "Exiger les matériaux du plan"
-
-msgid "If enabled, buildings in blueprints are only placed down if their materials are available."
-msgstr "Si activé, les bâtiments d'un plan ne seront placés que si les matériaux requis sont disponibles."
-
-msgid "Require blueprint building tech"
-msgstr "Exiger les technologies du plan"
-
-msgid "If enabled, buildings in blueprints are only placed down if their required tech has been researched."
-msgstr "Si activé, les bâtiments d'un plan ne seront placés que si les technologies nécessaires ont été recherchées."
-
-msgid "Snapshot Tool Overlay Sync"
-msgstr "Synchronisation des couches de visualisation de l'outil Instantané"
-
-msgid "Whether the Snapshot Tool syncs with the current overlay. (configurable in game too)"
-msgstr "Détermine si l'outil Instantané se synchronise avec la couche de visualisation actuelle. (également configurable en jeu)"
-
-msgid "This building plan is currently pending to be placed, as soon as the area is cleared of occupying buildings."
-msgstr "Ce plan de construction est en attente de placement et sera appliqué dès que la zone sera libérée des bâtiments qui l'occupent."
-
-msgid "Change Blueprint Anchor"
-msgstr "Modifier le point d'ancrage du plan"
-
-msgid "Create Blueprint"
-msgstr "Créer un plan"
-
-msgid "Flip Blueprint Horizontal"
-msgstr "Retourner le plan horizontalement"
-
-msgid "Flip Blueprint Vertical"
-msgstr "Retourner le plan verticalement"
-
-msgid "Create Notes"
-msgstr "Créer des notes"
-
-msgid "Rotate Blueprint"
-msgstr "Faire pivoter le plan"
-
-msgid "Reverse Rotate Blueprint"
-msgstr "Faire pivoter le plan dans l'autre sens"
-
-msgid "Select different Blueprint"
-msgstr "Sélectionner un autre plan"
-
-msgid "Next Blueprint"
-msgstr "Plan suivant"
-
-msgid "Next Folder"
-msgstr "Dossier suivant"
-
-msgid "Previous Blueprint"
-msgstr "Plan précédent"
-
-msgid "Previous Folder"
-msgstr "Dossier précédent"
-
-msgid "Use last Snapshot"
-msgstr "Utiliser le dernier instantané"
-
-msgid "Take Snapshot"
-msgstr "Prendre un instantané"
-
-msgid "Toggle force rebuild"
-msgstr "Activer/Désactiver la reconstruction forcée"
-
-msgid "Toggle keybind tooltips"
-msgstr "Afficher/Masquer les info-bulles des raccourcis"
-
-msgid "Use Blueprint"
-msgstr "Utiliser le plan"
-
-msgid "Main Folder"
-msgstr "Dossier principal"
-
-msgid "Building List:"
-msgstr "Liste des bâtiments:"
-
-msgid "Blueprint does not contain any buildings"
-msgstr "Ce plan ne contient aucun bâtiment"
-
-msgid "Save Desc. Changes"
-msgstr "Enregistrer les modifications"
-
-msgid "Reset Desc. Changes"
-msgstr "Réinitialiser les modifications"
-
-msgid "Add description to blueprint"
-msgstr "Ajouter une description au plan"
-
-msgid "Description:"
-msgstr "Description:"
-
-msgid "Number of Buildings:"
-msgstr "Nombre de bâtiments:"
-
-msgid "Number of non-solid tiles:"
-msgstr "Nombre de cases non solides:"
-
-msgid "Dimensions:"
-msgstr "Dimensions:"
-
-msgid "Blueprint Icon:"
-msgstr "Icône du plan:"
-
-msgid "Parameters:"
-msgstr "Paramètres:"
-
-msgid "Number of notes:"
-msgstr "Nombre de notes:"
-
-msgid "Close"
-msgstr "Fermer"
-
-msgid "Sort by date modified"
-msgstr "Trier par date de modification"
-
-msgid "Sort by name"
-msgstr "Trier par nom"
-
-msgid "Import new blueprint from clipboard"
-msgstr "Importer un nouveau plan depuis le presse-papiers"
-
-msgid "Import a bluprint string you have stored in your clipboard"
-msgstr "Importer une chaîne de plan stockée dans votre presse-papiers"
-
-msgid ""
-"Delete Blueprint.\n"
-"Deleting the last blueprint in a sub folder will also delete the folder."
-msgstr ""
-"Supprimer le plan.\n"
-"La suppression du dernier plan d'un sous-dossier supprimera également le dossier."
-
-msgid "Export the blueprint as a shareable string to your clipboard."
-msgstr "Exporter le plan sous forme de chaîne partageable vers le presse-papiers."
-
-msgid "Show more detailed info about the blueprint or add some notes to it"
-msgstr "Afficher des informations détaillées sur le plan ou lui ajouter des notes"
-
-msgid ""
-"Move Blueprint to other folder.\n"
-"Will create new folder if it does not exist.\n"
-"Leaving the new folder name empty will move the blueprint to the main folder."
-msgstr ""
-"Déplacer le plan vers un autre dossier.\n"
-"Un nouveau dossier sera créé s'il n'existe pas.\n"
-"Laisser le nom du dossier vide déplacera le plan vers le dossier principal."
-
-msgid "Rename Blueprint"
-msgstr "Renommer le plan"
-
-msgid "Re-Take the blueprint, replacing its content with a new selection of buildings."
-msgstr "Recréer le plan en remplaçant son contenu par une nouvelle sélection de bâtiments."
-
-msgid "Go to parent folder"
-msgstr "Aller au dossier parent"
-
-msgid "No Blueprints available"
-msgstr "Aucun plan disponible"
-
-msgid "Clear search bar"
-msgstr "Effacer la barre de recherche"
-
-msgid "Enter text to filter Blueprints..."
-msgstr "Saisissez du texte pour filtrer les plans..."
 
 #. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SEARCHBAR.INPUT.TEXTAREA.TEXT
 msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SEARCHBAR.INPUT.TEXTAREA.TEXT"
@@ -299,7 +61,7 @@ msgstr ""
 #. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALREPLACER.TOREPLACE.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALREPLACER.TOREPLACE.LABEL"
 msgid "Material Type:"
-msgstr "Type de matériau:"
+msgstr "Type de matériau :"
 
 #. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALSWITCH.BUTTONS.CREATEMODIFIED.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALSWITCH.BUTTONS.CREATEMODIFIED.TOOLTIP"
@@ -319,12 +81,12 @@ msgstr "Réinitialiser les remplacements"
 #. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALSWITCH.MATERIALSHEADER.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALSWITCH.MATERIALSHEADER.LABEL"
 msgid "Materials in \"{0}\":"
-msgstr "Matériaux dans « {0} »:"
+msgstr "Matériaux dans « {0} » :"
 
 #. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALSWITCH.PERBUILDINGOVERRIDES.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALSWITCH.PERBUILDINGOVERRIDES.LABEL"
 msgid "Advanced Material Overrides:"
-msgstr "Remplacements avancés de matériaux:"
+msgstr "Remplacements avancés de matériaux :"
 
 #. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALSWITCH.PERBUILDINGOVERRIDES.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALSWITCH.PERBUILDINGOVERRIDES.TOOLTIP"
@@ -349,7 +111,7 @@ msgstr "Remplacer localement: "
 #. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALSWITCH.SCROLLAREA.CONTENT.PRESETENTRYPREFAB.MASSTEXT
 msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALSWITCH.SCROLLAREA.CONTENT.PRESETENTRYPREFAB.MASSTEXT"
 msgid "Total Mass:"
-msgstr "Masse totale:"
+msgstr "Masse totale :"
 
 #. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALSWITCH.SCROLLAREA.CONTENT.PRESETENTRYPREFAB.NONE
 msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.MATERIALSWITCH.SCROLLAREA.CONTENT.PRESETENTRYPREFAB.NONE"
@@ -504,7 +266,7 @@ msgstr "Notes textuelles"
 #. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.COLORPICKERLABEL
 msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.COLORPICKERLABEL"
 msgid "Note Icon Color:"
-msgstr "Couleur de l’icône de note:"
+msgstr "Couleur de l’icône de note :"
 
 #. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETEXTINPUT.INPUT.TEXTAREA.PLACEHOLDER
 msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETEXTINPUT.INPUT.TEXTAREA.PLACEHOLDER"
@@ -514,7 +276,7 @@ msgstr "Ajouter du texte de note..."
 #. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETEXTINPUT.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETEXTINPUT.LABEL"
 msgid "Note Text:"
-msgstr "Texte de la note:"
+msgstr "Texte de la note :"
 
 #. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETITLEINPUT.INPUT.TEXTAREA.PLACEHOLDER
 msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETITLEINPUT.INPUT.TEXTAREA.PLACEHOLDER"
@@ -524,7 +286,7 @@ msgstr "Ajouter un nom de note..."
 #. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETITLEINPUT.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETITLEINPUT.LABEL"
 msgid "Note Name:"
-msgstr "Nom de la note:"
+msgstr "Nom de la note :"
 
 #. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.TITLE.SIDESCREENTEXT
 msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.TITLE.SIDESCREENTEXT"
@@ -881,7 +643,7 @@ msgstr ""
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.LABEL"
 msgid "Apply stored building settings on place:"
-msgstr "Appliquer les paramètres de bâtiment enregistrés lors de la pose:"
+msgstr "Appliquer les paramètres de bâtiment enregistrés lors de la pose :"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FLIPACTIONS.FLIPH.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FLIPACTIONS.FLIPH.LABEL"
@@ -906,7 +668,7 @@ msgstr "Snapshot actuel: {0}/{1}"
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.LABEL"
 msgid "Force build over existing buildings:"
-msgstr "Forcer la construction par-dessus les bâtiments existants:"
+msgstr "Forcer la construction par-dessus les bâtiments existants :"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.MATERIALOVERRIDES.BUTTON.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.MATERIALOVERRIDES.BUTTON.LABEL"
@@ -916,7 +678,7 @@ msgstr "Modifier les matériaux de substitution"
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.MATERIALREPLACEMENT.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.MATERIALREPLACEMENT.LABEL"
 msgid "Material Overrides in Snapshots:"
-msgstr "Remplacement de matériaux dans les snapshots:"
+msgstr "Remplacement de matériaux dans les snapshots :"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.MATERIALREPLACEMENT.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.MATERIALREPLACEMENT.TOOLTIP"
@@ -946,3 +708,568 @@ msgstr ""
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.TITLE.TITLETEXT"
 msgid "Current Blueprint State"
 msgstr "État actuel du blueprint"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.DELETE_NOTE.NAME
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.DELETE_NOTE.NAME"
+msgid "Delete Note"
+msgstr "Supprimer la note"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.DELETE_NOTE.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.DELETE_NOTE.TOOLTIP"
+msgid "Delete this note entity"
+msgstr "Supprimer cette note"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE"
+msgid "Planned {0} ({1}, {2})"
+msgstr "Prévu : {0} ({1}, {2})"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE_DESC
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE_DESC"
+msgid "There should be {1} of {0} here, at a temperature of {2}."
+msgstr "Il devrait y avoir {1} de {0} ici, à une température de {2}."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE_SPECIAL
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE_SPECIAL"
+msgid "Planned {0}"
+msgstr "Prévu : {0}"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE_SPECIAL_DESC
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE_SPECIAL_DESC"
+msgid "There should be {0} here."
+msgstr "Il devrait y avoir {0} ici."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.INFO_TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.INFO_TITLE"
+msgid "Planned Element Settings:"
+msgstr "Paramètres de l'élément prévu :"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.MASSCONFIG.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.MASSCONFIG.TITLE"
+msgid "Element Target Mass:"
+msgstr "Masse cible de l'élément :"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.MASSCONFIG.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.MASSCONFIG.TOOLTIP"
+msgid "Planned Mass: {0}"
+msgstr "Masse prévue : {0}"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.SANDBOX_SPAWN.NAME
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.SANDBOX_SPAWN.NAME"
+msgid "Spawn Element (Sandbox)"
+msgstr "Générer l'élément (bac à sable)"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.SANDBOX_SPAWN.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.SANDBOX_SPAWN.TOOLTIP"
+msgid "Spawn the configured element and remove this element note."
+msgstr "Générer l'élément configuré et supprimer cette note d'élément."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEMPERATURECONFIG.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEMPERATURECONFIG.TITLE"
+msgid "Element Target Temperature:"
+msgstr "Température cible de l'élément :"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEMPERATURECONFIG.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEMPERATURECONFIG.TOOLTIP"
+msgid "Planned Temperature: {0}"
+msgstr "Température prévue : {0}"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEXTNOTE_EMPTY.TEXT
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEXTNOTE_EMPTY.TEXT"
+msgid "No Description..."
+msgstr "Aucune description..."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEXTNOTE_EMPTY.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEXTNOTE_EMPTY.TITLE"
+msgid "Unnamed Note"
+msgstr "Note sans nom"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.AUTOPREVIEWCUTTOFF.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.AUTOPREVIEWCUTTOFF.TITLE"
+msgid "Automatic Preview Confirmation Threshold"
+msgstr "Seuil de confirmation de l'aperçu automatique"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.AUTOPREVIEWCUTTOFF.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.AUTOPREVIEWCUTTOFF.TOOLTIP"
+msgid "Blueprints with more than this number of buildings won't automatically show a ui preview and instead ask for confirmation."
+msgstr "Les plans comportant plus de bâtiments que ce nombre n'affichent pas d'aperçu automatique et demandent d'abord une confirmation."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TITLE"
+msgid "Create Blueprint Tool Copy to Clipboard"
+msgstr "Outil Créer un plan : copier dans le presse-papiers"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TOOLTIP"
+msgid "Whether creating a blueprint also copies it to your clipboard as a shareable string. (configurable in game too)"
+msgstr "Détermine si la création d'un plan le copie aussi dans le presse-papiers sous forme de chaîne partageable. (également configurable en jeu)"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLSYNC.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLSYNC.TITLE"
+msgid "Blueprint Tool Overlay Sync"
+msgstr "Synchro de l'outil Plan avec les calques"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLSYNC.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLSYNC.TOOLTIP"
+msgid "Whether the Blueprint Tool syncs with the current overlay. (configurable in game too)"
+msgstr "Détermine si l'outil Plan se synchronise avec le calque actif. (également configurable en jeu)"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_ALL
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_ALL"
+msgid "All Defaults"
+msgstr "Tout par défaut"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_NONE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_NONE"
+msgid "None"
+msgstr "Aucun"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.TITLE"
+msgid "Default Menu Selections"
+msgstr "Sélections de menu par défaut"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.TOOLTIP"
+msgid "The default selections made when an advanced filter menu is opened."
+msgstr "Les sélections effectuées par défaut à l'ouverture d'un menu de filtres avancés."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULT_ANCHOR.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULT_ANCHOR.TITLE"
+msgid "Default Placement Anchoring"
+msgstr "Ancrage de placement par défaut"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULT_ANCHOR.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULT_ANCHOR.TOOLTIP"
+msgid "Placed blueprints are alligned with this position under the cursor by default.\nCan be swapped through via ctrl+R, persisting between blueprint placing."
+msgstr "Les plans placés sont alignés par défaut sur cette position sous le curseur.\nModifiable avec Ctrl+R, conservé d'un placement à l'autre."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.EXTRA_DEFAULTS_CATEGORY
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.EXTRA_DEFAULTS_CATEGORY"
+msgid "Extra Filter Selections"
+msgstr "Sélections de filtres supplémentaires"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.FXTIME.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.FXTIME.TITLE"
+msgid "FX Time"
+msgstr "Durée des effets"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.FXTIME.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.FXTIME.TOOLTIP"
+msgid "How long FX created by Blueprints remain on the screen. Measured in seconds."
+msgstr "Durée d'affichage à l'écran des effets créés par les plans. En secondes."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.REQUIRECONSTRUCTABLE_MATERIAL.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.REQUIRECONSTRUCTABLE_MATERIAL.TITLE"
+msgid "Require blueprint building materials"
+msgstr "Exiger les matériaux de construction du plan"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.REQUIRECONSTRUCTABLE_MATERIAL.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.REQUIRECONSTRUCTABLE_MATERIAL.TOOLTIP"
+msgid "If enabled, buildings in blueprints are only placed down if their materials are available."
+msgstr "Si activé, les bâtiments d'un plan ne sont placés que si leurs matériaux sont disponibles."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.REQUIRECONSTRUCTABLE_TECH.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.REQUIRECONSTRUCTABLE_TECH.TITLE"
+msgid "Require blueprint building tech"
+msgstr "Exiger la technologie de construction du plan"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.REQUIRECONSTRUCTABLE_TECH.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.REQUIRECONSTRUCTABLE_TECH.TOOLTIP"
+msgid "If enabled, buildings in blueprints are only placed down if their required tech has been researched."
+msgstr "Si activé, les bâtiments d'un plan ne sont placés que si la technologie requise a été recherchée."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE"
+msgid "Snapshot Tool Copy to Clipboard"
+msgstr "Outil Instantané : copier dans le presse-papiers"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP"
+msgid "Whether taking a snapshot also copies it to your clipboard as a shareable string. (configurable in game too)"
+msgstr "Détermine si la prise d'un instantané le copie aussi dans le presse-papiers sous forme de chaîne partageable. (également configurable en jeu)"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLSYNC.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLSYNC.TITLE"
+msgid "Snapshot Tool Overlay Sync"
+msgstr "Synchro de l'outil Instantané avec les calques"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLSYNC.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLSYNC.TOOLTIP"
+msgid "Whether the Snapshot Tool syncs with the current overlay. (configurable in game too)"
+msgstr "Détermine si l'outil Instantané se synchronise avec le calque actif. (également configurable en jeu)"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_FORCE_REPLACER.PENDING_INFO
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_FORCE_REPLACER.PENDING_INFO"
+msgid "This building plan is currently pending to be placed, as soon as the area is cleared of occupying buildings."
+msgstr "Ce plan de construction est en attente et sera placé dès que la zone sera libérée des bâtiments qui l'occupent."
+
+#. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BC
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BC"
+msgid "Bottom Center"
+msgstr "En bas au centre"
+
+#. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BL
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BL"
+msgid "Bottom Left"
+msgstr "En bas à gauche"
+
+#. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BR
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BR"
+msgid "Bottom Right"
+msgstr "En bas à droite"
+
+#. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.C
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.C"
+msgid "Center"
+msgstr "Au centre"
+
+#. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.TL
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.TL"
+msgid "Top Left"
+msgstr "En haut à gauche"
+
+#. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.TR
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.TR"
+msgid "Top Right"
+msgstr "En haut à droite"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.CHANGE_ANCHOR_TITLE
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.CHANGE_ANCHOR_TITLE"
+msgid "Change Blueprint Anchor"
+msgstr "Changer l'ancrage du plan"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.CREATE_TITLE
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.CREATE_TITLE"
+msgid "Create Blueprint"
+msgstr "Créer un plan"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.FLIP_BLUEPRINT_H
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.FLIP_BLUEPRINT_H"
+msgid "Flip Blueprint Horizontal"
+msgstr "Retourner le plan horizontalement"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.FLIP_BLUEPRINT_V
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.FLIP_BLUEPRINT_V"
+msgid "Flip Blueprint Vertical"
+msgstr "Retourner le plan verticalement"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.NOTETOOL_TITLE
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.NOTETOOL_TITLE"
+msgid "Create Notes"
+msgstr "Créer des notes"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.ROTATE_BLUEPRINT
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.ROTATE_BLUEPRINT"
+msgid "Rotate Blueprint"
+msgstr "Faire pivoter le plan"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.ROTATE_INV_BLUEPRINT
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.ROTATE_INV_BLUEPRINT"
+msgid "Reverse Rotate Blueprint"
+msgstr "Faire pivoter le plan en sens inverse"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.SELECT_DIFFERENT_TITLE
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.SELECT_DIFFERENT_TITLE"
+msgid "Select different Blueprint"
+msgstr "Sélectionner un autre plan"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.SELECT_NEXT
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.SELECT_NEXT"
+msgid "Next Blueprint"
+msgstr "Plan suivant"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.SELECT_NEXT_FOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.SELECT_NEXT_FOLDER"
+msgid "Next Folder"
+msgstr "Dossier suivant"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.SELECT_PREV
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.SELECT_PREV"
+msgid "Previous Blueprint"
+msgstr "Plan précédent"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.SELECT_PREV_FOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.SELECT_PREV_FOLDER"
+msgid "Previous Folder"
+msgstr "Dossier précédent"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.SNAPSHOT_REUSE_TITLE
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.SNAPSHOT_REUSE_TITLE"
+msgid "Use last Snapshot"
+msgstr "Utiliser le dernier instantané"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.SNAPSHOT_TITLE
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.SNAPSHOT_TITLE"
+msgid "Take Snapshot"
+msgstr "Prendre un instantané"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.TOGGLENOTEVIS
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.TOGGLENOTEVIS"
+msgid "Toggle blueprint note visibility"
+msgstr "Afficher/masquer les notes du plan"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.TOGGLETOOLTIPS
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.TOGGLETOOLTIPS"
+msgid "Toggle keybind tooltips"
+msgstr "Afficher/masquer les infobulles de raccourcis"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.TOGGLE_FORCE
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.TOGGLE_FORCE"
+msgid "Toggle force rebuild"
+msgstr "Activer/désactiver la reconstruction forcée"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.USE_TITLE
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.USE_TITLE"
+msgid "Use Blueprint"
+msgstr "Utiliser un plan"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUILDINGLIST.HEADER.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUILDINGLIST.HEADER.LABEL"
+msgid "Building List:"
+msgstr "Liste des bâtiments :"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUILDINGLIST.SCROLLAREA.CONTENT.NOBUILDINGSINBLUEPRINT.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUILDINGLIST.SCROLLAREA.CONTENT.NOBUILDINGSINBLUEPRINT.LABEL"
+msgid "Blueprint does not contain any buildings"
+msgstr "Le plan ne contient aucun bâtiment"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUTTONS.APPLYBUTTON.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUTTONS.APPLYBUTTON.TEXT"
+msgid "Save Desc. Changes"
+msgstr "Enregistrer la desc."
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUTTONS.RESETBUTTON.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUTTONS.RESETBUTTON.TEXT"
+msgid "Reset Desc. Changes"
+msgstr "Réinitialiser la desc."
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.DESCRIPTION.INPUT.TEXTAREA.PLACEHOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.DESCRIPTION.INPUT.TEXTAREA.PLACEHOLDER"
+msgid "Add description to blueprint"
+msgstr "Ajouter une description au plan"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.DESCRIPTION.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.DESCRIPTION.LABEL"
+msgid "Description:"
+msgstr "Description :"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.BUILDINGCOUNT.DESCRIPTOR.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.BUILDINGCOUNT.DESCRIPTOR.LABEL"
+msgid "Number of Buildings:"
+msgstr "Nombre de bâtiments :"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.DIGCOUNT.DESCRIPTOR.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.DIGCOUNT.DESCRIPTOR.LABEL"
+msgid "Number of non-solid tiles:"
+msgstr "Nombre de cases non solides :"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.DIMENSION.DESCRIPTOR.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.DIMENSION.DESCRIPTOR.LABEL"
+msgid "Dimensions:"
+msgstr "Dimensions :"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.ICONCONTAINER.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.ICONCONTAINER.LABEL"
+msgid "Blueprint Icon:"
+msgstr "Icône du plan :"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.LABEL"
+msgid "Parameters:"
+msgstr "Paramètres :"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.LIQUIDCOUNT.DESCRIPTOR.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.LIQUIDCOUNT.DESCRIPTOR.LABEL"
+msgid "Number of notes/shapes:"
+msgstr "Nombre de notes/formes :"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.CLOSEBUTTON.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.CLOSEBUTTON.TEXT"
+msgid "Close"
+msgstr "Fermer"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.FILTERS.DATESORT.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.FILTERS.DATESORT.TEXT"
+msgid "Sort by date modified"
+msgstr "Trier par date de modification"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.FILTERS.NAMESORT.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.FILTERS.NAMESORT.TEXT"
+msgid "Sort by name"
+msgstr "Trier par nom"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.IMPORTBUTTON.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.IMPORTBUTTON.TEXT"
+msgid "Import new blueprint from clipboard"
+msgstr "Importer un plan depuis le presse-papiers"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.IMPORTBUTTON.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.IMPORTBUTTON.TOOLTIP"
+msgid "Import a bluprint string you have stored in your clipboard"
+msgstr "Importer une chaîne de plan stockée dans votre presse-papiers"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.BLUEPRINTENTRY.TOOLTIP_DELETE
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.BLUEPRINTENTRY.TOOLTIP_DELETE"
+msgid "Delete Blueprint.\nDeleting the last blueprint in a sub folder will also delete the folder."
+msgstr "Supprimer le plan.\nSupprimer le dernier plan d'un sous-dossier supprimera aussi le dossier."
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.BLUEPRINTENTRY.TOOLTIP_EXPORT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.BLUEPRINTENTRY.TOOLTIP_EXPORT"
+msgid "Export the blueprint as a shareable string to your clipboard."
+msgstr "Exporter le plan dans votre presse-papiers sous forme de chaîne partageable."
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.BLUEPRINTENTRY.TOOLTIP_INFO
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.BLUEPRINTENTRY.TOOLTIP_INFO"
+msgid "Show more detailed info about the blueprint or add some notes to it"
+msgstr "Afficher plus d'informations sur le plan ou y ajouter des notes"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.BLUEPRINTENTRY.TOOLTIP_MOVE
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.BLUEPRINTENTRY.TOOLTIP_MOVE"
+msgid "Move Blueprint to other folder.\nWill create new folder if it does not exist.\nLeaving the new folder name empty will move the blueprint to the main folder."
+msgstr "Déplacer le plan vers un autre dossier.\nUn nouveau dossier sera créé s'il n'existe pas.\nLaisser le nom vide déplacera le plan vers le dossier principal."
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.BLUEPRINTENTRY.TOOLTIP_RENAME
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.BLUEPRINTENTRY.TOOLTIP_RENAME"
+msgid "Rename Blueprint"
+msgstr "Renommer le plan"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.BLUEPRINTENTRY.TOOLTIP_RETAKE
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.BLUEPRINTENTRY.TOOLTIP_RETAKE"
+msgid "Re-Take the blueprint, replacing its content with a new selection of buildings."
+msgstr "Recréer le plan en remplaçant son contenu par une nouvelle sélection de bâtiments."
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.FOLDERUP.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.FOLDERUP.LABEL"
+msgid "Go to parent folder"
+msgstr "Aller au dossier parent"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.NONEAVAILABLE.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.NONEAVAILABLE.LABEL"
+msgid "No Blueprints available"
+msgstr "Aucun plan disponible"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SEARCHBAR.CLEARTOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SEARCHBAR.CLEARTOOLTIP"
+msgid "Clear search bar"
+msgstr "Effacer la barre de recherche"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SEARCHBAR.INPUT.TEXTAREA.PLACEHOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SEARCHBAR.INPUT.TEXTAREA.PLACEHOLDER"
+msgid "Enter text to filter Blueprints..."
+msgstr "Entrez du texte pour filtrer les plans..."
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.AMOUNTWARNING.HEADER.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.AMOUNTWARNING.HEADER.LABEL"
+msgid "Large Number of Buildings!"
+msgstr "Grand nombre de bâtiments !"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.AMOUNTWARNING.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.AMOUNTWARNING.LABEL"
+msgid "Automatic preview has been stopped due to {0} total buildings in the blueprint."
+msgstr "L'aperçu automatique a été interrompu en raison des {0} bâtiments que contient le plan."
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.AMOUNTWARNING.OVERRIDE.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.AMOUNTWARNING.OVERRIDE.TEXT"
+msgid "Show anyway!"
+msgstr "Afficher quand même !"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.NAME
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.NAME"
+msgid "Air/Liquid Bubbles"
+msgstr "Bulles d'air/de liquide"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.TOOLTIP"
+msgid "Show this blueprint's dig commands in the preview"
+msgstr "Afficher les ordres de creusement de ce plan dans l'aperçu"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.RESETALL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.RESETALL"
+msgid "Reset Filters"
+msgstr "Réinitialiser les filtres"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.TEXT"
+msgid "FILTERS"
+msgstr "FILTRES"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTS_ROOTFOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTS_ROOTFOLDER"
+msgid "Main Folder"
+msgstr "Dossier principal"
+
+#. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.SYMBOLPICKERLABEL
+msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.SYMBOLPICKERLABEL"
+msgid "Note Icon:"
+msgstr "Icône de la note :"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.CREATED_COPIED
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.CREATED_COPIED"
+msgid "Created blueprint and copied it to clipboard!"
+msgstr "Plan créé et copié dans le presse-papiers !"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.RETAKEN_COPIED
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.RETAKEN_COPIED"
+msgid "Copied the re-taken blueprint to clipboard!"
+msgstr "Plan recréé copié dans le presse-papiers !"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD"
+msgid "Copy to Clipboard"
+msgstr "Copier dans le presse-papiers"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD_TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD_TOOLTIP"
+msgid "Also copy every blueprint this tool creates to your clipboard as a shareable string, ready to paste into the blueprint editor website"
+msgstr "Copier aussi chaque plan créé par cet outil dans votre presse-papiers sous forme de chaîne partageable, prêt à être collé sur le site de l'éditeur de plans"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED"
+msgid "Snapshot taken and copied to clipboard!"
+msgstr "Instantané pris et copié dans le presse-papiers !"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL"
+msgid "Apply settings to existing buildings:"
+msgstr "Appliquer les paramètres aux bâtiments existants :"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.TOOLTIP"
+msgid "Finished buildings overlapping with blueprint visualizers containing settings will receive those settings when the blueprint is placed down."
+msgstr "Les bâtiments terminés qui chevauchent des aperçus du plan contenant des paramètres recevront ces paramètres lors du placement du plan."
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.TOOLTIP"
+msgid "Placed buildings receive the additional settings stored in the blueprint, such as filters, priorities and conduit connections.\nDisable to build with each building's default settings instead."
+msgstr "Les bâtiments placés reçoivent les paramètres supplémentaires enregistrés dans le plan, comme les filtres, les priorités et les raccordements de conduits.\nDésactivez pour construire avec les paramètres par défaut de chaque bâtiment."
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.TOOLTIP"
+msgid "Existing buildings blocking a blueprint building are marked for deconstruction,\nand planned buildings in the way are cancelled, so the blueprint can be built in their place.\nA finished building of the same type is only rebuilt when the blueprint specifies a different material."
+msgstr "Les bâtiments existants qui bloquent un bâtiment du plan sont marqués pour déconstruction,\net les bâtiments planifiés qui font obstacle sont annulés, afin que le plan puisse être construit à leur place.\nUn bâtiment terminé du même type n'est reconstruit que si le plan spécifie un matériau différent."
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.FX_TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.FX_TEXT"
+msgid "{0} removed from hand"
+msgstr "{0} retiré de la main"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.LABEL"
+msgid "Force Transformations:"
+msgstr "Forcer les transformations :"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.TOOLTIP"
+msgid "Override checks to allow rotating/flipping of blueprints containing buildings that don't support it.\nVisualizers of buildings incompatible with the transformation will be removed from your hand\nwhen performing a rotation/flipping, until you re-select this blueprint for placement."
+msgstr "Ignorer les vérifications pour permettre la rotation/le retournement de plans contenant des bâtiments qui ne le prennent pas en charge.\nLes aperçus des bâtiments incompatibles avec la transformation seront retirés de votre main\nlors d'une rotation ou d'un retournement, jusqu'à ce que vous resélectionniez ce plan pour le placer."
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.LABEL"
+msgid "Use tool menu priority:"
+msgstr "Utiliser la priorité du menu de l'outil :"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.TOOLTIP"
+msgid "All buildings of the blueprint are placed with the currently configured tool priority.\nOtherwise uses the individual priorities stored in the blueprint building data"
+msgstr "Tous les bâtiments du plan sont placés avec la priorité actuellement configurée dans l'outil.\nSinon, les priorités individuelles enregistrées dans les données du plan sont utilisées"
