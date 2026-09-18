@@ -42,6 +42,17 @@ and was never published under it.
 
 ### Fixed
 
+- **A replacement preview can no longer run two placement checks at once.** The guard that stops a
+  second check starting was released when a check began rather than when it finished, and the game
+  delivers grid-change callbacks immediately rather than on the next frame - so a building placed by
+  the check could trigger a second check against half-finished state. Measured in-game: the check ran
+  twice before this change, once after. (#64)
+
+- **The blueprint-data API no longer throws when handed a building that has been destroyed.** Both
+  read entry points are reflectable by other mods, so the argument comes from outside this mod; they
+  now return an empty result instead of failing inside a handler the caller has never heard of.
+  (#67)
+
 - **Storage Tiles and Radbolt Chambers can be preconfigured again.** Neither offered the
   "preconfigure" button on a planned building, so their settings could not be set before the
   building was built. The check behind the button asks the building's prefab what data it carries,
