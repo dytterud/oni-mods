@@ -1440,69 +1440,99 @@ internal static class HarnessCases
     {
         var xy = Grid.CellToXY(AnchorCell);
         int cell = Grid.XYToCell(xy.x + 14, xy.y - 20);
-        yield return ClearCell(cell);
-        AssertCellEmpty(cell, "rotation");
 
-        ///any 1x1 rotatable building will do - picked by shape so this does not pin a prefab id
-        GameObject? built = null;
-        BuildingDef? rotatableDef = null;
-        foreach (var def in Assets.BuildingDefs.Where(d =>
-                     d != null && d.WidthInCells == 1 && d.HeightInCells == 1
-                     && d.ObjectLayer == ObjectLayer.Building
-                     && d.PermittedRotations != PermittedRotations.Unrotatable
-                     && d.BuildingComplete != null
-                     && d.BuildingComplete.GetComponent<Rotatable>() != null))
+        ///Flips and rotations are asserted separately, and both halves have to run.
+        ///
+        ///<c>Orientation</c> is a single enum - Neutral/R90/R180/R270 and FlipH/FlipV all live in
+        ///it - and the predicate compares the whole value, so the two families go down identical
+        ///code. The split is not about suspecting they differ; it is because this probe used to
+        ///pick ONE def by shape and test whichever family it happened to land in. Every 1x1
+        ///Building-layer def that builds on a bare cell is flip-only (Corner Moulding, in
+        ///practice), so the rotation half was never reached and the R90 arm of the switch below
+        ///was dead. A def-order change in a future game build could have silently swapped which
+        ///family was covered, with the case name and the assertions reading the same either way.
+        ///
+        ///The rotate probe deliberately does not constrain the footprint. Of the defs permitting
+        ///R90 or R360, the 1x1 ones are rocket-interior fittings, Gravitas POI props, a dev
+        ///spawner, or need a foundation under them; the ones that build anywhere (the valves) are
+        ///1x2. <see cref="ClearCell"/> digs a 5x5 region, so a taller probe is accommodated.
+        var probes = new (string Family, Func<BuildingDef, bool> Accepts, int Cell)[]
         {
-            GameObject? go = null;
+            ("flip", d => d.WidthInCells == 1 && d.HeightInCells == 1
+                          && (d.PermittedRotations == PermittedRotations.FlipH
+                              || d.PermittedRotations == PermittedRotations.FlipV),
+             cell),
+            ("rotate", d => d.PermittedRotations == PermittedRotations.R90
+                            || d.PermittedRotations == PermittedRotations.R360,
+             Grid.XYToCell(xy.x + 20, xy.y - 20)),
+        };
+
+        foreach (var probe in probes)
+        {
+            yield return ClearCell(probe.Cell);
+            AssertCellEmpty(probe.Cell, $"rotation ({probe.Family})");
+
+            ///picked by shape and permitted rotations, so this does not pin a prefab id
+            GameObject? built = null;
+            BuildingDef? probeDef = null;
+            foreach (var def in Assets.BuildingDefs.Where(d =>
+                         d != null
+                         && d.ObjectLayer == ObjectLayer.Building
+                         && d.BuildingComplete != null
+                         && d.BuildingComplete.GetComponent<Rotatable>() != null
+                         && probe.Accepts(d)))
+            {
+                GameObject? go = null;
+                try
+                {
+                    go = def.Build(probe.Cell, Orientation.Neutral, null,
+                                   FixtureBuilder.SelectElements(def), 293.15f, false, 0f);
+                }
+                catch { /* some defs need conditions a bare cell cannot give; try the next */ }
+
+                if (go != null && go.GetComponent<Rotatable>() != null)
+                {
+                    built = go;
+                    probeDef = def;
+                    break;
+                }
+                if (go != null)
+                    go.DeleteObject();
+            }
+
+            if (built == null || probeDef == null)
+            {
+                ///Not a silent pass: the other family still runs, and the gap is named in the log.
+                Log?.Line($"  REACHABILITY: no buildable {probe.Family} def in this install, so the " +
+                          $"{probe.Family} half of the rule is unexercised");
+                continue;
+            }
+
+            for (int i = 0; i < 5; i++) yield return null;
+
+            var mismatch = probeDef.PermittedRotations switch
+            {
+                PermittedRotations.FlipH => Orientation.FlipH,
+                PermittedRotations.FlipV => Orientation.FlipV,
+                _ => Orientation.R90,
+            };
+            Log?.Line($"  {probe.Family}: built {probeDef.PrefabID}@{Grid.CellToXY(probe.Cell)} at " +
+                      $"Neutral (rotations={probeDef.PermittedRotations}); comparing against {mismatch}");
+
             try
             {
-                go = def.Build(cell, Orientation.Neutral, null, FixtureBuilder.SelectElements(def),
-                               293.15f, false, 0f);
+                Assert.True(MatchesAt(probeDef, probe.Cell, Orientation.Neutral),
+                    $"[{probe.Family}] a same-def building at the SAME orientation still matches");
+                Assert.True(!MatchesAt(probeDef, probe.Cell, mismatch),
+                    $"[{probe.Family}] a same-def building at a DIFFERENT orientation ({mismatch}) " +
+                    "no longer matches - this is the fix");
             }
-            catch { /* some defs need conditions a bare cell cannot give; try the next */ }
-
-            if (go != null && go.GetComponent<Rotatable>() != null)
+            finally
             {
-                built = go;
-                rotatableDef = def;
-                break;
+                built.DeleteObject();
             }
-            if (go != null)
-                go.DeleteObject();
+            for (int i = 0; i < 3; i++) yield return null;
         }
-
-        if (built == null || rotatableDef == null)
-        {
-            Log?.Line("  REACHABILITY: no 1x1 rotatable building could be built here - the rotation " +
-                      "rule cannot be exercised in this fixture");
-            yield break;
-        }
-
-        for (int i = 0; i < 5; i++) yield return null;
-
-        ///compare against a rotation this def can actually be in, rather than assuming R90 -
-        ///the probe picked by shape may well be a flip-only building
-        var mismatch = rotatableDef.PermittedRotations switch
-        {
-            PermittedRotations.FlipH => Orientation.FlipH,
-            PermittedRotations.FlipV => Orientation.FlipV,
-            _ => Orientation.R90,
-        };
-        Log?.Line($"  built {rotatableDef.PrefabID}@{Grid.CellToXY(cell)} at Neutral " +
-                  $"(rotations={rotatableDef.PermittedRotations}); comparing against {mismatch}");
-
-        try
-        {
-            Assert.True(MatchesAt(rotatableDef, cell, Orientation.Neutral),
-                "a same-def building at the SAME rotation still matches");
-            Assert.True(!MatchesAt(rotatableDef, cell, mismatch),
-                $"a same-def building at a DIFFERENT rotation ({mismatch}) no longer matches - this is the fix");
-        }
-        finally
-        {
-            built.DeleteObject();
-        }
-        for (int i = 0; i < 3; i++) yield return null;
 
         ///--- a building with no Rotatable must behave exactly as before ---
         var tileDef = Assets.GetBuildingDef("Tile");
