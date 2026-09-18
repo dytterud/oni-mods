@@ -122,6 +122,24 @@ internal class DataTransferHelpers
                     { UserMaxCapacityKey, smi.UserMaxCapacity},
                 };
             }
+            ///This handler answers two different questions. Capture asks a real building "what are
+            ///your settings"; UnderConstructionDataSettingHelper.HasDataTransferComponents asks the
+            ///*prefab* "is this building type configurable at all", to decide whether a planned
+            ///building gets a preconfigure button. A prefab has no live state machine, so returning
+            ///null here hid the button for every Storage Tile (issue #85).
+            ///
+            ///<para>The <c>smi == null</c> guard is what keeps capture untouched, and it is the one
+            ///place this deliberately differs from upstream 03ceccc. Upstream instead dropped the
+            ///INVALID_TAG filter above so the first branch always wins for a real building. Without
+            ///the guard, an *unconfigured* Storage Tile would fall through to this empty object
+            ///during capture - and an empty entry is not inert: GetAdditionalBuildingData filters
+            ///only on null, and BuildingConfig.HasAnyBuildingData counts entries rather than
+            ///content, so the preview would paint the apply-settings colour and placement would pop
+            ///"Settings applied!" with nothing to apply.</para>
+            else if (smi == null && arg.GetDef<StorageTile.Def>() != null)
+            {
+                return new();
+            }
             return null;
         }
         public static void TryApplyData(GameObject building, JObject jObject)
@@ -1252,6 +1270,12 @@ internal class DataTransferHelpers
                 {
                     { ParticleThresholdKey, component.particleThreshold},
                 };
+            }
+            ///Same prefab-has-no-SMI problem as DataTransfer_StorageTile above, and the same
+            ///smi == null guard for the same reason - see the comment there.
+            else if (component == null && arg.GetDef<HEPBattery.Def>() != null)
+            {
+                return new();
             }
             return null;
         }
