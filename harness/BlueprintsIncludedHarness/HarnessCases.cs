@@ -83,6 +83,7 @@ internal static class HarnessCases
         new HarnessCase("replacement-vis-places-once-per-cell", ReplacementVisPlacesOnce),
         new HarnessCase("scheduled-seating-kick-delivers-when-time-runs", SeatingKickDelivers),
         new HarnessCase("completed-construction-applies-stored-settings", CompletionAppliesStoredSettings),
+        new HarnessCase("rotation-counts-in-same-building-detection", RotationConsideredForSameBuilding),
         new HarnessCase("reconstruct-reapplies-stored-settings", ReconstructReappliesSettings),
         new HarnessCase("preconfigure-screen-loads-the-plan's-settings", PreconfigureLoadsStoredSettings),
         new HarnessCase("preconfigure-screen-opens-while-the-game-is-paused", PreconfigureWorksWhilePaused),
@@ -1416,6 +1417,212 @@ internal static class HarnessCases
         else
             Log?.Line("  NOTE: construction did not complete with the clock stopped, so the " +
                       "before/after control could not be taken - see the case comment");
+    }
+
+    // ---- rotation counts in same-building detection ------------------
+
+    /// <summary>
+    /// <c>SameBuildingAlreadyFinishedInPlace</c> used to decide "a matching building is already
+    /// here" from the def and the cell alone, so a blueprint entry rotated differently from the
+    /// building in that cell still counted as the same building - and with apply-settings on, the
+    /// blueprint then forced its own orientation onto it (upstream report #357).
+    ///
+    /// Asserted on the predicate rather than by driving a placement, the way
+    /// <see cref="PlannedBuildingMatch"/> is: five call sites read this one answer and each makes
+    /// its own decision from it, so the predicate is the thing worth pinning.
+    ///
+    /// The two carve-outs matter as much as the rule. A building with no <c>Rotatable</c> has no
+    /// orientation to disagree about, and drywall's <c>Rotatable</c> is visual variation rather
+    /// than placement orientation - comparing it would make identical drywall read as different
+    /// and churn.
+    /// </summary>
+    private static IEnumerator RotationConsideredForSameBuilding()
+    {
+        var xy = Grid.CellToXY(AnchorCell);
+        int cell = Grid.XYToCell(xy.x + 14, xy.y - 20);
+
+        ///Flips and rotations are asserted separately, and both halves have to run.
+        ///
+        ///<c>Orientation</c> is a single enum - Neutral/R90/R180/R270 and FlipH/FlipV all live in
+        ///it - and the predicate compares the whole value, so the two families go down identical
+        ///code. The split is not about suspecting they differ; it is because this probe used to
+        ///pick ONE def by shape and test whichever family it happened to land in. Every 1x1
+        ///Building-layer def that builds on a bare cell is flip-only (Corner Moulding, in
+        ///practice), so the rotation half was never reached and the R90 arm of the switch below
+        ///was dead. A def-order change in a future game build could have silently swapped which
+        ///family was covered, with the case name and the assertions reading the same either way.
+        ///
+        ///The rotate probe deliberately does not constrain the footprint. Of the defs permitting
+        ///R90 or R360, the 1x1 ones are rocket-interior fittings, Gravitas POI props, a dev
+        ///spawner, or need a foundation under them; the ones that build anywhere (the valves) are
+        ///1x2. <see cref="ClearCell"/> digs a 5x5 region, so a taller probe is accommodated.
+        var probes = new (string Family, Func<BuildingDef, bool> Accepts, int Cell)[]
+        {
+            ("flip", d => d.WidthInCells == 1 && d.HeightInCells == 1
+                          && (d.PermittedRotations == PermittedRotations.FlipH
+                              || d.PermittedRotations == PermittedRotations.FlipV),
+             cell),
+            ("rotate", d => d.PermittedRotations == PermittedRotations.R90
+                            || d.PermittedRotations == PermittedRotations.R360,
+             Grid.XYToCell(xy.x + 20, xy.y - 20)),
+        };
+
+        foreach (var probe in probes)
+        {
+            yield return ClearCell(probe.Cell);
+            AssertCellEmpty(probe.Cell, $"rotation ({probe.Family})");
+
+            ///picked by shape and permitted rotations, so this does not pin a prefab id
+            GameObject? built = null;
+            BuildingDef? probeDef = null;
+            foreach (var def in Assets.BuildingDefs.Where(d =>
+                         d != null
+                         && d.ObjectLayer == ObjectLayer.Building
+                         && d.BuildingComplete != null
+                         && d.BuildingComplete.GetComponent<Rotatable>() != null
+                         && probe.Accepts(d)))
+            {
+                GameObject? go = null;
+                try
+                {
+                    go = def.Build(probe.Cell, Orientation.Neutral, null,
+                                   FixtureBuilder.SelectElements(def), 293.15f, false, 0f);
+                }
+                catch { /* some defs need conditions a bare cell cannot give; try the next */ }
+
+                if (go != null && go.GetComponent<Rotatable>() != null)
+                {
+                    built = go;
+                    probeDef = def;
+                    break;
+                }
+                if (go != null)
+                    go.DeleteObject();
+            }
+
+            if (built == null || probeDef == null)
+            {
+                ///Not a silent pass: the other family still runs, and the gap is named in the log.
+                Log?.Line($"  REACHABILITY: no buildable {probe.Family} def in this install, so the " +
+                          $"{probe.Family} half of the rule is unexercised");
+                continue;
+            }
+
+            for (int i = 0; i < 5; i++) yield return null;
+
+            var mismatch = probeDef.PermittedRotations switch
+            {
+                PermittedRotations.FlipH => Orientation.FlipH,
+                PermittedRotations.FlipV => Orientation.FlipV,
+                _ => Orientation.R90,
+            };
+            Log?.Line($"  {probe.Family}: built {probeDef.PrefabID}@{Grid.CellToXY(probe.Cell)} at " +
+                      $"Neutral (rotations={probeDef.PermittedRotations}); comparing against {mismatch}");
+
+            try
+            {
+                Assert.True(MatchesAt(probeDef, probe.Cell, Orientation.Neutral),
+                    $"[{probe.Family}] a same-def building at the SAME orientation still matches");
+                Assert.True(!MatchesAt(probeDef, probe.Cell, mismatch),
+                    $"[{probe.Family}] a same-def building at a DIFFERENT orientation ({mismatch}) " +
+                    "no longer matches - this is the fix");
+            }
+            finally
+            {
+                built.DeleteObject();
+            }
+            for (int i = 0; i < 3; i++) yield return null;
+        }
+
+        ///--- a building with no Rotatable must behave exactly as before ---
+        var tileDef = Assets.GetBuildingDef("Tile");
+        var tile = Components.BuildingCompletes.Items
+            .FirstOrDefault(b => b != null && b.Def != null && b.Def.PrefabID == "Tile");
+        if (tile != null && tileDef != null && tile.GetComponent<Rotatable>() == null)
+        {
+            int tileCell = Grid.PosToCell(tile.gameObject);
+            Assert.True(MatchesAt(tileDef, tileCell, Orientation.Neutral),
+                "a non-rotatable building matches at Neutral");
+            Assert.True(MatchesAt(tileDef, tileCell, Orientation.R90),
+                "a non-rotatable building matches regardless of the blueprint's orientation");
+            Log?.Line($"  non-rotatable {tileDef.PrefabID}: matches at both orientations, as before");
+        }
+        else
+        {
+            Log?.Line("  REACHABILITY: the fixture Tile is rotatable or missing, so the " +
+                      "no-Rotatable carve-out was not exercised");
+        }
+
+        ///--- drywall keeps matching despite a differing rotation ---
+        var drywallDef = Assets.BuildingDefs.FirstOrDefault(d =>
+            d != null && d.ObjectLayer == ObjectLayer.Backwall
+            && d.WidthInCells == 1 && d.HeightInCells == 1
+            && d.BuildingComplete != null && d.BuildingComplete.GetComponent<Rotatable>() != null);
+
+        if (drywallDef == null)
+        {
+            Log?.Line("  REACHABILITY: no 1x1 Backwall building with a Rotatable in this install, " +
+                      "so the drywall carve-out is unexercised - it is shape-based, not id-based, " +
+                      "so a DLC that adds one would be covered by this case as written");
+            yield break;
+        }
+
+        int wallCell = Grid.XYToCell(xy.x + 17, xy.y - 20);
+        yield return ClearCell(wallCell);
+        GameObject? wall = null;
+        try
+        {
+            wall = drywallDef.Build(wallCell, Orientation.Neutral, null,
+                                    FixtureBuilder.SelectElements(drywallDef), 293.15f, false, 0f);
+        }
+        catch { /* fall through to the reachability note */ }
+
+        if (wall == null)
+        {
+            Log?.Line($"  REACHABILITY: {drywallDef.PrefabID} would not build here, drywall carve-out unexercised");
+            yield break;
+        }
+
+        for (int i = 0; i < 5; i++) yield return null;
+        try
+        {
+            Assert.True(MatchesAt(drywallDef, wallCell, Orientation.R90),
+                $"{drywallDef.PrefabID} (1x1 Backwall) still matches at a different rotation - " +
+                "its Rotatable is visual variation, not placement orientation");
+            Log?.Line($"  drywall carve-out holds for {drywallDef.PrefabID}");
+        }
+        finally
+        {
+            wall.DeleteObject();
+        }
+    }
+
+    /// <summary>
+    /// Runs <c>SameBuildingAlreadyFinishedInPlace</c> for <paramref name="def"/> at
+    /// <paramref name="cell"/>, as though the blueprint entry were captured at
+    /// <paramref name="orientation"/>.
+    /// </summary>
+    private static bool MatchesAt(BuildingDef def, int cell, Orientation orientation)
+    {
+        var config = new BuildingConfig
+        {
+            Offset = new Vector2I(0, 0),
+            BuildingDef = def,
+            BuildingDefId = def.PrefabID,
+            Orientation = orientation,
+        };
+        foreach (var tag in FixtureBuilder.SelectElements(def))
+            config.SelectedElements.Add(tag);
+
+        var visual = new BuildingVisual(config, cell, BlueprintState.PlayerId_DefaultTilePreviews);
+        try
+        {
+            return visual.SameBuildingAlreadyFinishedInPlace(cell, out _, false, includePlanned: true);
+        }
+        finally
+        {
+            visual.DestroyVisualizer();
+        }
     }
 
     // ---- reconstruct carries settings to the replacement plan --------
