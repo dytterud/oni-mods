@@ -84,6 +84,42 @@ params (`__instance`, `__result`, `___privateField`). Patches auto-apply via `Us
 `SingletonOptions<Config>`; user-facing strings go through `STRINGS.cs`; translations are
 `ModAssets/translations/*.po`.
 
+## Translations
+
+**Adding or changing a `LocString` in `STRINGS.cs` is not done until every `.po` is updated.**
+There are five: `de`, `fr`, `ko`, `ru`, `zh`, all at 100% coverage — keep them there rather than
+leaving a language to fall back to English.
+
+- **New key** → add an entry to all five, in the file's existing shape:
+
+  ```
+  #. BlueprintsV2.STRINGS.PATH.TO.KEY
+  msgctxt "BlueprintsV2.STRINGS.PATH.TO.KEY"
+  msgid "the English text"
+  msgstr "the translation"
+  ```
+
+  The `msgctxt` is the LocString's full path with a `BlueprintsV2.` prefix, and `msgid` must match
+  the English **exactly**, including `\n` escapes and `{0}` placeholders.
+
+- **Changed English** → the old `msgstr` now translates text that no longer exists. Either update
+  every language or drop those entries; leaving them is worse than an English fallback, because it
+  ships a confidently wrong translation. This is not hypothetical: #81 reworded
+  `FORCEREBUILD.TOOLTIP` and that alone made upstream's `zh.po` unusable as a blob (#87).
+
+- **Match the established vocabulary** rather than inventing terms. Each language already has one
+  (`de` Blaupause/Schnappschuss/Notiz, `fr` plan/instantané/note, `ko` 청사진/스냅샷/메모,
+  `ru` чертёж/снимок/заметка, `zh` 蓝图/快照/便签), and for game terms — Deconstruct, Priority,
+  Material, Tile — ONI ships its own `ko`/`ru`/`zh` catalogues under
+  `OxygenNotIncluded_Data/StreamingAssets/strings/`, which are the authority.
+
+- **Placeholders are load-bearing.** `{0}` must survive translation; a tooltip whose call site
+  appends the hotkey must not gain one.
+
+Files are UTF-8 **with BOM**, CRLF. Klei's own `polib.py` ships in that same `strings/` folder and
+is the right way to check a catalogue parses and is complete — do not hand-roll a regex for it,
+escaped quotes inside a `msgstr` will fool it.
+
 ## Gotchas
 
 - `Builds/` and `PublicisedAssembly/` are generated and gitignored.
