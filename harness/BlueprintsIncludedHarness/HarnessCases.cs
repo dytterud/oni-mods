@@ -90,6 +90,7 @@ internal static class HarnessCases
         new HarnessCase("preconfigure-screen-opens-while-the-game-is-paused", PreconfigureWorksWhilePaused),
         new HarnessCase("preconfigure-button-shows-for-smi-backed-buildings", PreconfigureButtonShowsForSmiBackedBuildings),
         new HarnessCase("building-data-api-survives-a-dead-gameobject", BuildingDataApiSurvivesDeadGameObject),
+        new HarnessCase("anim-less-previews-are-all-tile-visuals", AnimLessPreviewsAreAllTileVisuals),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -2605,6 +2606,57 @@ internal static class HarnessCases
         st.IsPlacingSnapshot = false;
         cfg.RequireConstructable_Tech = savedTech;
         cfg.RequireConstructable_Material = savedMat;
+    }
+
+    // ---- #72 (b): no colour is computed for a preview that can't show it --------------
+
+    // ModAssets.GetVisualizerType is public but on an internal class - reach it by reflection.
+    private static readonly MethodInfo GetVisualizerTypeMethod =
+        typeof(Blueprint).Assembly
+            .GetType("BlueprintsV2.ModAssets")!
+            .GetMethod("GetVisualizerType", BindingFlags.Public | BindingFlags.Static)!;
+
+    /// <summary>
+    /// Settles #72 (b). The base <c>BuildingVisual.ApplyColorIfChanged</c> computes
+    /// <c>GetVisualizerColor</c> and throws it away when the preview has no
+    /// <c>KBatchedAnimController</c>. Upstream skips that computation; porting the skip only pays if
+    /// such a visual reaches the base method. A preview without an anim controller is exactly
+    /// what <c>GetSharedPlaceholder</c> keys on. <c>TileVisual</c> overrides the method and uses
+    /// the colour for the block-tile atlas. So the waste needs an anim-less preview on a def that
+    /// routes to <c>BuildingVisual</c> or <c>UtilityVisual</c>, which don't override it. This walks
+    /// every loaded def, including other enabled mods', and asserts there are none.
+    /// </summary>
+    private static IEnumerator AnimLessPreviewsAreAllTileVisuals()
+    {
+        var animLessByType = new Dictionary<VisualizerType, List<string>>();
+        int total = 0;
+        foreach (var def in Assets.BuildingDefs)
+        {
+            if (def == null || def.BuildingPreview == null || def.BuildingComplete == null)
+                continue;
+            total++;
+            if (def.BuildingPreview.TryGetComponent<KBatchedAnimController>(out _))
+                continue;
+
+            var type = (VisualizerType)GetVisualizerTypeMethod.Invoke(null, new object[] { def })!;
+            if (!animLessByType.TryGetValue(type, out var ids))
+                animLessByType[type] = ids = new List<string>();
+            ids.Add(def.PrefabID);
+        }
+
+        foreach (var kv in animLessByType)
+            Log?.Line($"  anim-less previews routed to {kv.Key}: {kv.Value.Count} " +
+                      $"[{string.Join(", ", kv.Value.OrderBy(x => x).Take(15))}{(kv.Value.Count > 15 ? ", ..." : "")}]");
+        Log?.Line($"  defs scanned: {total}");
+
+        var wasted = animLessByType
+            .Where(kv => kv.Key != VisualizerType.TILE)
+            .SelectMany(kv => kv.Value.Select(id => $"{id} ({kv.Key})"))
+            .OrderBy(x => x)
+            .ToList();
+        Assert.True(wasted.Count == 0,
+            "no anim-less preview reaches the base ApplyColorIfChanged, got: " + string.Join(", ", wasted));
+        yield break;
     }
 
     private static HashSet<Constructable> Constructables() =>
