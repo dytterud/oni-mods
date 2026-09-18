@@ -253,6 +253,17 @@ internal class API_Methods
     public static Dictionary<string, JObject> GetAdditionalBuildingData(GameObject gameObject)
     {
         var buildingData = new Dictionary<string, JObject>();
+        ///Public reflectable surface (#61) with no internal callers, so the argument comes from
+        ///another mod and cannot be constrained from here. Handing a dead GameObject to every
+        ///registered handler in turn would throw from whichever one dereferenced it first, with the
+        ///caller's own name nowhere in the stack.
+        ///
+        ///<para>IsNullOrDestroyed rather than == null, matching the sibling guards below: a
+        ///destroyed Unity object is not null on the managed side, and that is the case an external
+        ///caller is most likely to hit.</para>
+        if (gameObject.IsNullOrDestroyed())
+            return buildingData;
+
         foreach (var kvp in AdditionalBuildingDataEntries)
         {
             var DataHandler = kvp.Value;
@@ -274,6 +285,13 @@ internal class API_Methods
     /// </summary>
     public static Dictionary<string, JObject> GetAllAdditionalBuildingData(GameObject gameObject)
     {
+        ///Guarded in its own right, not just via the call below. Upstream 8018c30 guards only
+        ///GetAdditionalBuildingData, which is not enough here: this method dereferences the same
+        ///GameObject again for TryGetComponent, so a guard on the inner call alone would leave the
+        ///outer entry point throwing for exactly the external caller the guard exists for.
+        if (gameObject.IsNullOrDestroyed())
+            return new Dictionary<string, JObject>();
+
         var buildingData = GetAdditionalBuildingData(gameObject);
         if (gameObject.TryGetComponent<UnderConstructionDataTransfer>(out var dataCarrier))
         {
