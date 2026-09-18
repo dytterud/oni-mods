@@ -8,6 +8,7 @@ using BlueprintsV2.BlueprintData;
 using BlueprintsV2.BlueprintData.NoteToolPlacedEntities;
 using BlueprintsV2.Visualizers;
 using BlueprintsV2.Visualizers.ReplacementVisualizers;
+using HarmonyLib;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -88,6 +89,7 @@ internal static class HarnessCases
         new HarnessCase("preconfigure-screen-loads-the-plan's-settings", PreconfigureLoadsStoredSettings),
         new HarnessCase("preconfigure-screen-opens-while-the-game-is-paused", PreconfigureWorksWhilePaused),
         new HarnessCase("preconfigure-button-shows-for-smi-backed-buildings", PreconfigureButtonShowsForSmiBackedBuildings),
+        new HarnessCase("building-data-api-survives-a-dead-gameobject", BuildingDataApiSurvivesDeadGameObject),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -1205,6 +1207,22 @@ internal static class HarnessCases
             Assert.True(!GetBool(blocked, "markedForDeletion"),
                 "the vis survives a failed placement, so it is still there to retry");
 
+            ///--- the re-entrancy guard stays closed for the whole check (issue #64) ---
+            ///
+            ///The scene partitioner dispatches synchronously - Grid's ObjectLayerIndexer setter
+            ///calls GameScenePartitioner.TriggerEvent inline - so a grid write inside
+            ///FinalizePlacementCheck re-enters OnPreoccupiedCellChanged before the method returns.
+            ///`check` used to be cleared on entry, leaving the guard down for exactly that window.
+            ///
+            ///<para>Modelled rather than waited for: a prefix on UpdateVisualState (reached from
+            ///inside FinalizePlacementCheck on the failure branch, which is the state this vis is in
+            ///right now) delivers the callback at the moment a real grid write would. A second
+            ///prefix counts how many times FinalizePlacementCheck runs for this vis. With the guard
+            ///cleared on entry the callback starts a second coroutine and the count reaches 2; with
+            ///it latched until the check finishes, the callback is refused and the count stays
+            ///1.</para>
+            yield return ReentrancyProbe(blocked!);
+
             ///Complete the deconstruct SeatVis already queued, which is what would happen on its own
             ///if the sim were running. This is the mod's own instant-deconstruct call
             ///(DoDeconstrucThingsAt uses it under InstantBuild).
@@ -1595,6 +1613,76 @@ internal static class HarnessCases
         finally
         {
             wall.DeleteObject();
+        }
+    }
+
+    // ---- the reflectable data API against a dead GameObject ----------
+
+    /// <summary>
+    /// <c>GetAdditionalBuildingData</c> and <c>GetAllAdditionalBuildingData</c> are public
+    /// reflectable surface (#61) with no internal callers, so the argument arrives from another mod
+    /// and cannot be constrained from this side. Neither guarded its input: the first handed the
+    /// GameObject to every registered handler in turn, and the second dereferenced it again for
+    /// <c>TryGetComponent</c>.
+    ///
+    /// <para>Both cases matter, and the second is why upstream 8018c30 is not enough on its own -
+    /// it guards only the inner method, which leaves the outer entry point throwing for exactly the
+    /// caller the guard exists for. This case would still pass with that partial fix on the null
+    /// argument and fail on the destroyed one, which is the distinction worth pinning.</para>
+    ///
+    /// <para>A <b>destroyed</b> GameObject is the interesting input, not just null: Unity's
+    /// fake-null means it still satisfies the compiler's non-null contract while failing
+    /// <c>== null</c> at runtime, so a guard written as <c>== null</c> would let it through.</para>
+    /// </summary>
+    private static IEnumerator BuildingDataApiSurvivesDeadGameObject()
+    {
+        var apiType = typeof(Blueprint).Assembly.GetType("BlueprintsV2.ModAPI.API_Methods");
+        Assert.True(apiType != null, "API_Methods was found");
+
+        var methods = new[] { "GetAdditionalBuildingData", "GetAllAdditionalBuildingData" }
+            .Select(n => apiType!.GetMethod(n, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static))
+            .ToList();
+        Assert.True(methods.All(m => m != null), "both data-reading entry points were found");
+
+        ///A real destroyed GameObject, not a null reference dressed up as one - Destroy is deferred
+        ///to end of frame, so the frames below are what actually make it dead.
+        var doomed = new GameObject("BPI-Harness-DoomedProbe");
+        UnityEngine.Object.Destroy(doomed);
+        for (int i = 0; i < 3; i++) yield return null;
+
+        Assert.True(doomed == null,
+            "the probe GameObject is destroyed - Unity's fake-null reports it as null");
+        Assert.True(!ReferenceEquals(doomed, null),
+            "...while the managed reference is still there, which is the case a plain == null " +
+            "guard in the API would miss");
+
+        foreach (var method in methods)
+        {
+            foreach (var (label, arg) in new[] { ("null", (GameObject?)null), ("destroyed", doomed) })
+            {
+                object? result;
+                try
+                {
+                    result = method!.Invoke(null, new object?[] { arg });
+                }
+                catch (TargetInvocationException e)
+                {
+                    Assert.True(false,
+                        $"{method.Name}({label}) threw {e.InnerException?.GetType().Name ?? "?"} - " +
+                        "an external caller handing over a dead building must get an empty result, " +
+                        "not an exception from inside a handler it has never heard of");
+                    yield break;
+                }
+
+                ///The harness's own #85 case hard-casts this return value, and so may a consumer -
+                ///so the guard path has to return an empty dictionary rather than null.
+                var dict = result as Dictionary<string, JObject>;
+                Assert.True(dict != null,
+                    $"{method.Name}({label}) returns a dictionary, not null");
+                Assert.Equal(0, dict!.Count,
+                    $"{method.Name}({label}) returns an EMPTY dictionary");
+                Log?.Line($"  {method.Name}({label}): returned {dict.Count} entries, no throw");
+            }
         }
     }
 
@@ -2194,6 +2282,89 @@ internal static class HarnessCases
     /// Delivers the <c>OnPreoccupiedCellChanged</c> callback the scene partitioner would deliver,
     /// then lets the one-frame <c>DelayedPlacementCheck</c> coroutine run to completion.
     /// </summary>
+    /// <summary>Set while <see cref="ReentrancyProbe"/> runs; the patches below ignore every other vis.</summary>
+    private static ReplacementVis? reentryTarget;
+    private static int finalizeCount;
+    private static bool reentryFired;
+
+    /// <summary>Counts entries to <c>FinalizePlacementCheck</c> for the vis under test.</summary>
+    private static void CountFinalize(ReplacementVis __instance)
+    {
+        if (ReferenceEquals(__instance, reentryTarget))
+            finalizeCount++;
+    }
+
+    /// <summary>
+    /// Stands in for a synchronous partitioner callback arriving mid-check. Fires once, from inside
+    /// <c>UpdateVisualState</c>, which runs within <c>FinalizePlacementCheck</c> on the failure
+    /// branch - the same stack a real <c>Grid.Objects</c> write would deliver on.
+    /// </summary>
+    private static void ReenterFromVisualState(ReplacementVis __instance)
+    {
+        if (reentryFired || !ReferenceEquals(__instance, reentryTarget))
+            return;
+        reentryFired = true;
+
+        typeof(ReplacementVis)
+            .GetMethod("OnPreoccupiedCellChanged", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(__instance, new object?[] { null });
+    }
+
+    /// <summary>
+    /// Drives one check on <paramref name="vis"/> with a re-entrant callback delivered from inside
+    /// it, and asserts the check does not run twice. See the call site for why this models the real
+    /// mechanism rather than waiting for it.
+    /// </summary>
+    private static IEnumerator ReentrancyProbe(ReplacementVis vis)
+    {
+        var harmony = HarnessGate.HarmonyInstance;
+        if (harmony == null)
+        {
+            Log?.Line("  REACHABILITY: no Harmony instance, re-entrancy guard not exercised");
+            yield break;
+        }
+
+        var finalize = AccessTools.Method(typeof(ReplacementVis), "FinalizePlacementCheck");
+        var visualState = AccessTools.Method(typeof(ReplacementVis), "UpdateVisualState");
+        if (finalize == null || visualState == null)
+        {
+            Log?.Line("  REACHABILITY: FinalizePlacementCheck/UpdateVisualState not found, " +
+                      "re-entrancy guard not exercised");
+            yield break;
+        }
+
+        reentryTarget = vis;
+        finalizeCount = 0;
+        reentryFired = false;
+
+        harmony.Patch(finalize, prefix: new HarmonyMethod(AccessTools.Method(
+            typeof(HarnessCases), nameof(CountFinalize))));
+        harmony.Patch(visualState, prefix: new HarmonyMethod(AccessTools.Method(
+            typeof(HarnessCases), nameof(ReenterFromVisualState))));
+
+        try
+        {
+            yield return Kick(vis);
+            ///a second check would land the frame after the re-entrant callback; Kick already
+            ///waits ten, which is more than enough for one to show up
+        }
+        finally
+        {
+            harmony.Unpatch(finalize, AccessTools.Method(typeof(HarnessCases), nameof(CountFinalize)));
+            harmony.Unpatch(visualState, AccessTools.Method(typeof(HarnessCases), nameof(ReenterFromVisualState)));
+            reentryTarget = null;
+        }
+
+        Log?.Line($"  re-entrancy: callback delivered mid-check={reentryFired}, " +
+                  $"FinalizePlacementCheck ran {finalizeCount}x (expected 1)");
+
+        Assert.True(reentryFired,
+            "the probe actually reached UpdateVisualState - otherwise the count below proves nothing");
+        Assert.Equal(1, finalizeCount,
+            "a callback arriving DURING a placement check is refused - the guard stays latched " +
+            "until the check finishes, so no second check runs against half-finished state");
+    }
+
     private static IEnumerator Kick(ReplacementVis vis)
     {
         typeof(ReplacementVis)
