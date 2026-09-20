@@ -69,6 +69,19 @@ namespace UtilLibs.UIcmp //Source: Aki
 			return isEditing;
 		}
 
+		/// <summary>Blanks the placeholder text, for fields whose prefab ships one that does not fit.
+		/// Ported from upstream cc28b8b, with explicit null checks: upstream's ?. chain skips Unity's
+		/// destroyed-object check.</summary>
+		public void ClearPlace()
+		{
+			if (inputField == null || inputField.textViewport == null)
+				return;
+			var placeholder = inputField.textViewport.transform.Find(placeHolderPath);
+			if (placeholder == null)
+				return;
+			placeholder.gameObject.AddOrGet<LocText>().SetText(string.Empty);
+		}
+
 		public string Text
 		{
 			get => inputField.text;

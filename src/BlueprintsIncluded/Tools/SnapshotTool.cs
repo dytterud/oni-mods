@@ -135,6 +135,7 @@ public sealed class SnapshotTool : MultiFilteredDragTool
 
     public override void OnDeactivateTool(InterfaceTool newTool)
     {
+        gridSnap.End();
         DeleteBlueprint();
         base.OnDeactivateTool(newTool);
         BlueprintState.CurrentStateInfo().ForceBuild = false;
@@ -276,17 +277,22 @@ public sealed class SnapshotTool : MultiFilteredDragTool
 
         else if (hasFocus)
         {
-            BlueprintState.UseBlueprint(BlueprintState.PlayerId_DefaultTilePreviews, Grid.PosToXY(cursorPos), snapshotBlueprint);
+            var cell = Grid.PosToXY(cursorPos);
+            BlueprintState.UseBlueprint(BlueprintState.PlayerId_DefaultTilePreviews, cell, snapshotBlueprint);
+            gridSnap.OnPlaced(cell);
         }
     }
 
     public override void OnLeftClickUp(Vector3 cursorPos)
     {
+        gridSnap.End();
         if (snapshotBlueprint == null)
         {
             base.OnLeftClickUp(cursorPos);
         }
     }
+
+    private readonly GridSnapDrag gridSnap = new();
 
     public override void OnMouseMove(Vector3 cursorPos)
     {
@@ -297,7 +303,9 @@ public sealed class SnapshotTool : MultiFilteredDragTool
 
         else if (hasFocus)
         {
-            BlueprintState.UpdateVisual(BlueprintState.PlayerId_DefaultTilePreviews, Grid.PosToXY(cursorPos), false, snapshotBlueprint);
+            var cell = Grid.PosToXY(cursorPos);
+            BlueprintState.UpdateVisual(BlueprintState.PlayerId_DefaultTilePreviews, cell, false, snapshotBlueprint);
+            gridSnap.OnMoved(cell, snapshotBlueprint);
         }
     }
 

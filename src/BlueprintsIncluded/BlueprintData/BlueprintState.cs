@@ -888,6 +888,24 @@ public static class BlueprintState
         public bool UseToolPriority = true;
         public bool ForceOverrideTransformations = false;
         public bool ApplySettingsToExistingBuildings = true;
+
+        ///Snap to Grid (upstream a3375d0). Local to this player's tools, so deliberately not in
+        ///ModeChangePacket: a remote player's placements arrive as UseBlueprint calls, however
+        ///they were produced.
+        public bool SnapToGrid = false;
+        ///the step between copies, in the blueprint's own axes - see ScreenGridStep.
+        public int GridSnapX = 1, GridSnapY = 1;
+
+        /// <summary>
+        /// The grid-snap step in screen axes. The step is stored in the blueprint's own axes, so a
+        /// quarter turn swaps it here and the copies stay edge to edge without the player
+        /// re-entering it. Flips don't change a size, so they don't swap.
+        /// </summary>
+        public (int X, int Y) ScreenGridStep =>
+            BlueprintOrientation is Orientation.R90 or Orientation.R270
+                ? (GridSnapY, GridSnapX)
+                : (GridSnapX, GridSnapY);
+
         public bool IsPlacingSnapshot { get; set; }
         public bool ApplyBlueprintSettings = true;
         public HashSet<string> BlockedPlacementFilterLayers = [];
