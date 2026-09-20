@@ -12,6 +12,17 @@ and was never published under it.
 
 ### Added
 
+- **Replacing a building now clears its connection points too.** A blueprint building placed over
+  existing machinery only ever cleared the cells the building itself fills. Its ports - pipe and
+  gas connections, power connectors, radbolt ports - sit on separate layers, so a pipe or wire
+  already occupying one stayed put and the new building came out unconnected. Those cells are now
+  claimed as well, and anything on them is deconstructed or cancelled like anything else in the
+  way.
+
+  **Bridges are treated as the two ends they actually connect**, rather than their whole span, so
+  replacing a bridge no longer disturbs the pipework it passes over. Ported from upstream
+  Blueprints Expanded. (#49, #66)
+
 - **Paste a blueprint straight onto the map.** The snapshot tool's "use last snapshot" key is
   bound to Ctrl+V, so it now does what that key suggests: a blueprint string on your clipboard is
   put in hand, ready to place. With nothing usable on the clipboard it brings back your last

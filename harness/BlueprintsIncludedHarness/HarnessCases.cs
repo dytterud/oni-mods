@@ -84,6 +84,7 @@ internal static class HarnessCases
         new HarnessCase("preview-follows-the-cursor", PreviewFollowsTheCursor),
         new HarnessCase("mod-component-lookup-resolves-and-caches", ModComponentLookupResolvesAndCaches),
         new HarnessCase("replacement-vis-places-once-per-cell", ReplacementVisPlacesOnce),
+        new HarnessCase("replacement-vis-claims-its-port-cells", ReplacementVisClaimsPortCells),
         new HarnessCase("scheduled-seating-kick-delivers-when-time-runs", SeatingKickDelivers),
         new HarnessCase("completed-construction-applies-stored-settings", CompletionAppliesStoredSettings),
         new HarnessCase("rotation-counts-in-same-building-detection", RotationConsideredForSameBuilding),
@@ -2604,6 +2605,158 @@ internal static class HarnessCases
     ///BPV2_BuildingReplacer is ReplacementVisualizerMultiEntityConfig.BUILDING_ID - that type is
     ///internal to the mod, so the id is spelled out here; Assets.GetPrefab fails loudly on a rename.
     private const string BuildingReplacerPrefabId = "BPV2_BuildingReplacer";
+
+    // ---- #49 / #66: connection points are claimed too -------------------------------
+
+    /// <summary>
+    /// A replacement vis used to claim only its footprint, on its own object layer. A building's
+    /// connection points - conduit ports, power connectors, radbolt ports - sit on *other* layers,
+    /// so a pipe or wire already on one was left in place and the replacement came out
+    /// unconnected (#49, radbolt ports from #66).
+    ///
+    /// Asserts the ports are registered and seated, that a bridge claims only its two ends rather
+    /// than its whole span, and that a conduit sitting on a port cell is queued for deconstruction.
+    /// </summary>
+    private static IEnumerator ReplacementVisClaimsPortCells()
+    {
+        var portsField = AccessTools.Field(typeof(ReplacementVis), "portOccupations");
+        var cellsField = AccessTools.Field(typeof(ReplacementVis), "occupiedCells");
+
+        var anchorXY = Grid.CellToXY(AnchorCell);
+        var vises = new List<ReplacementVis>();
+        GameObject? conduit = null;
+        var cfg = ModConfig();
+        bool savedTech = cfg.RequireConstructable_Tech, savedMat = cfg.RequireConstructable_Material;
+        cfg.RequireConstructable_Tech = false;
+        cfg.RequireConstructable_Material = false;
+        try
+        {
+            ///--- a building with a conduit port ---
+            var ported = Assets.BuildingDefs.FirstOrDefault(d =>
+                d != null && d.InputConduitType != ConduitType.None && d.BuildingPreview != null
+                && d.BuildingComplete != null && d.BuildingComplete.GetComponent<ConduitBridgeBase>() == null);
+            if (ported == null)
+            {
+                Log?.Line("  REACHABILITY: no def with an input conduit port in this install");
+                yield break;
+            }
+
+            int cell = Grid.XYToCell(anchorXY.x + 14, anchorXY.y - 20);
+            yield return ClearRegion(new Vector2I(anchorXY.x + 14, anchorXY.y - 20), 5, 5);
+
+            ///a finished conduit sitting exactly on the port cell, which the old footprint-only
+            ///tracking never looked at
+            int portCell = Grid.OffsetCell(cell, Rotatable.GetRotatedCellOffset(ported.UtilityInputOffset, Orientation.Neutral));
+            var portLayer = Grid.GetObjectLayerForConduitType(ported.InputConduitType);
+            var conduitDef = Assets.BuildingDefs.FirstOrDefault(d =>
+                d != null && d.ObjectLayer == portLayer && d.WidthInCells == 1 && d.HeightInCells == 1
+                && d.BuildingComplete != null);
+            if (conduitDef != null)
+            {
+                conduit = conduitDef.Build(portCell, Orientation.Neutral, null,
+                    FixtureBuilder.SelectElements(conduitDef), 294.15f, true, GameClock.Instance.GetTime());
+                for (int i = 0; i < 5; i++) yield return null;
+            }
+
+            var config = NewConfig(ported);
+            var spawn = SpawnSeatedVis(config, cell);
+            yield return spawn;
+            vises.Add(spawn.Vis);
+
+            var ports = ((IEnumerable<(int Cell, ObjectLayer Layer)>)portsField.GetValue(spawn.Vis)!).ToList();
+            Log?.Line($"  {ported.PrefabID}: {ports.Count} port cell(s) " +
+                      string.Join(", ", ports.Select(pt => $"{Grid.CellToXY(pt.Cell)}/{pt.Layer}")));
+            Assert.True(ports.Any(pt => pt.Cell == portCell && pt.Layer == portLayer),
+                "the input conduit port is registered on its own layer");
+            Assert.True(ReferenceEquals(ReplacementVis.Visualizers[portCell, (int)portLayer], spawn.Vis),
+                "seating claimed the port cell");
+
+            if (conduit != null && conduit.TryGetComponent<Deconstructable>(out var decon))
+            {
+                Log?.Line($"  conduit on the port cell marked for deconstruction: {decon.IsMarkedForDeconstruction()}");
+                Assert.True(decon.IsMarkedForDeconstruction(),
+                    "a conduit sitting on the port cell is queued for deconstruction");
+            }
+            else
+            {
+                Log?.Line("  REACHABILITY: no 1x1 building on the port layer to put in the way");
+            }
+
+            ///--- a bridge claims its two ends, not its whole span ---
+            var bridge = Assets.BuildingDefs.FirstOrDefault(d =>
+                d != null && d.BuildingPreview != null && d.BuildingComplete != null
+                && d.BuildingComplete.GetComponent<ConduitBridgeBase>() != null
+                && d.PlacementOffsets.Length > 2);
+            if (bridge == null)
+            {
+                Log?.Line("  REACHABILITY: no conduit bridge wider than two cells in this install");
+            }
+            else
+            {
+                int bridgeCell = Grid.XYToCell(anchorXY.x + 14, anchorXY.y - 26);
+                yield return ClearRegion(new Vector2I(anchorXY.x + 14, anchorXY.y - 26), 5, 4);
+                var bridgeSpawn = SpawnSeatedVis(NewConfig(bridge), bridgeCell);
+                yield return bridgeSpawn;
+                vises.Add(bridgeSpawn.Vis);
+
+                var claimed = ((IEnumerable<int>)cellsField.GetValue(bridgeSpawn.Vis)!).ToList();
+                Log?.Line($"  {bridge.PrefabID}: footprint {bridge.PlacementOffsets.Length} cell(s), claimed {claimed.Count}");
+                Assert.Equal(2, claimed.Count, "a bridge claims only its two ends");
+            }
+
+            ///--- radbolt ports (#66) ---
+            var hep = Assets.BuildingDefs.FirstOrDefault(d =>
+                d != null && d.BuildingPreview != null
+                && (d.UseHighEnergyParticleInputPort || d.UseHighEnergyParticleOutputPort));
+            if (hep == null)
+            {
+                Log?.Line("  REACHABILITY: no def with a radbolt port in this install");
+            }
+            else
+            {
+                int hepCell = Grid.XYToCell(anchorXY.x + 14, anchorXY.y - 32);
+                yield return ClearRegion(new Vector2I(anchorXY.x + 14, anchorXY.y - 32), 5, 5);
+                var hepSpawn = SpawnSeatedVis(NewConfig(hep), hepCell);
+                yield return hepSpawn;
+                vises.Add(hepSpawn.Vis);
+
+                var hepPorts = ((IEnumerable<(int Cell, ObjectLayer Layer)>)portsField.GetValue(hepSpawn.Vis)!).ToList();
+                int expected = Grid.OffsetCell(hepCell, Rotatable.GetRotatedCellOffset(
+                    hep.UseHighEnergyParticleInputPort ? hep.HighEnergyParticleInputOffset : hep.HighEnergyParticleOutputOffset,
+                    Orientation.Neutral));
+                Log?.Line($"  {hep.PrefabID}: radbolt port at {Grid.CellToXY(expected)}, tracked " +
+                          string.Join(", ", hepPorts.Select(pt => $"{Grid.CellToXY(pt.Cell)}/{pt.Layer}")));
+                Assert.True(hepPorts.Any(pt => pt.Cell == expected && pt.Layer == ObjectLayer.Building),
+                    "the radbolt port is registered on the building layer");
+            }
+        }
+        finally
+        {
+            ///DestroySelf is protected - the same reflection the re-entrancy case uses
+            var destroySelf = AccessTools.Method(typeof(ReplacementVis), "DestroySelf");
+            foreach (var vis in vises)
+                if (vis != null)
+                    destroySelf.Invoke(vis, null);
+            if (conduit != null)
+                UnityEngine.Object.Destroy(conduit);
+            cfg.RequireConstructable_Tech = savedTech;
+            cfg.RequireConstructable_Material = savedMat;
+        }
+    }
+
+    private static BuildingConfig NewConfig(BuildingDef def)
+    {
+        var config = new BuildingConfig
+        {
+            Offset = new Vector2I(0, 0),
+            BuildingDef = def,
+            BuildingDefId = def.PrefabID,
+            Orientation = Orientation.Neutral,
+        };
+        foreach (var tag in FixtureBuilder.SelectElements(def))
+            config.SelectedElements.Add(tag);
+        return config;
+    }
 
     private static SeatedVisSpawn SpawnSeatedVis(BuildingConfig config, int cell) => new(config, cell);
 

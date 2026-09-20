@@ -44,6 +44,11 @@ see [README.md](../../README.md)), launch ONI, load or start a colony.
   source.
 - [ ] Place over existing/!valid terrain — replacement visualizers show which buildings
   are blocked; no crash.
+- [ ] **Replace over ports** - place a blueprint holding a powered, piped building (a gas pump,
+  an air conditioner) on top of existing pipework and wire. What sits on its pipe and power ports
+  is cleared along with its footprint, and the finished building connects up. A blueprint bridge
+  placed over a run of pipe clears only the two cells at its ends - what it spans is untouched.
+  A build order you had queued on a port cell is cancelled.
 - [ ] Rotate the placement (all four orientations) — preview and resulting orders rotate.
 - [ ] **Save / Copy a snapshot** — take a snapshot; the panel shows both buttons, with readable
   labels and no overlap. *Save as blueprint* asks for a name, and the blueprint then appears in
