@@ -802,8 +802,21 @@ public static class BlueprintState
 
         if (buildingVisual.BuildingDef.BuildingComplete.TryGetComponent<OccupyArea>(out var area))
         {
-            foreach (var cellOffset in area.OccupiedCellsOffsets)
-                cells[Grid.OffsetCell(buildingVisual.CurrentCell, cellOffset)] = buildingVisual;
+            ///rotated: these offsets are the building's own, so a rotated multi-cell building used
+            ///to register cells it does not cover - and those cells are what LayerOccupiedAt reads
+            ///back (#76).
+            ///
+            ///_UnrotatedOccupiedCellsOffsets rather than the OccupiedCellsOffsets property: the
+            ///property rotates by the *shared prefab's* Rotatable and caches onto it, so reading it
+            ///both allocates on this per-cursor-move path and would double-rotate if anything ever
+            ///left that prefab non-neutral.
+            var offsets = area._UnrotatedOccupiedCellsOffsets ?? area.OccupiedCellsOffsets;
+            foreach (var cellOffset in offsets)
+            {
+                int occupied = Grid.OffsetCell(buildingVisual.CurrentCell, Rotatable.GetRotatedCellOffset(cellOffset, buildingVisual.RotatedOrientation));
+                if (Grid.IsValidCell(occupied))
+                    cells[occupied] = buildingVisual;
+            }
         }
         else
         {
@@ -1238,16 +1251,54 @@ public static class BlueprintState
         //}
     }
 
+    /// <summary>
+    /// Whether something already occupies <paramref name="layer"/> at this cell: a finished
+    /// building, or another visual of the same blueprint. Back walls are deliberately not part of
+    /// this - ask <see cref="HasBackwallAt"/> for those. The two used to be one method, which
+    /// answered "occupied" for <i>every</i> layer over a real back wall, so the caller's second,
+    /// negated call ("is my own layer free?") said no and a back-wall building was refused exactly
+    /// where it belonged (#76).
+    /// </summary>
     internal static bool LayerOccupiedAt(IVisual checkingEntity, ObjectLayer layer, int cellParam)
     {
-        if (BackwallManager.HasBackwall(cellParam))
-            return true;
         var objectAtLayer = Grid.Objects[cellParam, (int)layer];
 
         if (objectAtLayer != null && objectAtLayer != checkingEntity.Visualizer)
             return true;
 
-        if (!OccupiedCells[PlayerId_DefaultTilePreviews].TryGetValue(layer, out var collection))
+        return PreviewOccupies(checkingEntity, layer, cellParam);
+    }
+
+    /// <summary>
+    /// Whether this cell can carry a building that must attach to a back wall: the map's own back
+    /// wall, a finished back-wall building, or one this blueprint is about to place.
+    /// </summary>
+    internal static bool HasBackwallAt(IVisual checkingEntity, int cellParam)
+    {
+        if (BackwallManager.HasBackwall(cellParam))
+            return true;
+
+        ///the tag, not just "something on the backwall layer": the game's own check is
+        ///HasTag(Backwall), and buildings that merely sit on that layer (the backwall farm, the
+        ///facility window) are not back walls to build against.
+        var objectAtLayer = Grid.Objects[cellParam, (int)ObjectLayer.Backwall];
+        if (objectAtLayer != null && objectAtLayer != checkingEntity.Visualizer
+            && objectAtLayer.HasTag(GameTags.Backwall))
+            return true;
+
+        return PreviewOccupies(checkingEntity, ObjectLayer.Backwall, cellParam);
+    }
+
+    /// <summary>Whether another visual of <paramref name="checkingEntity"/>'s own blueprint has
+    /// claimed this cell on this layer.</summary>
+    static bool PreviewOccupies(IVisual checkingEntity, ObjectLayer layer, int cellParam)
+    {
+        ///the asking visual's own player, not always the local one: in multiplayer each player has
+        ///their own preview set, and a remote visual checked against local cells is checking the
+        ///wrong blueprint.
+        if (!OccupiedCells.TryGetValue(checkingEntity.GetPlayerId(), out var layers))
+            return false;
+        if (!layers.TryGetValue(layer, out var collection))
         {
             SgtLogger.error("Unknown object layer: " + layer);
             return false;
