@@ -185,6 +185,31 @@ public sealed class SnapshotTool : MultiFilteredDragTool
         }
     }
 
+    /// <summary>
+    /// The paste key (Ctrl+V by default): a blueprint on the clipboard is placed in hand, and
+    /// failing that the last snapshot comes back, which is what this key used to do on its own.
+    /// Ported from upstream cb3991a, which left the fallback silent - each path says which of the
+    /// two happened, so a blueprint left on the clipboard cannot quietly shadow the snapshot.
+    /// </summary>
+    public void PasteOrReuseLastSnapshot()
+    {
+        if (ModAssets.ImportFromClipboard(out var pasted))
+            VisualizePasted(pasted);
+        else
+            TryVisualizeLastSnapshot();
+    }
+
+    /// <summary>Puts a blueprint pasted from the clipboard in hand.</summary>
+    public void VisualizePasted(Blueprint pasted)
+    {
+        ///Visualize only, as upstream notes: the other snapshot entry points file the blueprint
+        ///into the session list, and a pasted one is not a snapshot of anything.
+        Visualize(pasted, spawnFX: false);
+        PopFXManager.Instance.SpawnFX(ModAssets.BLUEPRINTS_CREATE_ICON_SPRITE,
+            STRINGS.UI.TOOLS.SNAPSHOT_TOOL.PASTED, null,
+            PlayerController.GetCursorPos(KInputManager.GetMousePos()), Config.Instance.FXTime);
+    }
+
     public void TryVisualizeLastSnapshot()
     {
         UsedSnapshotIndex = 0;
@@ -320,7 +345,7 @@ public sealed class SnapshotTool : MultiFilteredDragTool
         else
             if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsSnapshotReuseAction.GetKAction()))
             {
-                TryVisualizeLastSnapshot();
+                PasteOrReuseLastSnapshot();
             }
             else if (buttonEvent.TryConsume(ModAssets.Actions.BlueprintsReopenSelectionAction.GetKAction())
                 || buttonEvent.TryConsume(ModAssets.Actions.BlueprintsSnapshotAction.GetKAction())

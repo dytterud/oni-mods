@@ -12,6 +12,14 @@ and was never published under it.
 
 ### Added
 
+- **Paste a blueprint straight onto the map.** The snapshot tool's "use last snapshot" key is
+  bound to Ctrl+V, so it now does what that key suggests: a blueprint string on your clipboard is
+  put in hand, ready to place. With nothing usable on the clipboard it brings back your last
+  snapshot, as before. It works from the tool and from anywhere else, where it also switches to
+  the tool. Each path says which of the two it did, so the fallback is never silent. Ported from
+  upstream Blueprints Expanded, where it was silent and the hotkey's help text still described
+  only snapshots. (#97)
+
 - **Save or copy a snapshot from the blueprint panel.** Two buttons appear while placing a
   snapshot: *Save as blueprint*, which asks for a name and keeps the snapshot in your blueprint
   collection, and *Copy to clipboard*, which exports it as the usual shareable string. Snapshots

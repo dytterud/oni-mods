@@ -52,6 +52,10 @@ see [README.md](../../README.md)), launch ONI, load or start a colony.
 - [ ] **Back-wall buildings** (needs the DLC content that has them, e.g. a shelf) - a blueprint
   holding a back wall plus something mounted on it previews green and places. The same building
   previews green over an existing back wall, including a buried one, and red where there is none.
+- [ ] **Paste a blueprint** - copy one to the clipboard (the blueprint list's export button, or
+  the snapshot panel's Copy), then press Ctrl+V both inside the snapshot tool and from another
+  tool. The blueprint lands in hand with a "Pasted" pop-up. With junk on the clipboard the same
+  key brings back your last snapshot instead. The tool's hover card mentions both.
 - [ ] **Snap to Grid** — tick it in the blueprint state panel, then click and drag, with both the
   blueprint tool and the snapshot tool. Copies land edge to edge at the step shown, including on
   a fast drag. Rotate a quarter turn and drag again: copies still sit edge to edge. The row's
