@@ -33,6 +33,10 @@ public class Config : SingletonOptions<Config>
     [Option("STRINGS.BLUEPRINTS_CONFIG.FXTIME.TITLE", "STRINGS.BLUEPRINTS_CONFIG.FXTIME.TOOLTIP")]
     public float FXTime { get; set; } = 4;
 
+    [Option("STRINGS.BLUEPRINTS_CONFIG.NOTEOPACITY.TITLE", "STRINGS.BLUEPRINTS_CONFIG.NOTEOPACITY.TOOLTIP")]
+    [Limit(0.05, 1)]
+    public float NoteOpacity { get; set; } = 1f;
+
     [Option("STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLSYNC.TITLE", "STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLSYNC.TOOLTIP")]
     public bool CreateBlueprintToolSync { get; set; } = true;
 

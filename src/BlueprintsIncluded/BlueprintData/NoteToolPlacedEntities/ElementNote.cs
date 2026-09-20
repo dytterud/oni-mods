@@ -152,6 +152,7 @@ public class ElementNote : BlueprintNote, IMultiSliderControl
         }
         if (!vaccuum)
             renderer!.material.color = element.substance.colour;
+        ApplyNoteOpacity();
     }
 
 
