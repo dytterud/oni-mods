@@ -30,6 +30,11 @@ public class ReplacementVis : KMonoBehaviour
     protected int cell;
 
     protected HashSet<int> occupiedCells = new();
+    ///the building's connection points - conduit ports, power connectors, radbolt ports - with the
+    ///layer each sits on. Separate from occupiedCells because a port claims a *different* layer at
+    ///its cell than the building's own. A value tuple, not Klei's global Tuple<,>, which shadows
+    ///System.Tuple here and carries .first/.second.
+    protected HashSet<(int Cell, ObjectLayer Layer)> portOccupations = new();
     protected Extents extents;
     protected static Dictionary<Deconstructable, ReplacementVis> queuedDeconstructablesGlobal = new();
 
@@ -154,6 +159,10 @@ public class ReplacementVis : KMonoBehaviour
         {
             Visualizers[occupiedCell, (int)def.ObjectLayer] = null;
         }
+        foreach (var (portCell, portLayer) in portOccupations)
+        {
+            Visualizers[portCell, (int)portLayer] = null;
+        }
 
         if (TryReplacing)
         {
@@ -174,6 +183,15 @@ public class ReplacementVis : KMonoBehaviour
             }
             Visualizers[occupiedCell, (int)def.ObjectLayer] = this;
         }
+        foreach (var (portCell, portLayer) in portOccupations)
+        {
+            var existingVisOnPort = Visualizers[portCell, (int)portLayer];
+            if (existingVisOnPort != null && existingVisOnPort != this)
+            {
+                existingVisOnPort.DestroySelf();
+            }
+            Visualizers[portCell, (int)portLayer] = this;
+        }
         if (TryReplacing)
         {
             RefreshPendingDeconstructs(true);
@@ -190,6 +208,19 @@ public class ReplacementVis : KMonoBehaviour
 
             if (deconstruct)
                 CancelPlannedOccupyingBuildings(cell);
+        }
+
+        foreach (var (portCell, portLayer) in portOccupations)
+        {
+            DoDeconstrucThingsAt(portCell, portLayer, deconstruct);
+            ///a port cell only conflicts on its own layer, so unlike a footprint cell this cancels
+            ///just what sits there - a planned wire bridge or conduit in the way of the connection.
+            if (deconstruct && !markedForDeletion)
+            {
+                var existing = Grid.Objects[portCell, (int)portLayer];
+                if (existing != null && existing.TryGetComponent<Constructable>(out _))
+                    existing.Trigger((int)GameHashes.Cancel);
+            }
         }
     }
 
@@ -304,6 +335,18 @@ public class ReplacementVis : KMonoBehaviour
     bool TryPlacingQueuedBP()
     {
         replacementInProgress = true;
+
+        ///re-assert against whatever moved in since seating - including the port cells, which a
+        ///conduit can be laid across at any time (upstream c8cbdae). DoDeconstrucThingsAt destroys
+        ///this vis when it meets something it may not deconstruct, so bail rather than building
+        ///into a cell that is still blocked.
+        RefreshPendingDeconstructs(true);
+        if (markedForDeletion)
+        {
+            replacementInProgress = false;
+            return false;
+        }
+
         Vector3 posCbc = Grid.CellToPosCBC(cell, Grid.SceneLayer.Building);
         GameObject builtItem;
 
@@ -353,14 +396,74 @@ public class ReplacementVis : KMonoBehaviour
 
     }
 
+    /// <summary>
+    /// A bridge conflicts only at its two ends - the span between them passes over whatever is
+    /// there - so replacing one should clear those two cells and leave the rest alone. Ported from
+    /// upstream f64b19d; its two early-outs are upstream's, and they keep the narrowing off
+    /// anything that really fills its footprint (a cell occupier) or has only one cell anyway.
+    /// </summary>
+    static bool DefIsBridge(BuildingDef def, out CellOffset input, out CellOffset output)
+    {
+        input = default;
+        output = default;
+
+        if (def.BuildingComplete.TryGetComponent<SimCellOccupier>(out _)
+            || (def.WidthInCells == 1 && def.HeightInCells == 1))
+            return false;
+
+        if (def.BuildingComplete.TryGetComponent<ConduitBridgeBase>(out _))
+        {
+            input = def.UtilityInputOffset;
+            output = def.UtilityOutputOffset;
+            return true;
+        }
+        if (def.BuildingComplete.TryGetComponent<UtilityNetworkLink>(out var networkLink))
+        {
+            input = networkLink.link1;
+            output = networkLink.link2;
+            return true;
+        }
+        return false;
+    }
+
     void DetermineOccupiedCells()
     {
         occupiedCells.Clear();
-        foreach (var offset in def.PlacementOffsets)
+        portOccupations.Clear();
+
+        if (DefIsBridge(def, out var bridgeInput, out var bridgeOutput))
         {
-            var rotated = Rotatable.GetRotatedCellOffset(offset, orientation);
-            occupiedCells.Add(Grid.OffsetCell(cell, rotated));
+            occupiedCells.Add(OffsetRotated(bridgeInput));
+            occupiedCells.Add(OffsetRotated(bridgeOutput));
         }
+        else
+        {
+            foreach (var offset in def.PlacementOffsets)
+                occupiedCells.Add(OffsetRotated(offset));
+        }
+
+        ///the connection points. Each claims its own layer at its cell, which the footprint set
+        ///never covered, so a pipe or wire already sitting on a port used to be left in place and
+        ///the replacement came out unconnected.
+        if (def.InputConduitType != ConduitType.None)
+            portOccupations.Add((OffsetRotated(def.UtilityInputOffset), Grid.GetObjectLayerForConduitType(def.InputConduitType)));
+        if (def.OutputConduitType != ConduitType.None)
+            portOccupations.Add((OffsetRotated(def.UtilityOutputOffset), Grid.GetObjectLayerForConduitType(def.OutputConduitType)));
+        if (def.RequiresPowerInput)
+            portOccupations.Add((OffsetRotated(def.PowerInputOffset), ObjectLayer.WireConnectors));
+        if (def.RequiresPowerOutput)
+            portOccupations.Add((OffsetRotated(def.PowerOutputOffset), ObjectLayer.WireConnectors));
+        ///radbolt ports (upstream c8cbdae). ObjectLayer.Building rather than a port layer of their
+        ///own: that is where a radbolt joint plate sits, and there is no HEP conduit layer.
+        if (def.UseHighEnergyParticleInputPort)
+            portOccupations.Add((OffsetRotated(def.HighEnergyParticleInputOffset), ObjectLayer.Building));
+        if (def.UseHighEnergyParticleOutputPort)
+            portOccupations.Add((OffsetRotated(def.HighEnergyParticleOutputOffset), ObjectLayer.Building));
+
+        ///a port outside the footprint still has to be watched, or a pipe laid there after seating
+        ///would not trigger the re-check
+        portOccupations.RemoveWhere(port => !Grid.IsValidCell(port.Cell));
+
         Grid.CellToXY(cell, out int x, out int y);
         int val1_1 = x;
         int val1_2 = y;
@@ -376,11 +479,23 @@ public class ReplacementVis : KMonoBehaviour
             val1_1 = Math.Max(val1_1, val2_1);
             val1_2 = Math.Max(val1_2, val2_2);
         }
+        foreach (var (portCell, _) in portOccupations)
+        {
+            Grid.CellToXY(portCell, out int portX, out int portY);
+            x = Math.Min(x, portX);
+            y = Math.Min(y, portY);
+            val1_1 = Math.Max(val1_1, portX);
+            val1_2 = Math.Max(val1_2, portY);
+        }
+
         this.extents.x = x;
         this.extents.y = y;
         this.extents.width = val1_1 - x + 1;
         this.extents.height = val1_2 - y + 1;
     }
+
+    int OffsetRotated(CellOffset offset) =>
+        Grid.OffsetCell(cell, Rotatable.GetRotatedCellOffset(offset, orientation));
 
     protected virtual void UpdateVisualState()
     {
