@@ -38,6 +38,9 @@ public class BlueprintNote : KMonoBehaviour
         refreshHandle = Subscribe((int)GameHashes.RefreshUserMenu, OnRefreshUserMenu);
         cancelHandle = Subscribe((int)GameHashes.Cancel, Cancel);
 
+        ///a note restored from a save never goes through SetInfo, so fade it here too
+        ApplyNoteOpacity();
+
         ///only seated notes own a rendered mesh; unseated ones have nothing to hide.
         if (SeatIndicator)
         {
@@ -59,6 +62,37 @@ public class BlueprintNote : KMonoBehaviour
     }
 
     private void ChangeVisibility(bool visible) => renderer.enabled = visible;
+
+    /// <summary>
+    /// Fades the note to the configured opacity. The note's own colour carries an alpha already
+    /// (its material is Klei's transparent placer shader), so this scales that rather than
+    /// replacing it - at the default of 1 a note looks exactly as it always has.
+    ///
+    /// Call after any change to the material's colour: both note types set it themselves, and the
+    /// tint they set is the unfaded one.
+    /// </summary>
+    protected void ApplyNoteOpacity()
+    {
+        if (renderer == null || renderer.material == null)
+            return;
+
+        var colour = renderer.material.color;
+        colour.a = BaseAlpha * Mathf.Clamp01(Config.Instance.NoteOpacity);
+        renderer.material.color = colour;
+    }
+
+    ///the alpha the note's own material ships with, captured before anything fades it, so
+    ///repeated fades cannot compound.
+    private float baseAlpha = -1f;
+    private float BaseAlpha
+    {
+        get
+        {
+            if (baseAlpha < 0f)
+                baseAlpha = renderer == null || renderer.material == null ? 1f : renderer.material.color.a;
+            return baseAlpha;
+        }
+    }
     private void OnRefreshUserMenu(object data)
     {
         Game.Instance.userMenu.AddButton(this.gameObject, new KIconButtonMenu.ButtonInfo("action_cancel", DELETE_NOTE.NAME, new System.Action(this.OnCancel), tooltipText: DELETE_NOTE.TOOLTIP));

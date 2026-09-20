@@ -46,6 +46,7 @@ internal class TextNote : BlueprintNote
             renderer?.material.mainTexture = sprite.texture;
         }
         renderer?.material?.color = SymbolTint;
+        ApplyNoteOpacity();
 
         base.SetDescription();
     }

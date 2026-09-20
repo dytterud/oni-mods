@@ -12,6 +12,16 @@ and was never published under it.
 
 ### Added
 
+- **Note opacity.** A *Note Opacity* slider in the mod options fades placed blueprint notes, from
+  barely visible to the way they look today. Useful when a base is covered in them and you want
+  to see what is underneath. The setting is remembered, as mod options always are.
+
+  Ported from upstream Blueprints Expanded, but far more cheaply: upstream redraws notes through
+  a sprite renderer and rebuilds both note prefabs, while our notes already draw with a
+  transparent shader, so the fade is their own colour's alpha. Note visibility deliberately still
+  resets to shown on load, where upstream now persists that too - hiding your notes once should
+  not hide them in every colony you open afterwards. (#71)
+
 - **Save or copy a snapshot from the blueprint panel.** Two buttons appear while placing a
   snapshot: *Save as blueprint*, which asks for a name and keeps the snapshot in your blueprint
   collection, and *Copy to clipboard*, which exports it as the usual shareable string. Snapshots

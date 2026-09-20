@@ -49,6 +49,9 @@ see [README.md](../../README.md)), launch ONI, load or start a colony.
   labels and no overlap. *Save as blueprint* asks for a name, and the blueprint then appears in
   the list and survives a restart. *Copy to clipboard* pastes back in as the same snapshot. Neither
   button appears for a normal (already saved) blueprint.
+- [ ] **Note opacity** - set *Note Opacity* in the mod options to about 0.3, then place an
+  element note and a text note. Both are faint but readable, and stay faint after changing the
+  element or the symbol. At 1 they look as they always have. Hiding and showing notes still works.
 - [ ] **Snap to Grid** — tick it in the blueprint state panel, then click and drag, with both the
   blueprint tool and the snapshot tool. Copies land edge to edge at the step shown, including on
   a fast drag. Rotate a quarter turn and drag again: copies still sit edge to edge. The row's

@@ -73,6 +73,11 @@ public class STRINGS
             public static LocString TITLE = "Require blueprint building tech";
             public static LocString TOOLTIP = "If enabled, buildings in blueprints are only placed down if their required tech has been researched.";
         }
+        public class NOTEOPACITY
+        {
+            public static LocString TITLE = "Note Opacity";
+            public static LocString TOOLTIP = "How solid placed blueprint notes are drawn, from barely visible to fully opaque. Notes are somewhat see-through at 1, as they have always been.";
+        }
         public class FXTIME
         {
             public static LocString TITLE = "FX Time";

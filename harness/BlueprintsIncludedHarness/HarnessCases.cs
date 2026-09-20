@@ -75,6 +75,7 @@ internal static class HarnessCases
         new HarnessCase("element-note-capture-round-trips", NoteCaptureRoundTrip),
         new HarnessCase("instabuild-spawns-below-melting-point", InstabuildSpawnTemperature),
         new HarnessCase("note-visibility-toggle-hides-notes", NoteVisibilityToggle),
+        new HarnessCase("note-opacity-follows-the-setting", NoteOpacityFollowsTheSetting),
         new HarnessCase("planned-buildings-match-for-data-transfer", PlannedBuildingMatch),
         new HarnessCase("dig-placer-preview-filter-hides-digs", DigPlacerPreviewFilter),
         new HarnessCase("conduit-flags-ignore-captured-orientation", ConduitFlagsIgnoreCapturedOrientation),
@@ -667,6 +668,74 @@ internal static class HarnessCases
         Assert.True(seated == w * h, $"{when}: every footprint cell is seated ({seated}/{w * h})");
         Assert.True(wrongDef == 0, $"{when}: every seated cell carries the blueprint's def ({wrongDef} did not)");
         Assert.True(strays == 0, $"{when}: no tile left seated outside the footprint ({strays} found)");
+    }
+
+    // ---- #71: notes fade to the configured opacity ---------------------------------
+
+    /// <summary>
+    /// Note opacity is applied by scaling the alpha of the note's own material colour - our notes
+    /// already draw through Klei's transparent placer shader, so no prefab rebuild was needed
+    /// (upstream's cc28b8b swaps both note prefabs onto a SpriteRenderer to achieve the same
+    /// thing). Asserts a note spawns at the configured opacity, and that retinting it - which both
+    /// note types do whenever their element or symbol changes - does not undo the fade.
+    /// </summary>
+    private static IEnumerator NoteOpacityFollowsTheSetting()
+    {
+        var xy = Grid.CellToXY(AnchorCell);
+        int cell = Grid.XYToCell(xy.x - 3, xy.y - 3);
+        if (Grid.IsSolidCell(cell))
+        {
+            SimMessages.Dig(cell, skipEvent: true);
+            for (int i = 0; i < 30 && Grid.IsSolidCell(cell); i++) yield return null;
+        }
+
+        var cfg = ModConfig();
+        float savedOpacity = cfg.NoteOpacity;
+        BlueprintNote? note = null;
+        try
+        {
+            ///full opacity first, to read the alpha the material ships with
+            cfg.NoteOpacity = 1f;
+            note = ElementNote.Create(cell, SimHashes.Oxygen, amount: 100f, temperature: 296f, seat: true);
+            Assert.True(note != null, "created a seated element note");
+            for (int i = 0; i < 5; i++) yield return null;
+
+            var renderer = note!.GetComponentInChildren<MeshRenderer>();
+            Assert.True(renderer != null, "the note draws through a MeshRenderer");
+            float baseAlpha = renderer!.material.color.a;
+            Log?.Line($"  shader={renderer.material.shader?.name}, alpha at opacity 1: {baseAlpha:0.000}");
+            Assert.True(baseAlpha > 0f, "the note's own material carries an alpha to scale");
+
+            BlueprintNote.ClearExistingNote(cell);
+            note = null;
+            for (int i = 0; i < 3; i++) yield return null;
+
+            ///and now faded
+            cfg.NoteOpacity = 0.4f;
+            note = ElementNote.Create(cell, SimHashes.Oxygen, amount: 100f, temperature: 296f, seat: true);
+            for (int i = 0; i < 5; i++) yield return null;
+            renderer = note!.GetComponentInChildren<MeshRenderer>();
+            float fadedAlpha = renderer!.material.color.a;
+            Log?.Line($"  alpha at opacity 0.4: {fadedAlpha:0.000} (expected {baseAlpha * 0.4f:0.000})");
+            Assert.True(Mathf.Abs(fadedAlpha - baseAlpha * 0.4f) < 0.01f,
+                "a note spawns at the configured opacity");
+
+            ///retint: changing the element rewrites the material colour, and the fade must survive
+            ((ElementNote)note).SetInfo(SimHashes.CrudeOil, 200f, 300f);
+            ((ElementNote)note).SetElementTint();
+            for (int i = 0; i < 3; i++) yield return null;
+            float afterRetint = renderer.material.color.a;
+            Log?.Line($"  alpha after a retint: {afterRetint:0.000}");
+            Assert.True(Mathf.Abs(afterRetint - baseAlpha * 0.4f) < 0.01f,
+                "retinting the note keeps it faded");
+
+            yield return Screenshot.Capture("note-opacity-40", Log);
+        }
+        finally
+        {
+            cfg.NoteOpacity = savedOpacity;
+            BlueprintNote.ClearExistingNote(cell);
+        }
     }
 
     // ---- note visibility toggle ----------------------------------
