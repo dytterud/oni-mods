@@ -73,6 +73,7 @@ internal static class HarnessCases
         new HarnessCase("blueprint-rotation-rotates-the-layout", RotationLayout),
         new HarnessCase("data-transfer-priority-round-trips", DataTransferPriority),
         new HarnessCase("element-note-capture-round-trips", NoteCaptureRoundTrip),
+        new HarnessCase("paste-key-takes-a-blueprint-from-the-clipboard", PasteFromClipboard),
         new HarnessCase("instabuild-spawns-below-melting-point", InstabuildSpawnTemperature),
         new HarnessCase("note-visibility-toggle-hides-notes", NoteVisibilityToggle),
         new HarnessCase("planned-buildings-match-for-data-transfer", PlannedBuildingMatch),
@@ -2506,6 +2507,62 @@ internal static class HarnessCases
         typeof(ReplacementVis)
             .GetField(field, BindingFlags.NonPublic | BindingFlags.Instance)!
             .SetValue(vis, value);
+
+    // ---- #97: the paste key ---------------------------------------
+
+    /// <summary>
+    /// The snapshot tool's paste key (Ctrl+V by default) puts a blueprint from the clipboard in
+    /// hand, and falls back to the last snapshot when the clipboard holds nothing usable. Drives
+    /// the same method the key does, with a real exported blueprint on the clipboard and then with
+    /// junk on it.
+    /// </summary>
+    private static IEnumerator PasteFromClipboard()
+    {
+        var tool = BlueprintsV2.Tools.SnapshotTool.Instance;
+        if (tool == null)
+        {
+            Log?.Line("  REACHABILITY: the snapshot tool has not been created in this session");
+            yield break;
+        }
+
+        var source = Snapshot(TileRowTopLeft(), TileRowBottomRight());
+        int expected = source.BuildingConfigurations.Count(b => !b.BuildingDisabled);
+        Assert.True(expected > 0, "the source blueprint captured something");
+
+        ///ModAssets is internal - export through it by reflection, as FixtureBuilder does
+        typeof(Blueprint).Assembly.GetType("BlueprintsV2.ModAssets")!
+            .GetMethod("ExportToClipboard", BindingFlags.Public | BindingFlags.Static)!
+            .Invoke(null, new object[] { source });
+
+        try
+        {
+            tool.PasteOrReuseLastSnapshot();
+            for (int i = 0; i < 5; i++) yield return null;
+
+            var pasted = BlueprintsV2.Tools.SnapshotTool.CurrentSnapshot;
+            Assert.True(pasted != null, "the paste key put a blueprint in hand");
+            int pastedCount = pasted!.BuildingConfigurations.Count(b => !b.BuildingDisabled);
+            Log?.Line($"  pasted {pastedCount} building(s), source had {expected}");
+            Assert.Equal(expected, pastedCount, "the pasted blueprint holds what was exported");
+            Assert.True(!ReferenceEquals(pasted, source), "it came back through the clipboard, not by reference");
+
+            ///junk on the clipboard: the key falls back to the last snapshot rather than throwing
+            ///or clearing what is in hand
+            UtilLibs.IO_Utils.PutToClipboard("not a blueprint");
+            tool.PasteOrReuseLastSnapshot();
+            for (int i = 0; i < 5; i++) yield return null;
+
+            var afterJunk = BlueprintsV2.Tools.SnapshotTool.CurrentSnapshot;
+            Log?.Line($"  after junk on the clipboard: {(afterJunk == null ? "(nothing in hand)" : afterJunk.FriendlyName)}");
+            Assert.True(afterJunk != null, "junk on the clipboard falls back to a snapshot rather than emptying the hand");
+        }
+        finally
+        {
+            UtilLibs.IO_Utils.PutToClipboard(string.Empty);
+            tool.DeleteBlueprint();
+            BlueprintState.ClearVisuals();
+        }
+    }
 
     // ---- placement helper ----------------------------------------
 
