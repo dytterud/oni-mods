@@ -69,12 +69,18 @@ internal class TextNoteSideScreen : SideScreenContent
 
         TitleInput = transform.Find("NoteTitleInput/Input").gameObject.AddOrGet<FInputField2>();
         TitleInput.Text = string.Empty;
-        TitleInput.OnValueChanged.AddListener(SetTitle);
+        ///AddListener, not OnValueChanged.AddListener: only the former honours FInputField2's
+        ///DataTextUpdate guard, so pushing a note's own text into the field with SetTextFromData
+        ///no longer comes back through here and writes it straight back to the note (#63).
+        TitleInput.AddListener(SetTitle);
 
         TextInput = transform.Find("NoteTextInput/Input").gameObject.AddOrGet<FInputField2>();
         TextInput.Text = string.Empty;
-        TextInput.OnValueChanged.AddListener(SetText);
+        TextInput.AddListener(SetText);
 
+        ///the clear buttons deliberately set Text raw: the resulting event is what clears the
+        ///note itself and repaints these buttons. Routing them through the guard would stop them
+        ///clearing anything.
         ClearTitle = transform.Find("NoteTitleInput/DeleteButton").gameObject.AddOrGet<FButton>();
         ClearTitle.OnClick += () => TitleInput.Text = string.Empty;
 
@@ -109,6 +115,10 @@ internal class TextNoteSideScreen : SideScreenContent
         }
         ColorPicker.SetSelected(data.SymbolTint);
         SymbolPicker.SetSelected(data.Symbol);
+        ///explicitly, now that the pushes above no longer re-enter SetTitle/SetText: they were
+        ///what used to repaint these buttons on this path, so without this they would keep the
+        ///previous note's state.
+        RefreshClearButtons();
     }
     void SetTitle(string val)
     {

@@ -72,6 +72,13 @@ and was never published under it.
   until the next load. It is now rebuilt each time it is shown. With no key bound (the default),
   it no longer ends in "[NONE]". (#68)
 
+- **Selecting a text note no longer writes the note's own text back to it.** Opening a note's
+  side screen pushed its title and text into the input fields, and those pushes came back
+  through the fields' change handlers, so every selection re-saved the note and fired a
+  multiplayer note update. Measured in-game: two write-backs per selection before this change,
+  none after. The two clear buttons, which used to be repainted by that stray event, are now
+  refreshed explicitly. (#63)
+
 - **A replacement preview can no longer run two placement checks at once.** The guard that stops a
   second check starting was released when a check began rather than when it finished, and the game
   delivers grid-change callbacks immediately rather than on the next frame - so a building placed by
