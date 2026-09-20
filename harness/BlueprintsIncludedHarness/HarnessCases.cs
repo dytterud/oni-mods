@@ -87,6 +87,7 @@ internal static class HarnessCases
         new HarnessCase("rotation-counts-in-same-building-detection", RotationConsideredForSameBuilding),
         new HarnessCase("reconstruct-reapplies-stored-settings", ReconstructReappliesSettings),
         new HarnessCase("preconfigure-screen-loads-the-plan's-settings", PreconfigureLoadsStoredSettings),
+        new HarnessCase("preconfigure-leaves-the-world-border-intact", PreconfigureLeavesTheBorderIntact),
         new HarnessCase("preconfigure-screen-opens-while-the-game-is-paused", PreconfigureWorksWhilePaused),
         new HarnessCase("preconfigure-button-shows-for-smi-backed-buildings", PreconfigureButtonShowsForSmiBackedBuildings),
         new HarnessCase("building-data-api-survives-a-dead-gameobject", BuildingDataApiSurvivesDeadGameObject),
@@ -1848,6 +1849,106 @@ internal static class HarnessCases
     /// <para>Has to be its own iterator: the deselect needs a frame to land before the destroy, and
     /// a <c>finally</c> block cannot <c>yield</c>.</para>
     /// </summary>
+    /// <summary>
+    /// #80: the preconfigure flow spawns a temporary building at the world's bottom-left corner -
+    /// inside the Unobtanium border wall - and destroys it again when the player is done. For a
+    /// building that occupies cells (a tile, a door) that means the border cells are replaced with
+    /// the temporary building's own element while it exists. Upstream now refills them afterwards,
+    /// which implies the teardown leaves a hole in the wall.
+    ///
+    /// Records the spawn footprint's elements and solidity either side of a real edit session, so
+    /// the claim is settled by measurement rather than by reading upstream's diff.
+    /// </summary>
+    private static IEnumerator PreconfigureLeavesTheBorderIntact()
+    {
+        var transferComponent = UnityEngine.Object
+            .FindObjectsByType<UnderConstructionDataTransfer>(FindObjectsSortMode.None)
+            .FirstOrDefault(t => t != null && t.GetStoredData().ContainsKey("Prioritizable"));
+        var plan = transferComponent == null ? null : transferComponent.building;
+        if (plan == null)
+        {
+            Log?.Line("  REACHABILITY: no queued building carrying stored data - earlier cases " +
+                      "normally leave one behind");
+            yield break;
+        }
+
+        var def = plan.Def;
+        bool occupiesCells = def.BuildingComplete != null
+            && def.BuildingComplete.GetComponent<SimCellOccupier>() != null;
+        Log?.Line($"  plan {def.PrefabID} {def.WidthInCells}x{def.HeightInCells}, occupies cells: {occupiesCells}");
+
+        ///the spawn cell the helper computes: the world's bottom-left corner, nudged right by half
+        ///the building's width
+        var world = plan.GetMyWorld();
+        int spawnCell = Grid.XYToCell(world.WorldOffset.X, world.WorldOffset.Y)
+            + Mathf.CeilToInt(def.WidthInCells / 2f);
+
+        var footprint = new List<int>();
+        def.RunOnArea(spawnCell, Orientation.Neutral, c =>
+        {
+            if (Grid.IsValidCell(c))
+                footprint.Add(c);
+        });
+        ///The fixture's corner happens to be open vacuum, and the hole can only show where the
+        ///border wall actually is - so put Unobtanium there first, exactly as a normal map's
+        ///border row has it, and restore whatever was there afterwards.
+        var original = footprint.ToDictionary(c => c, c => (Grid.Element[c]?.id ?? SimHashes.Void,
+            Grid.Mass[c], Grid.Temperature[c]));
+        foreach (int c in footprint)
+            SimMessages.ReplaceElement(c, SimHashes.Unobtanium, CellEventLogger.Instance.DebugTool,
+                1000f, 294.15f);
+        yield return WithSimRunning(frames: 10);
+
+        var before = footprint.ToDictionary(c => c, c => (Grid.Element[c]?.id ?? SimHashes.Void, Grid.Solid[c]));
+        Log?.Line("  border cells before: " + string.Join(", ",
+            before.Select(kv => $"{Grid.CellToXY(kv.Key)}={kv.Value.Item1}{(kv.Value.Item2 ? " solid" : string.Empty)}")));
+        if (before.Values.Any(v => v.Item1 != SimHashes.Unobtanium))
+        {
+            Log?.Line("  REACHABILITY: could not make the spawn cells Unobtanium, so the border " +
+                      "hole cannot be observed here");
+            foreach (var kv in original)
+                SimMessages.ReplaceElement(kv.Key, kv.Value.Item1, CellEventLogger.Instance.DebugTool,
+                    kv.Value.Item2, kv.Value.Item3);
+            yield break;
+        }
+
+        bool tornDown = false;
+        try
+        {
+            UnderConstructionDataSettingHelper.StartEditingUnderConstructionData(
+                plan.GetComponent<UnderConstructionDataTransfer>());
+            yield return WithSimRunning(frames: 30);
+
+            var during = footprint.ToDictionary(c => c, c => (Grid.Element[c]?.id ?? SimHashes.Void, Grid.Solid[c]));
+            Log?.Line("  border cells while editing: " + string.Join(", ",
+                during.Select(kv => $"{Grid.CellToXY(kv.Key)}={kv.Value.Item1}{(kv.Value.Item2 ? " solid" : string.Empty)}")));
+
+            yield return EndPreconfigureEditing();
+            tornDown = true;
+            yield return WithSimRunning(frames: 30);
+
+            var after = footprint.ToDictionary(c => c, c => (Grid.Element[c]?.id ?? SimHashes.Void, Grid.Solid[c]));
+            Log?.Line("  border cells after: " + string.Join(", ",
+                after.Select(kv => $"{Grid.CellToXY(kv.Key)}={kv.Value.Item1}{(kv.Value.Item2 ? " solid" : string.Empty)}")));
+
+            var changed = footprint.Where(c => !before[c].Equals(after[c])).ToList();
+            if (changed.Count > 0)
+                Log?.Line("  CHANGED: " + string.Join(", ", changed.Select(c =>
+                    $"{Grid.CellToXY(c)} {before[c].Item1}->{after[c].Item1}, solid {before[c].Item2}->{after[c].Item2}")));
+
+            Assert.True(changed.Count == 0,
+                "the preconfigure temporary building leaves the world border as it found it");
+        }
+        finally
+        {
+            if (!tornDown)
+                PreconfigureCleanUp();
+            foreach (var kv in original)
+                SimMessages.ReplaceElement(kv.Key, kv.Value.Item1, CellEventLogger.Instance.DebugTool,
+                    kv.Value.Item2, kv.Value.Item3);
+        }
+    }
+
     private static IEnumerator EndPreconfigureEditing()
     {
         ///Deselect through the SAME path the mod selected with. StartEditingUnderConstructionData

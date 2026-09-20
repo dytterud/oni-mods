@@ -79,6 +79,12 @@ and was never published under it.
   The check is also stricter in two ways the game already was: it wants a real back wall or an
   actual back-wall building, not merely something sharing that layer, and it no longer reads
   outside the map or across a world boundary for a building sitting at the edge. (#76)
+- **Preconfiguring a building no longer punches a hole in the world border.** The preconfigure
+  screen spawns a temporary copy of the building at the map's bottom-left corner, inside the
+  indestructible border wall. For a building that occupies cells - a tile, a door - that replaced
+  the wall, and destroying the copy afterwards left vacuum there, open to space. The wall is now
+  restored, with the element, mass and temperature it had. Measured in-game: the corner cell went
+  Unobtanium to Vacuum before this change, and stays Unobtanium after. (#80)
 
 - **The note-visibility button's tooltip names the key it is bound to now.** The tooltip was
   written once, when a colony loaded, so rebinding the key mid-game left it showing the old one
