@@ -93,11 +93,6 @@ public class STRINGS
             public static LocString TITLE = "Create Blueprint Tool Copy to Clipboard";
             public static LocString TOOLTIP = "Whether creating a blueprint also copies it to your clipboard as a shareable string. (configurable in game too)";
         }
-        public class SNAPSHOTTOOLCOPYTOCLIPBOARD
-        {
-            public static LocString TITLE = "Snapshot Tool Copy to Clipboard";
-            public static LocString TOOLTIP = "Whether taking a snapshot also copies it to your clipboard as a shareable string. (configurable in game too)";
-        }
         public class AUTOPREVIEWCUTTOFF
         {
             public static LocString TITLE = "Automatic Preview Confirmation Threshold";
@@ -216,6 +211,16 @@ public class STRINGS
                 {
                     public static LocString LABEL = "Apply settings to existing buildings:";
                     public static LocString TOOLTIP = "Finished buildings overlapping with blueprint visualizers containing settings will receive those settings when the blueprint is placed down.";
+                }
+                public class EXPORTACTIONS
+                {
+                    public static LocString SAVE_LABEL = "Save as blueprint";
+                    public static LocString EXPORT_LABEL = "Copy to clipboard";
+                    public static LocString SAVE_TOOLTIP = "Keep this snapshot as a blueprint. Snapshots are otherwise lost when you leave the game.";
+                    public static LocString EXPORT_TOOLTIP = "Copy this snapshot to your clipboard as a shareable string.";
+                    public static LocString SAVED = "Snapshot saved as {0}!";
+                    public static LocString EXPORTED = "Snapshot copied to clipboard!";
+                    public static LocString SAVE_EMPTY = "Snapshot is empty!";
                 }
                 public class GRIDSNAP
                 {
@@ -715,7 +720,6 @@ public class STRINGS
                 public static LocString TOOLTIP = "Take snapshot {0} or reuse last snapshot {1} \n\nCreate a blueprint and quickly place it elsewhere\nwhile not cluttering your blueprint collection!\nSnapshots do not persist between games or worlds.";
                 public static LocString EMPTY = "Snapshot would have been empty!";
                 public static LocString TAKEN = "Snapshot taken!";
-                public static LocString TAKEN_COPIED = "Snapshot taken and copied to clipboard!";
                 public static LocString TOOLTIP_TITLE = "SNAPSHOT TOOL";
                 public static LocString NEWSNAPSHOT = "Press {0} to take new snapshot.";
                 public static LocString REUSELASTSNAPSHOT = "Press {0} to reuse your last taken snapshot.";

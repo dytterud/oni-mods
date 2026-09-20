@@ -45,6 +45,10 @@ see [README.md](../../README.md)), launch ONI, load or start a colony.
 - [ ] Place over existing/!valid terrain — replacement visualizers show which buildings
   are blocked; no crash.
 - [ ] Rotate the placement (all four orientations) — preview and resulting orders rotate.
+- [ ] **Save / Copy a snapshot** — take a snapshot; the panel shows both buttons, with readable
+  labels and no overlap. *Save as blueprint* asks for a name, and the blueprint then appears in
+  the list and survives a restart. *Copy to clipboard* pastes back in as the same snapshot. Neither
+  button appears for a normal (already saved) blueprint.
 - [ ] **Back-wall buildings** (needs the DLC content that has them, e.g. a shelf) - a blueprint
   holding a back wall plus something mounted on it previews green and places. The same building
   previews green over an existing back wall, including a buried one, and red where there is none.

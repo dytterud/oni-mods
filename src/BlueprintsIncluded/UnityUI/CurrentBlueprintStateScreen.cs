@@ -32,6 +32,8 @@ internal class CurrentBlueprintStateScreen : KScreen
     int gridStepSourceRevision;
     //YesNoInfo CanRotate;
     FButton RotateL = null!, RotateR = null!, ChangeMaterialOverrides = null!;
+    FButton SaveSnapshot = null!, ExportSnapshot = null!;
+    GameObject ExportActions = null!;
     //YesNoInfo CanFlipH, CanFlipV;
     FButton FlipH = null!, FlipV = null!;
     ToolTip CanRotateL_TT = null!, CanRotateR_TT = null!, CanFlipH_TT = null!, CanFlipV_TT = null!;
@@ -74,6 +76,9 @@ internal class CurrentBlueprintStateScreen : KScreen
         DefaultGridStep(bp);
         EnableSnapshotMaterialOverrides.gameObject.SetActive(BlueprintState.CurrentStateInfo().IsPlacingSnapshot);
         ChangeMaterialOverrides.transform.parent.gameObject.SetActive(BlueprintState.CurrentStateInfo().IsPlacingSnapshot);
+        ///a saved blueprint is already on disk and the selection screen exports it, so these two
+        ///are only useful for a snapshot, which otherwise lives and dies with the session.
+        ExportActions.SetActive(BlueprintState.CurrentStateInfo().IsPlacingSnapshot);
         if (BlueprintState.CurrentStateInfo().IsPlacingSnapshot)
         {
             CurrentBPName.SetText("-");
@@ -236,6 +241,8 @@ internal class CurrentBlueprintStateScreen : KScreen
         ChangeMaterialOverrides = transform.Find("InfoItemsContainer/MaterialOverrides/Button").gameObject.AddOrGet<FButton>();
         ChangeMaterialOverrides.OnClick += ShowMaterialReplacementList;
 
+        BuildExportActions();
+
         //CanRotate = transform.Find("InfoItemsContainer/CanRotateYesNo").gameObject.AddOrGet<YesNoInfo>();
         RotateL = transform.Find("InfoItemsContainer/RotateActions/RotateL").gameObject.AddOrGet<FButton>();
         RotateL.OnClick += HandleRotationL;
@@ -350,6 +357,97 @@ internal class CurrentBlueprintStateScreen : KScreen
         BlueprintState.CurrentStateInfo().TryRotateBlueprint(true);
         BlueprintState.RefreshBlueprintVisualizers();
     }
+
+    /// <summary>
+    /// Builds the snapshot Save / Export row by cloning the material-overrides row, rather than
+    /// taking it from upstream's prefab: the bundle cb3991a ships it in is not a readable
+    /// AssetBundle (no <c>UnityFS</c> header - ONI refuses to load it and the mod fails at
+    /// startup), so this fork stays on cc28b8b's bundle and builds the row itself.
+    /// </summary>
+    void BuildExportActions()
+    {
+        var template = transform.Find("InfoItemsContainer/MaterialOverrides").gameObject;
+        ExportActions = Util.KInstantiateUI(template, template.transform.parent.gameObject, true);
+        ExportActions.name = "ExportActions";
+        ExportActions.transform.SetSiblingIndex(template.transform.GetSiblingIndex() + 1);
+
+        var save = ExportActions.transform.Find("Button").gameObject;
+        save.name = "Save";
+        var export = Util.KInstantiateUI(save, ExportActions, true);
+        export.name = "Export";
+
+        ///the clones carry the template's serialized state but not its C# event subscriptions, so
+        ///each starts with no handler of its own.
+        SaveSnapshot = save.AddOrGet<FButton>();
+        SaveSnapshot.ClearOnClick();
+        SaveSnapshot.OnClick += SaveSnapshotAsBlueprint;
+        SetButtonLabel(save, EXPORTACTIONS.SAVE_LABEL);
+        UIUtils.AddSimpleTooltipToObject(save, EXPORTACTIONS.SAVE_TOOLTIP);
+
+        ///upstream put both handlers on the Save button, leaving Export inert (cb3991a).
+        ExportSnapshot = export.AddOrGet<FButton>();
+        ExportSnapshot.ClearOnClick();
+        ExportSnapshot.OnClick += ExportSnapshotToClipboard;
+        SetButtonLabel(export, EXPORTACTIONS.EXPORT_LABEL);
+        UIUtils.AddSimpleTooltipToObject(export, EXPORTACTIONS.EXPORT_TOOLTIP);
+    }
+
+    static void SetButtonLabel(GameObject button, string text)
+    {
+        var label = button.transform.Find("Label");
+        if (label != null && label.TryGetComponent<LocText>(out var locText))
+            locText.SetText(text);
+    }
+
+    /// <summary>
+    /// Keeps a session snapshot as a real blueprint. A snapshot's FilePath is a bare GUID
+    /// (<see cref="Blueprint.SetRandomSnapshotId"/>), so it cannot just be written - upstream's
+    /// version called Write() on it, which throws in Directory.CreateDirectory(""). Naming it
+    /// first is what gives it a file location, exactly as the create-blueprint tool does.
+    /// </summary>
+    void SaveSnapshotAsBlueprint()
+    {
+        var snapshot = SnapshotTool.CurrentSnapshot;
+        if (snapshot == null || snapshot.IsEmpty())
+        {
+            SnapshotFX(EXPORTACTIONS.SAVE_EMPTY);
+            return;
+        }
+
+        BlueprintRenamingScreen.OpenNamingDialogue(
+            STRINGS.UI.DIALOGUE.NAMEBLUEPRINT_TITLE,
+            name =>
+            {
+                SaveNamedSnapshot(snapshot, name);
+                SnapshotFX(string.Format(EXPORTACTIONS.SAVED, snapshot.FriendlyName));
+            },
+            onCancel: () => { });
+    }
+
+    /// <summary>The save itself, without the naming dialog around it: give the snapshot a real file
+    /// location under the blueprints folder, write it, and register it so the selection screen
+    /// lists it.</summary>
+    internal static void SaveNamedSnapshot(Blueprint snapshot, string name)
+    {
+        snapshot.Rename(name, rewrite: true);
+        ModAssets.BlueprintFileHandling.HandleBlueprintLoading(snapshot.FilePath);
+    }
+
+    void ExportSnapshotToClipboard()
+    {
+        var snapshot = SnapshotTool.CurrentSnapshot;
+        if (snapshot == null || snapshot.IsEmpty())
+        {
+            SnapshotFX(EXPORTACTIONS.SAVE_EMPTY);
+            return;
+        }
+        ModAssets.ExportToClipboard(snapshot);
+        SnapshotFX(EXPORTACTIONS.EXPORTED);
+    }
+
+    static void SnapshotFX(string message) => PopFXManager.Instance.SpawnFX(
+        ModAssets.BLUEPRINTS_CREATE_ICON_SPRITE, message, null,
+        PlayerController.GetCursorPos(KInputManager.GetMousePos()), Config.Instance.FXTime);
 
     void ShowMaterialReplacementList()
     {

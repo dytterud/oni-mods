@@ -23,9 +23,6 @@ public sealed class SnapshotTool : MultiFilteredDragTool
     public static int SnapshotIndex => Instance != null ? Instance.UsedSnapshotIndex : 0;
     public static Blueprint? CurrentSnapshot => Instance != null ? Instance.snapshotBlueprint : null;
 
-    public override bool SupportsClipboardCopy => true;
-
-
     public SnapshotTool()
     {
         Instance = this;
@@ -182,14 +179,9 @@ public sealed class SnapshotTool : MultiFilteredDragTool
             bp.SetRandomSnapshotId();
             SetLastUsedBlueprint(bp);
 
-            bool copied = ClipboardCopyEnabled && !bp.IsEmpty() && TryCopyToClipboard(bp);
-
-            Visualize(bp, spawnFX: !copied);
-
-            if (copied)
-            {
-                PopFXManager.Instance.SpawnFX(ModAssets.BLUEPRINTS_CREATE_ICON_SPRITE, STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED, null, PlayerController.GetCursorPos(KInputManager.GetMousePos()), Config.Instance.FXTime);
-            }
+            ///no auto-copy here: the state screen's Copy to Clipboard button covers the snapshot
+            ///on demand, right where it is already in hand.
+            Visualize(bp);
         }
     }
 
@@ -397,14 +389,6 @@ public sealed class SnapshotTool : MultiFilteredDragTool
         base.OnSyncChanged(synced);
 
         Config.Instance.SnapshotToolSync = synced;
-        POptions.WriteSettings(Config.Instance);
-    }
-
-    public override void OnClipboardCopyChanged(bool enabled)
-    {
-        base.OnClipboardCopyChanged(enabled);
-
-        Config.Instance.SnapshotToolCopyToClipboard = enabled;
         POptions.WriteSettings(Config.Instance);
     }
 }

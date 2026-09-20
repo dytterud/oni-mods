@@ -879,16 +879,6 @@ msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.REQUIRECONSTRUCTABLE_TECH.TOOLTI
 msgid "If enabled, buildings in blueprints are only placed down if their required tech has been researched."
 msgstr "Si activé, les bâtiments d'un plan ne sont placés que si la technologie requise a été recherchée."
 
-#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE
-msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE"
-msgid "Snapshot Tool Copy to Clipboard"
-msgstr "Outil Instantané : copier dans le presse-papiers"
-
-#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP
-msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP"
-msgid "Whether taking a snapshot also copies it to your clipboard as a shareable string. (configurable in game too)"
-msgstr "Détermine si la prise d'un instantané le copie aussi dans le presse-papiers sous forme de chaîne partageable. (également configurable en jeu)"
-
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLSYNC.TITLE
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLSYNC.TITLE"
 msgid "Snapshot Tool Overlay Sync"
@@ -1223,11 +1213,6 @@ msgstr "Copier dans le presse-papiers"
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD_TOOLTIP"
 msgid "Also copy every blueprint this tool creates to your clipboard as a shareable string, ready to paste into the blueprint editor website"
 msgstr "Copier aussi chaque plan créé par cet outil dans votre presse-papiers sous forme de chaîne partageable, prêt à être collé sur le site de l'éditeur de plans"
-
-#. BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED
-msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED"
-msgid "Snapshot taken and copied to clipboard!"
-msgstr "Instantané pris et copié dans le presse-papiers !"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL"

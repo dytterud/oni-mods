@@ -92,6 +92,7 @@ internal static class HarnessCases
         new HarnessCase("building-data-api-survives-a-dead-gameobject", BuildingDataApiSurvivesDeadGameObject),
         new HarnessCase("anim-less-previews-are-all-tile-visuals", AnimLessPreviewsAreAllTileVisuals),
         new HarnessCase("note-side-screen-selection-does-not-write-back", NoteSideScreenSelection),
+        new HarnessCase("snapshot-save-and-export-buttons-are-wired", SnapshotSaveAndExportButtons),
         new HarnessCase("grid-snap-row-is-in-the-bundle-and-wired", GridSnapRowIsWired),
         new HarnessCase("grid-snap-drag-places-copies-edge-to-edge", GridSnapDragPlacesCopies),
         new HarnessCase("note-toggle-tooltip-follows-a-rebind", NoteToggleTooltipFollowsARebind),
@@ -2664,6 +2665,75 @@ internal static class HarnessCases
         Assert.True(wasted.Count == 0,
             "no anim-less preview reaches the base ApplyColorIfChanged, got: " + string.Join(", ", wasted));
         yield break;
+    }
+
+    // ---- #96: Save / Export on the snapshot state screen ---------------------------
+
+    /// <summary>
+    /// The ExportActions row is built in code by cloning the material-overrides row, because the
+    /// bundle upstream ships it in (cb3991a) is not a readable AssetBundle. Checks the row is
+    /// built with both buttons, that each got its own handler - upstream wired both to Save,
+    /// leaving Export inert - and that saving really writes a snapshot to the blueprints folder,
+    /// where upstream's Write() on a snapshot's bare-GUID path would have thrown.
+    /// </summary>
+    private static IEnumerator SnapshotSaveAndExportButtons()
+    {
+        var st = BlueprintState.CurrentStateInfo();
+        st.IsPlacingSnapshot = true;
+        string? writtenPath = null;
+        try
+        {
+            StateScreenType.GetMethod("ShowScreen")!.Invoke(null, new object[] { true });
+            yield return null;
+            var screen = (Component?)StateScreenType.GetField("Instance")!.GetValue(null);
+            Assert.True(screen != null, "the blueprint state screen was created");
+
+            var row = screen!.transform.Find("InfoItemsContainer/ExportActions");
+            Assert.True(row != null, "the screen builds an InfoItemsContainer/ExportActions row");
+
+            var handlers = new Dictionary<string, string>();
+            foreach (var name in new[] { "Save", "Export" })
+            {
+                var button = row!.Find(name);
+                Assert.True(button != null, $"ExportActions/{name} exists");
+                var fButton = button!.GetComponent<UtilLibs.UIcmp.FButton>();
+                Assert.True(fButton != null, $"ExportActions/{name} is wired as a button");
+                var onClick = (Delegate?)AccessTools.Field(typeof(UtilLibs.UIcmp.FButton), "OnClick").GetValue(fButton);
+                Assert.True(onClick != null, $"ExportActions/{name} has a click handler");
+                handlers[name] = string.Join("+", onClick!.GetInvocationList().Select(d => d.Method.Name));
+            }
+            Log?.Line($"  Save -> {handlers["Save"]}, Export -> {handlers["Export"]}");
+            Assert.True(handlers["Save"] != handlers["Export"], "each button has its own handler");
+
+            ///the save itself, with the naming dialog skipped
+            var snapshot = Snapshot(TileRowTopLeft(), TileRowBottomRight());
+            Assert.True(!snapshot.IsEmpty(), "the snapshot captured something");
+            Assert.True(!snapshot.FilePath.Contains(System.IO.Path.DirectorySeparatorChar),
+                "a fresh snapshot's FilePath is a bare id, not a real location");
+
+            string name2 = "harness-snapshot-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+            StateScreenType.GetMethod("SaveNamedSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!
+                .Invoke(null, new object[] { snapshot, name2 });
+            writtenPath = snapshot.FilePath;
+
+            Log?.Line($"  saved to {writtenPath}");
+            Assert.True(System.IO.File.Exists(writtenPath), "saving writes a .blueprint file");
+            ///ModAssets is internal - ask it for the blueprints folder by reflection.
+            string blueprintDir = (string)typeof(Blueprint).Assembly
+                .GetType("BlueprintsV2.ModAssets+BlueprintFileHandling")!
+                .GetMethod("GetBlueprintDirectory", BindingFlags.Public | BindingFlags.Static)!
+                .Invoke(null, null)!;
+            Assert.Equal(blueprintDir, System.IO.Path.GetDirectoryName(writtenPath),
+                "the file lands in the blueprints folder");
+            Assert.Equal(name2, snapshot.FriendlyName, "the snapshot took the name it was given");
+        }
+        finally
+        {
+            StateScreenType.GetMethod("ShowScreen")!.Invoke(null, new object[] { false });
+            st.IsPlacingSnapshot = false;
+            if (writtenPath != null && System.IO.File.Exists(writtenPath))
+                System.IO.File.Delete(writtenPath);
+        }
     }
 
     // ---- #79: snap-to-grid ---------------------------------------------

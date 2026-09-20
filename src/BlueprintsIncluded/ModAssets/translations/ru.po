@@ -1182,16 +1182,6 @@ msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOA
 msgid "Whether creating a blueprint also copies it to your clipboard as a shareable string. (configurable in game too)"
 msgstr "Копировать ли созданный чертёж в буфер обмена в виде строки для обмена. (также настраивается в игре)"
 
-#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE
-msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE"
-msgid "Snapshot Tool Copy to Clipboard"
-msgstr "Инструмент «Снимок»: копировать в буфер обмена"
-
-#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP
-msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP"
-msgid "Whether taking a snapshot also copies it to your clipboard as a shareable string. (configurable in game too)"
-msgstr "Копировать ли сделанный снимок в буфер обмена в виде строки для обмена. (также настраивается в игре)"
-
 #. BlueprintsV2.STRINGS.UI.ACTIONS.TOGGLENOTEVIS
 msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.TOGGLENOTEVIS"
 msgid "Toggle blueprint note visibility"
@@ -1236,11 +1226,6 @@ msgstr "Копировать в буфер обмена"
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD_TOOLTIP"
 msgid "Also copy every blueprint this tool creates to your clipboard as a shareable string, ready to paste into the blueprint editor website"
 msgstr "Также копировать каждый созданный этим инструментом чертёж в буфер обмена в виде строки для обмена, готовой для вставки на сайт редактора чертежей"
-
-#. BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED
-msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED"
-msgid "Snapshot taken and copied to clipboard!"
-msgstr "Снимок сделан и скопирован в буфер обмена!"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL"
