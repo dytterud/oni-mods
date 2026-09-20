@@ -49,6 +49,9 @@ see [README.md](../../README.md)), launch ONI, load or start a colony.
   labels and no overlap. *Save as blueprint* asks for a name, and the blueprint then appears in
   the list and survives a restart. *Copy to clipboard* pastes back in as the same snapshot. Neither
   button appears for a normal (already saved) blueprint.
+- [ ] **Back-wall buildings** (needs the DLC content that has them, e.g. a shelf) - a blueprint
+  holding a back wall plus something mounted on it previews green and places. The same building
+  previews green over an existing back wall, including a buried one, and red where there is none.
 - [ ] **Note opacity** - set *Note Opacity* in the mod options to about 0.3, then place an
   element note and a text note. Both are faint but readable, and stay faint after changing the
   element or the symbol. At 1 they look as they always have. Hiding and showing notes still works.

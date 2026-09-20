@@ -97,6 +97,9 @@ internal static class HarnessCases
         new HarnessCase("grid-snap-row-is-in-the-bundle-and-wired", GridSnapRowIsWired),
         new HarnessCase("grid-snap-drag-places-copies-edge-to-edge", GridSnapDragPlacesCopies),
         new HarnessCase("note-toggle-tooltip-follows-a-rebind", NoteToggleTooltipFollowsARebind),
+        new HarnessCase("backwall-building-needs-backwall-under-every-cell", BackwallCoversEveryCell),
+        new HarnessCase("rotated-occupancy-follows-the-rotation", RotatedOccupancyFollowsTheRotation),
+        new HarnessCase("backwall-building-is-accepted-over-a-real-back-wall", BackwallOverRealBackwall),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -3085,6 +3088,318 @@ internal static class HarnessCases
             BlueprintNote.ClearExistingNote(cellA);
             BlueprintNote.ClearExistingNote(cellB);
         }
+    }
+
+    // ---- #76: the back-wall requirement is checked per cell ------------------------
+
+    /// <summary>
+    /// A building that must attach to a back wall may be placed over a back wall the same blueprint
+    /// brings with it - but only where the back wall really is. Asserts both halves of that
+    /// carve-out through the per-cell sweep that replaced the old anchor-cell-only check: the
+    /// building over the blueprint's own back wall is accepted, the same building without one is
+    /// refused.
+    ///
+    /// Also probes what this install has: every def with <c>BuildLocationRule.OnBackWall</c> and
+    /// its size, plus whether the map carries any real back wall. Both decide which of #76's
+    /// defects are reachable at all, so they are logged rather than assumed.
+    /// </summary>
+    private static IEnumerator BackwallCoversEveryCell()
+    {
+        var onBackwall = Assets.BuildingDefs
+            .Where(d => d != null && d.BuildLocationRule == BuildLocationRule.OnBackWall)
+            .ToList();
+        Log?.Line("  defs requiring a back wall: " + (onBackwall.Count == 0 ? "(none)" :
+            string.Join(", ", onBackwall.Select(d => d.PrefabID + " " + d.WidthInCells + "x" + d.HeightInCells))));
+        if (!onBackwall.Any(d => d.WidthInCells >= 2 || d.HeightInCells >= 2))
+            Log?.Line("  REACHABILITY: every one of them is 1x1 here, so the multi-cell half of #76 " +
+                      "(a building hanging off the end of a short back wall) cannot occur in this " +
+                      "install - the per-cell sweep still runs, over one cell");
+
+        var anchorXY = Grid.CellToXY(AnchorCell);
+        var target = new Vector2I(anchorXY.x - 34, anchorXY.y + 12);
+        int realBackwall = 0;
+        for (int dx = -14; dx <= 14; dx++)
+            for (int dy = -8; dy <= 8; dy++)
+            {
+                int c = Grid.XYToCell(target.x + dx, target.y + dy);
+                if (Grid.IsValidCell(c) && BackwallManager.HasBackwall(c))
+                    realBackwall++;
+            }
+        Log?.Line("  cells with a real back wall in the test area: " + realBackwall +
+                  (realBackwall == 0
+                      ? " - REACHABILITY: so #76's wrongly-rejected-over-a-real-back-wall half is unexercised"
+                      : string.Empty));
+
+        var wallDef = onBackwall.FirstOrDefault();
+        var backwallDef = Assets.BuildingDefs.FirstOrDefault(d =>
+            d != null && d.ObjectLayer == ObjectLayer.Backwall
+            && d.WidthInCells == 1 && d.HeightInCells == 1 && d.BuildingComplete != null);
+
+        if (wallDef == null || backwallDef == null)
+        {
+            Log?.Line("  REACHABILITY: this install has no OnBackWall def and/or no 1x1 back-wall " +
+                      "building, so the carve-out is unexercised - the case is shape-based, so a " +
+                      "DLC adding one would be covered as written");
+            yield break;
+        }
+        Log?.Line("  using " + wallDef.PrefabID + " (" + wallDef.PlacementOffsets.Length +
+                  " cell(s)) over " + backwallDef.PrefabID);
+
+        yield return ClearRegion(target, 14, 8);
+
+        bool? withWall = null, withoutWall = null;
+        var st = BlueprintState.CurrentStateInfo();
+        st.IsPlacingSnapshot = true;
+        try
+        {
+            foreach (bool includeBackwall in new[] { false, true })
+            {
+                var bp = new Blueprint("harness-backwall-" + (includeBackwall ? "with" : "without"), "");
+                AddConfig(bp, wallDef, new Vector2I(0, 0));
+                if (includeBackwall)
+                    foreach (var offset in wallDef.PlacementOffsets)
+                        AddConfig(bp, backwallDef, new Vector2I(offset.x, offset.y));
+                bp.CacheCost();
+
+                BlueprintState.VisualizeBlueprint(target, bp);
+                for (int i = 0; i < 6; i++) yield return null;
+
+                var visual = LiveVisuals().OfType<BuildingVisual>()
+                    .FirstOrDefault(v => v.BuildingID == wallDef.PrefabID);
+                Assert.True(visual != null, "the " + wallDef.PrefabID + " visual exists");
+                bool accepted = visual!.ValidCell(visual.CurrentCell, out _);
+                Log?.Line("  back wall in the blueprint: " + includeBackwall + ", accepted=" + accepted);
+                if (includeBackwall) withWall = accepted; else withoutWall = accepted;
+
+                BlueprintState.ClearVisuals();
+                for (int i = 0; i < 3; i++) yield return null;
+            }
+
+            Assert.True(withWall == true, "a back-wall building over the blueprint's own back wall is accepted");
+            Assert.True(withoutWall == false, "the same building with no back wall under it is refused");
+        }
+        finally
+        {
+            BlueprintState.ClearVisuals();
+            st.IsPlacingSnapshot = false;
+        }
+    }
+
+    /// <summary>
+    /// The occupancy map a blueprint's visuals register (<c>BlueprintState.OccupiedCells</c>, which
+    /// is what <c>LayerOccupiedAt</c> reads back) must follow the blueprint's rotation. It used to
+    /// store the complete prefab's neutral offsets, so a rotated non-square building claimed cells
+    /// it does not cover (#76).
+    ///
+    /// Drives <c>StoreOccupiedArea</c> against a visual built directly, rather than through
+    /// <c>VisualizeBlueprint</c>: the defs that show the bug are ones a synthetic blueprint does
+    /// not produce visuals for here, and the store step is the whole subject of the assertion.
+    /// </summary>
+    private static IEnumerator RotatedOccupancyFollowsTheRotation()
+    {
+        var def = Assets.BuildingDefs.FirstOrDefault(d =>
+            d != null && d.WidthInCells != d.HeightInCells
+            && d.BuildingComplete != null && d.BuildingComplete.GetComponent<OccupyArea>() != null
+            && d.BuildingPreview != null
+            && d.PermittedRotations == PermittedRotations.R360);
+        if (def == null)
+        {
+            Log?.Line("  REACHABILITY: no rotatable non-square building with an occupy area in this " +
+                      "install, so rotated occupancy is unexercised");
+            yield break;
+        }
+
+        var anchorXY = Grid.CellToXY(AnchorCell);
+        int cell = Grid.XYToCell(anchorXY.x - 34, anchorXY.y - 14);
+        yield return ClearRegion(new Vector2I(anchorXY.x - 34, anchorXY.y - 14), 6, 6);
+
+        var config = new BuildingConfig
+        {
+            Offset = new Vector2I(0, 0),
+            BuildingDef = def,
+            BuildingDefId = def.PrefabID,
+            Orientation = Orientation.Neutral,
+        };
+        foreach (var tag in FixtureBuilder.SelectElements(def))
+            config.SelectedElements.Add(tag);
+
+        var storeOccupiedArea = AccessTools.Method(typeof(BlueprintState), "StoreOccupiedArea");
+        var clearOccupiedCells = AccessTools.Method(typeof(BlueprintState), "ClearOccupiedCells");
+        var visual = new BuildingVisual(config, cell, BlueprintState.PlayerId_DefaultTilePreviews);
+        try
+        {
+            visual.ApplyRotation(Orientation.R90, false, false);
+            Assert.Equal(Orientation.R90, visual.RotatedOrientation, "the visual took the rotation");
+
+            clearOccupiedCells.Invoke(null, new object[] { BlueprintState.PlayerId_DefaultTilePreviews });
+            storeOccupiedArea.Invoke(null, new object[] { BlueprintState.PlayerId_DefaultTilePreviews, visual });
+
+            var area = def.BuildingComplete.GetComponent<OccupyArea>();
+            ///the unrotated offsets, not the OccupiedCellsOffsets property: that property rotates
+            ///by the shared prefab's own Rotatable, so deriving the expectation from it would drift
+            ///with the production code instead of pinning it.
+            var offsets = area._UnrotatedOccupiedCellsOffsets ?? area.OccupiedCellsOffsets;
+            var neutral = offsets.Select(o => Grid.OffsetCell(cell, o)).OrderBy(c => c).ToList();
+            var expected = offsets
+                .Select(o => Grid.OffsetCell(cell, Rotatable.GetRotatedCellOffset(o, Orientation.R90)))
+                .OrderBy(c => c).ToList();
+            Assert.True(expected.Count > 1, "the occupy area really covers more than one cell");
+            var stored = BlueprintState.OccupiedCells[BlueprintState.PlayerId_DefaultTilePreviews][def.ObjectLayer]
+                .Where(kv => kv.Value == visual).Select(kv => kv.Key).OrderBy(c => c).ToList();
+
+            Log?.Line("  " + def.PrefabID + " " + def.WidthInCells + "x" + def.HeightInCells +
+                      " rotated R90: stored " + string.Join(" ", stored.Select(c => Grid.CellToXY(c).ToString())));
+            Log?.Line("  unrotated would have been " + string.Join(" ", neutral.Select(c => Grid.CellToXY(c).ToString())));
+
+            Assert.True(!expected.SequenceEqual(neutral),
+                "this def's footprint really changes under rotation, so the assertion below can fail");
+            CollectionAssert.SameItems(expected, stored, "the stored cells are the rotated footprint");
+        }
+        finally
+        {
+            clearOccupiedCells.Invoke(null, new object[] { BlueprintState.PlayerId_DefaultTilePreviews });
+            visual.DestroyVisualizer();
+        }
+    }
+
+    /// <summary>
+    /// The half of #76 that needed a real back wall: over one, <c>LayerOccupiedAt</c> used to
+    /// answer "occupied" for the building's own layer too, so the carve-out never fired.
+    ///
+    /// The cell has to be <b>solid</b> for that to show. The game refuses a back-wall building on
+    /// a buried cell even when the back wall is there (<c>CheckBackWallFoundation</c> tests
+    /// <c>Grid.Solid</c> as well), which is the case this mod means to wave through - it queues
+    /// build orders inside rock everywhere else, and a dupe digs it out. On an open cell with a
+    /// real back wall the game simply says yes, so the old code's answer never mattered there.
+    /// </summary>
+    private static IEnumerator BackwallOverRealBackwall()
+    {
+        var wallDef = Assets.BuildingDefs.FirstOrDefault(d =>
+            d != null && d.BuildLocationRule == BuildLocationRule.OnBackWall
+            && d.WidthInCells == 1 && d.HeightInCells == 1 && d.BuildingPreview != null);
+        if (wallDef == null)
+        {
+            Log?.Line("  REACHABILITY: no 1x1 OnBackWall def in this install");
+            yield break;
+        }
+
+        ///deliberately not dug: solid is the precondition, see the summary. Searched rather than
+        ///hard-coded, since which cells the fixture colony has already dug out is not fixed.
+        var anchorXY = Grid.CellToXY(AnchorCell);
+        int wallCell = Grid.InvalidCell, bareCell = Grid.InvalidCell;
+        for (int dy = -30; dy <= 30 && bareCell == Grid.InvalidCell; dy++)
+            for (int dx = -45; dx <= 45 && bareCell == Grid.InvalidCell; dx++)
+            {
+                int c = Grid.XYToCell(anchorXY.x + dx, anchorXY.y + dy);
+                int neighbour = Grid.XYToCell(anchorXY.x + dx + 2, anchorXY.y + dy);
+                if (!Grid.IsValidCell(c) || !Grid.IsValidCell(neighbour))
+                    continue;
+                if (Grid.IsSolidCell(c) && !Grid.Foundation[c]
+                    && Grid.IsSolidCell(neighbour) && !Grid.Foundation[neighbour]
+                    && !BackwallManager.HasBackwall(c) && !BackwallManager.HasBackwall(neighbour)
+                    && Grid.Objects[c, (int)ObjectLayer.Building] == null
+                    && Grid.Objects[neighbour, (int)ObjectLayer.Building] == null)
+                {
+                    wallCell = c;
+                    bareCell = neighbour;
+                }
+            }
+
+        if (wallCell == Grid.InvalidCell)
+        {
+            Log?.Line("  REACHABILITY: no pair of solid, back-wall-free cells near the fixture, so " +
+                      "the buried-cell-with-a-back-wall case is unexercised");
+            yield break;
+        }
+        foreach (int c in new[] { wallCell, bareCell })
+            Grid.Reveal(c, byte.MaxValue, forceReveal: true);
+        Log?.Line("  buried test cells: " + Grid.CellToXY(wallCell) + " and " + Grid.CellToXY(bareCell));
+        Assert.True(!BackwallManager.HasBackwall(wallCell) && !BackwallManager.HasBackwall(bareCell),
+            "the test cells start without a back wall");
+
+        SimMessages.SetBackwallData(wallCell,
+            (ushort)ElementLoader.GetElementIndex(SimHashes.SandStone), 200f, 293.15f);
+        for (int i = 0; i < 60 && !BackwallManager.HasBackwall(wallCell); i++)
+            yield return null;
+        if (!BackwallManager.HasBackwall(wallCell))
+        {
+            Log?.Line("  REACHABILITY: SetBackwallData did not take while the sim is paused, so " +
+                      "the real-back-wall half is unexercised");
+            yield break;
+        }
+
+        var config = new BuildingConfig
+        {
+            Offset = new Vector2I(0, 0),
+            BuildingDef = wallDef,
+            BuildingDefId = wallDef.PrefabID,
+            Orientation = Orientation.Neutral,
+        };
+        foreach (var tag in FixtureBuilder.SelectElements(wallDef))
+            config.SelectedElements.Add(tag);
+
+        var visual = new BuildingVisual(config, wallCell, BlueprintState.PlayerId_DefaultTilePreviews);
+        try
+        {
+            ///pin why the cell is being refused, so this cannot pass for an unrelated reason
+            wallDef.IsValidPlaceLocation(visual.Visualizer, wallCell, Orientation.Neutral, out string wallReason);
+            wallDef.IsValidPlaceLocation(visual.Visualizer, bareCell, Orientation.Neutral, out string bareReason);
+            Log?.Line("  the game on the back-wall cell: \"" + wallReason + "\", on the bare cell: \"" + bareReason + "\"");
+            string required = global::STRINGS.UI.TOOLTIPS.HELP_BUILDLOCATION_BACK_WALL_REQUIRED.ToString();
+            Assert.Equal(required, wallReason, "the game refuses the buried back-wall cell for the back-wall reason");
+            Assert.Equal(required, bareReason, "the game refuses the bare cell for the back-wall reason");
+
+            bool overWall = visual.ValidCell(wallCell, out _);
+            bool overNothing = visual.ValidCell(bareCell, out _);
+            Log?.Line("  over a real back wall: accepted=" + overWall + ", one cell away: accepted=" + overNothing);
+
+            Assert.True(overWall, "a back-wall building over a real back wall is accepted");
+            Assert.True(!overNothing, "the same building one cell away, with no back wall, is refused");
+        }
+        finally
+        {
+            visual.DestroyVisualizer();
+            SimMessages.Dig(wallCell, skipEvent: true, backwall: true);
+        }
+        for (int i = 0; i < 60 && BackwallManager.HasBackwall(wallCell); i++)
+            yield return null;
+        Log?.Line("  back wall removed: " + !BackwallManager.HasBackwall(wallCell));
+    }
+
+    private static void AddConfig(Blueprint bp, BuildingDef def, Vector2I offset)
+    {
+        var config = new BuildingConfig
+        {
+            Offset = offset,
+            BuildingDef = def,
+            BuildingDefId = def.PrefabID,
+            Orientation = Orientation.Neutral,
+        };
+        foreach (var tag in FixtureBuilder.SelectElements(def))
+            config.SelectedElements.Add(tag);
+        bp.BuildingConfigurations.Add(config);
+    }
+
+    /// <summary>Digs and reveals a box around <paramref name="centre"/>, as PlaceAt does for its
+    /// own target.</summary>
+    private static IEnumerator ClearRegion(Vector2I centre, int halfWidth, int halfHeight)
+    {
+        var region = new List<int>();
+        for (int dx = -halfWidth; dx <= halfWidth; dx++)
+            for (int dy = -halfHeight; dy <= halfHeight; dy++)
+            {
+                int c = Grid.XYToCell(centre.x + dx, centre.y + dy);
+                if (Grid.IsValidCell(c))
+                    region.Add(c);
+            }
+        foreach (int c in region)
+        {
+            if (Grid.IsSolidCell(c))
+                SimMessages.Dig(c, skipEvent: true);
+            Grid.Reveal(c, byte.MaxValue, forceReveal: true);
+        }
+        for (int i = 0; i < 600 && region.Any(Grid.IsSolidCell); i++)
+            yield return null;
     }
 
     private static HashSet<Constructable> Constructables() =>
