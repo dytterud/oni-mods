@@ -1082,16 +1082,6 @@ msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULT_ANCHOR.TOOLTIP"
 msgid "Placed blueprints are alligned with this position under the cursor by default.\nCan be swapped through via ctrl+R, persisting between blueprint placing."
 msgstr "배치된 청사진은 기본적으로 커서 아래 이 위치에 정렬됩니다.\nCtrl+R로 전환할 수 있으며 청사진을 배치하는 동안 유지됩니다."
 
-#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE
-msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE"
-msgid "Snapshot Tool Copy to Clipboard"
-msgstr "스냅샷 도구: 클립보드로 복사"
-
-#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP
-msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP"
-msgid "Whether taking a snapshot also copies it to your clipboard as a shareable string. (configurable in game too)"
-msgstr "스냅샷을 촬영할 때 공유 가능한 문자열로 클립보드에도 복사할지 여부입니다. (게임 내에서도 설정 가능)"
-
 #. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BC
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BC"
 msgid "Bottom Center"
@@ -1186,11 +1176,6 @@ msgstr "클립보드로 복사"
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD_TOOLTIP"
 msgid "Also copy every blueprint this tool creates to your clipboard as a shareable string, ready to paste into the blueprint editor website"
 msgstr "이 도구로 만든 모든 청사진을 청사진 편집기 웹사이트에 붙여넣을 수 있는 공유 가능한 문자열로 클립보드에도 복사합니다"
-
-#. BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED
-msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED"
-msgid "Snapshot taken and copied to clipboard!"
-msgstr "스냅샷을 촬영하고 클립보드에 복사했습니다!"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL"
