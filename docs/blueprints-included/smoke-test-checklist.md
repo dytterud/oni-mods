@@ -1,4 +1,4 @@
-# Manual smoke-test checklist
+﻿# Manual smoke-test checklist
 
 The mod has no automated end-to-end coverage — it needs a running game, and the
 meaningful pipeline tests are `[RequiresGameInstall]` (see [test/README.md](../../test/README.md)).
@@ -45,6 +45,10 @@ see [README.md](../../README.md)), launch ONI, load or start a colony.
 - [ ] Place over existing/!valid terrain — replacement visualizers show which buildings
   are blocked; no crash.
 - [ ] Rotate the placement (all four orientations) — preview and resulting orders rotate.
+- [ ] **Save / Copy a snapshot** — take a snapshot; the panel shows both buttons, with readable
+  labels and no overlap. *Save as blueprint* asks for a name, and the blueprint then appears in
+  the list and survives a restart. *Copy to clipboard* pastes back in as the same snapshot. Neither
+  button appears for a normal (already saved) blueprint.
 - [ ] **Snap to Grid** — tick it in the blueprint state panel, then click and drag, with both the
   blueprint tool and the snapshot tool. Copies land edge to edge at the step shown, including on
   a fast drag. Rotate a quarter turn and drag again: copies still sit edge to edge. The row's

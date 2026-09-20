@@ -12,6 +12,13 @@ and was never published under it.
 
 ### Added
 
+- **Save or copy a snapshot from the blueprint panel.** Two buttons appear while placing a
+  snapshot: *Save as blueprint*, which asks for a name and keeps the snapshot in your blueprint
+  collection, and *Copy to clipboard*, which exports it as the usual shareable string. Snapshots
+  are otherwise lost when you leave the game. Ported from upstream Blueprints Expanded, where both
+  buttons were wired to the same handler (so Export did nothing) and saving would have thrown,
+  because a snapshot has no file location until it is named. (#96)
+
 - **"Copy to Clipboard" for the snapshot and create-blueprint tools.** A new checkbox under
   *Auto. Sync to Overlays* in both tools' filter menus. With it ticked, what you drag out is also
   exported to your clipboard as the same shareable string the blueprint list's export button

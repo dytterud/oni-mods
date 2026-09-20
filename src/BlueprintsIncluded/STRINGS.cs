@@ -217,6 +217,16 @@ public class STRINGS
                     public static LocString LABEL = "Apply settings to existing buildings:";
                     public static LocString TOOLTIP = "Finished buildings overlapping with blueprint visualizers containing settings will receive those settings when the blueprint is placed down.";
                 }
+                public class EXPORTACTIONS
+                {
+                    public static LocString SAVE_LABEL = "Save as blueprint";
+                    public static LocString EXPORT_LABEL = "Copy to clipboard";
+                    public static LocString SAVE_TOOLTIP = "Keep this snapshot as a blueprint. Snapshots are otherwise lost when you leave the game.";
+                    public static LocString EXPORT_TOOLTIP = "Copy this snapshot to your clipboard as a shareable string.";
+                    public static LocString SAVED = "Snapshot saved as {0}!";
+                    public static LocString EXPORTED = "Snapshot copied to clipboard!";
+                    public static LocString SAVE_EMPTY = "Snapshot is empty!";
+                }
                 public class GRIDSNAP
                 {
                     public static LocString LABEL = "Snap to Grid:";
