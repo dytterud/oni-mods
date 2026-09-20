@@ -1,4 +1,4 @@
-# Upstream sync — tracking BlueprintsV2 upstream
+﻿# Upstream sync — tracking BlueprintsV2 upstream
 
 This mod is a standalone fork of **Blueprints Expanded** by SGT_Imalas. Upstream keeps
 developing, and nothing that happens there is visible here unless someone looks — not the fixes
@@ -146,9 +146,18 @@ usually has uncommitted work on a feature branch, and a dirty tree would skew th
 
 **Every substantive change under `BlueprintsV2/` gets an issue** — fixes *and* features. A fix
 clearing [the safety bar](#the-safety-bar) gets a pull request as well. Whether this fork wants
-a *feature* is decided in its issue, never by the scan. Closing a feature issue as `wontfix` is a
-first-class outcome, and it leaves a durable record of the decision — which silent skipping does
-not.
+a *feature* is decided in its issue, never by the scan.
+
+**The default answer for a feature is yes.** This fork aims to stay at parity with upstream:
+someone running Blueprints Included should not be missing things Blueprints Expanded has. So a
+feature issue is a port waiting to be scheduled, not a proposal that has to justify itself. Close
+one as `wontfix` when there is a *reason* — it depends on something this fork deliberately
+diverged from, it carries a side effect we do not want, or the cost is out of proportion to what
+it gives the player — and write that reason down. "Nobody asked for it" is not one.
+
+Parity is about what the mod does, not how it does it. Where upstream's implementation fits this
+fork badly, port the behaviour and build it the way this tree wants — the note-opacity port
+(#71) took upstream's feature and skipped the prefab rebuild it did not need here.
 
 **Find the commit's upstream issue before classifying it.** This is what stops a cleanup being
 written up as a bug fix. In order:
@@ -213,7 +222,7 @@ So when a commit contains more than one separable change:
 - Give the commit verdict `partial` in `state.json` and list every issue number:
   `{"sha":"901b123","verdict":"partial","issue":[1,6]}`.
 - A change deliberately not taken still gets written down — either its own issue, or an explicit
-  note on a sibling issue saying it was skipped and why. `wontfix` is a fine outcome; silence is
+  note on a sibling issue saying it was skipped and why. A reasoned `wontfix` is a fine outcome; silence is
   not.
 
 The same applies to a fix that is only *partly* already ported: open an issue for the residual
@@ -283,8 +292,10 @@ to retype it.
 | **Fix that does not** | issue, saying which clause it missed |
 | **Feature** | issue, always |
 
-Features are never auto-ported: whether this fork wants one is a decision, and a PR presumes
-the answer.
+Features are never auto-*PR*ed: the port is usually more than a diff transcription — it needs the
+fork's own shape, its strings, and in-game verification — and a scan-authored PR would presume
+all three. That is a statement about the scan's confidence, not a hint that the feature should be
+skipped; see [the triage rubric](#triage-rubric) for the default answer.
 
 The issue is not redundant bookkeeping. A PR can be closed unmerged, and the scanned SHA is
 filtered out of every later run — so a PR-only finding would disappear from the ledger with
@@ -379,10 +390,12 @@ the diff, so a reader knows the framing is inferred rather than sourced. Quote u
 for what the change is (its commit subject) rather than paraphrasing a diff into a bug claim: if
 upstream said "cleanup", the body says cleanup.
 
-For a feature, the body also has to give the reader enough to decide with — what it would cost
-here, what it touches, and anything about this fork that makes it awkward or attractive. End it
-with an explicit note that closing as `wontfix` is a fine outcome, so nobody feels the issue
-obliges them to port it.
+For a feature, the body also has to give the reader enough to schedule it — what it would cost
+here, what it touches, and anything about this fork that makes it awkward or attractive,
+including a cheaper shape than upstream's where one exists. Do not end it with a note inviting
+`wontfix`: the default is to port (see [the triage rubric](#triage-rubric)), and the body's job
+is to say what porting takes. If the scan has found a *specific* reason not to — a conflict with
+a deliberate divergence, a side effect the fork would not want — name that reason instead.
 
 A **pull request** references its issue with `Closes #N` and does not repeat the whole analysis
 — the issue holds that. It states which safety-bar clause it cleared and how that was checked

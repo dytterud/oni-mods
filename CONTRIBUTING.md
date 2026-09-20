@@ -1,4 +1,4 @@
-# Contributing
+﻿# Contributing
 
 Thanks for taking a look. This is a small mod with an unusual amount of build
 machinery, so the parts most likely to trip you up are collected here.
@@ -131,8 +131,10 @@ porting anything from upstream — including why some upstream files must never 
 synced wholesale.
 
 Those issues are labelled `bug` or `enhancement` alongside `upstream-sync`.
-Closing an `enhancement` one as `wontfix` is a perfectly good outcome; they exist
-so the decision gets recorded.
+Feature parity with upstream is a goal, so an `enhancement` one is a port waiting
+to be scheduled rather than a proposal to argue for. Close one as `wontfix` when
+there is a reason - it fights a deliberate divergence, carries a side effect this
+fork does not want, or costs far more than it gives - and record that reason.
 
 ## Pull requests
 
