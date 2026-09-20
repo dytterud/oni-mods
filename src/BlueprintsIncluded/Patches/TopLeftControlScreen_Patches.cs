@@ -74,13 +74,26 @@ internal class TopLeftControlScreen_Patches
 
             if (button.TryGetComponent<ToolTip>(out var tooltip))
             {
-                string hotkey = GameUtil.GetHotkeyString(ModAssets.Actions.BlueprintsToggleNoteVisibility.GetKAction());
-                tooltip.SetSimpleTooltip(string.IsNullOrEmpty(hotkey)
-                    ? STRINGS.UI.ACTIONS.TOGGLENOTEVIS
-                    : STRINGS.UI.ACTIONS.TOGGLENOTEVIS + " " + hotkey);
+                ///rebuilt each time it is shown, not once here: the screen only activates on load,
+                ///so a text fixed now would keep advertising the old key after a mid-session
+                ///rebind (#68).
+                tooltip.OnToolTip = TooltipText;
+                tooltip.SetSimpleTooltip(TooltipText());
             }
 
             RefreshNoteVisibilityToggle();
+        }
+
+        private static string TooltipText()
+        {
+            ///checked on the binding, not the string: GetHotkeyString renders an unbound action as
+            ///a localized "[NONE]", never as empty. The action ships unbound, so that is the default.
+            var action = ModAssets.Actions.BlueprintsToggleNoteVisibility.GetKAction();
+            bool bound = Array.Exists(GameInputMapping.KeyBindings,
+                b => b.mAction == action && b.mKeyCode != KKeyCode.None);
+            return bound
+                ? STRINGS.UI.ACTIONS.TOGGLENOTEVIS + " " + GameUtil.GetHotkeyString(action)
+                : STRINGS.UI.ACTIONS.TOGGLENOTEVIS;
         }
     }
 }

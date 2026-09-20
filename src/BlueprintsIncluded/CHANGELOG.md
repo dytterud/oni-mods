@@ -57,6 +57,11 @@ and was never published under it.
 
 ### Fixed
 
+- **The note-visibility button's tooltip names the key it is bound to now.** The tooltip was
+  written once, when a colony loaded, so rebinding the key mid-game left it showing the old one
+  until the next load. It is now rebuilt each time it is shown. With no key bound (the default),
+  it no longer ends in "[NONE]". (#68)
+
 - **A replacement preview can no longer run two placement checks at once.** The guard that stops a
   second check starting was released when a check began rather than when it finished, and the game
   delivers grid-change callbacks immediately rather than on the next frame - so a building placed by
