@@ -73,6 +73,7 @@ internal static class HarnessCases
         new HarnessCase("blueprint-rotation-rotates-the-layout", RotationLayout),
         new HarnessCase("data-transfer-priority-round-trips", DataTransferPriority),
         new HarnessCase("element-note-capture-round-trips", NoteCaptureRoundTrip),
+        new HarnessCase("paste-key-takes-a-blueprint-from-the-clipboard", PasteFromClipboard),
         new HarnessCase("instabuild-spawns-below-melting-point", InstabuildSpawnTemperature),
         new HarnessCase("note-visibility-toggle-hides-notes", NoteVisibilityToggle),
         new HarnessCase("note-opacity-follows-the-setting", NoteOpacityFollowsTheSetting),
@@ -88,6 +89,7 @@ internal static class HarnessCases
         new HarnessCase("rotation-counts-in-same-building-detection", RotationConsideredForSameBuilding),
         new HarnessCase("reconstruct-reapplies-stored-settings", ReconstructReappliesSettings),
         new HarnessCase("preconfigure-screen-loads-the-plan's-settings", PreconfigureLoadsStoredSettings),
+        new HarnessCase("preconfigure-leaves-the-world-border-intact", PreconfigureLeavesTheBorderIntact),
         new HarnessCase("preconfigure-screen-opens-while-the-game-is-paused", PreconfigureWorksWhilePaused),
         new HarnessCase("preconfigure-button-shows-for-smi-backed-buildings", PreconfigureButtonShowsForSmiBackedBuildings),
         new HarnessCase("building-data-api-survives-a-dead-gameobject", BuildingDataApiSurvivesDeadGameObject),
@@ -1917,6 +1919,106 @@ internal static class HarnessCases
     /// <para>Has to be its own iterator: the deselect needs a frame to land before the destroy, and
     /// a <c>finally</c> block cannot <c>yield</c>.</para>
     /// </summary>
+    /// <summary>
+    /// #80: the preconfigure flow spawns a temporary building at the world's bottom-left corner -
+    /// inside the Unobtanium border wall - and destroys it again when the player is done. For a
+    /// building that occupies cells (a tile, a door) that means the border cells are replaced with
+    /// the temporary building's own element while it exists. Upstream now refills them afterwards,
+    /// which implies the teardown leaves a hole in the wall.
+    ///
+    /// Records the spawn footprint's elements and solidity either side of a real edit session, so
+    /// the claim is settled by measurement rather than by reading upstream's diff.
+    /// </summary>
+    private static IEnumerator PreconfigureLeavesTheBorderIntact()
+    {
+        var transferComponent = UnityEngine.Object
+            .FindObjectsByType<UnderConstructionDataTransfer>(FindObjectsSortMode.None)
+            .FirstOrDefault(t => t != null && t.GetStoredData().ContainsKey("Prioritizable"));
+        var plan = transferComponent == null ? null : transferComponent.building;
+        if (plan == null)
+        {
+            Log?.Line("  REACHABILITY: no queued building carrying stored data - earlier cases " +
+                      "normally leave one behind");
+            yield break;
+        }
+
+        var def = plan.Def;
+        bool occupiesCells = def.BuildingComplete != null
+            && def.BuildingComplete.GetComponent<SimCellOccupier>() != null;
+        Log?.Line($"  plan {def.PrefabID} {def.WidthInCells}x{def.HeightInCells}, occupies cells: {occupiesCells}");
+
+        ///the spawn cell the helper computes: the world's bottom-left corner, nudged right by half
+        ///the building's width
+        var world = plan.GetMyWorld();
+        int spawnCell = Grid.XYToCell(world.WorldOffset.X, world.WorldOffset.Y)
+            + Mathf.CeilToInt(def.WidthInCells / 2f);
+
+        var footprint = new List<int>();
+        def.RunOnArea(spawnCell, Orientation.Neutral, c =>
+        {
+            if (Grid.IsValidCell(c))
+                footprint.Add(c);
+        });
+        ///The fixture's corner happens to be open vacuum, and the hole can only show where the
+        ///border wall actually is - so put Unobtanium there first, exactly as a normal map's
+        ///border row has it, and restore whatever was there afterwards.
+        var original = footprint.ToDictionary(c => c, c => (Grid.Element[c]?.id ?? SimHashes.Void,
+            Grid.Mass[c], Grid.Temperature[c]));
+        foreach (int c in footprint)
+            SimMessages.ReplaceElement(c, SimHashes.Unobtanium, CellEventLogger.Instance.DebugTool,
+                1000f, 294.15f);
+        yield return WithSimRunning(frames: 10);
+
+        var before = footprint.ToDictionary(c => c, c => (Grid.Element[c]?.id ?? SimHashes.Void, Grid.Solid[c]));
+        Log?.Line("  border cells before: " + string.Join(", ",
+            before.Select(kv => $"{Grid.CellToXY(kv.Key)}={kv.Value.Item1}{(kv.Value.Item2 ? " solid" : string.Empty)}")));
+        if (before.Values.Any(v => v.Item1 != SimHashes.Unobtanium))
+        {
+            Log?.Line("  REACHABILITY: could not make the spawn cells Unobtanium, so the border " +
+                      "hole cannot be observed here");
+            foreach (var kv in original)
+                SimMessages.ReplaceElement(kv.Key, kv.Value.Item1, CellEventLogger.Instance.DebugTool,
+                    kv.Value.Item2, kv.Value.Item3);
+            yield break;
+        }
+
+        bool tornDown = false;
+        try
+        {
+            UnderConstructionDataSettingHelper.StartEditingUnderConstructionData(
+                plan.GetComponent<UnderConstructionDataTransfer>());
+            yield return WithSimRunning(frames: 30);
+
+            var during = footprint.ToDictionary(c => c, c => (Grid.Element[c]?.id ?? SimHashes.Void, Grid.Solid[c]));
+            Log?.Line("  border cells while editing: " + string.Join(", ",
+                during.Select(kv => $"{Grid.CellToXY(kv.Key)}={kv.Value.Item1}{(kv.Value.Item2 ? " solid" : string.Empty)}")));
+
+            yield return EndPreconfigureEditing();
+            tornDown = true;
+            yield return WithSimRunning(frames: 30);
+
+            var after = footprint.ToDictionary(c => c, c => (Grid.Element[c]?.id ?? SimHashes.Void, Grid.Solid[c]));
+            Log?.Line("  border cells after: " + string.Join(", ",
+                after.Select(kv => $"{Grid.CellToXY(kv.Key)}={kv.Value.Item1}{(kv.Value.Item2 ? " solid" : string.Empty)}")));
+
+            var changed = footprint.Where(c => !before[c].Equals(after[c])).ToList();
+            if (changed.Count > 0)
+                Log?.Line("  CHANGED: " + string.Join(", ", changed.Select(c =>
+                    $"{Grid.CellToXY(c)} {before[c].Item1}->{after[c].Item1}, solid {before[c].Item2}->{after[c].Item2}")));
+
+            Assert.True(changed.Count == 0,
+                "the preconfigure temporary building leaves the world border as it found it");
+        }
+        finally
+        {
+            if (!tornDown)
+                PreconfigureCleanUp();
+            foreach (var kv in original)
+                SimMessages.ReplaceElement(kv.Key, kv.Value.Item1, CellEventLogger.Instance.DebugTool,
+                    kv.Value.Item2, kv.Value.Item3);
+        }
+    }
+
     private static IEnumerator EndPreconfigureEditing()
     {
         ///Deselect through the SAME path the mod selected with. StartEditingUnderConstructionData
@@ -2578,6 +2680,62 @@ internal static class HarnessCases
         typeof(ReplacementVis)
             .GetField(field, BindingFlags.NonPublic | BindingFlags.Instance)!
             .SetValue(vis, value);
+
+    // ---- #97: the paste key ---------------------------------------
+
+    /// <summary>
+    /// The snapshot tool's paste key (Ctrl+V by default) puts a blueprint from the clipboard in
+    /// hand, and falls back to the last snapshot when the clipboard holds nothing usable. Drives
+    /// the same method the key does, with a real exported blueprint on the clipboard and then with
+    /// junk on it.
+    /// </summary>
+    private static IEnumerator PasteFromClipboard()
+    {
+        var tool = BlueprintsV2.Tools.SnapshotTool.Instance;
+        if (tool == null)
+        {
+            Log?.Line("  REACHABILITY: the snapshot tool has not been created in this session");
+            yield break;
+        }
+
+        var source = Snapshot(TileRowTopLeft(), TileRowBottomRight());
+        int expected = source.BuildingConfigurations.Count(b => !b.BuildingDisabled);
+        Assert.True(expected > 0, "the source blueprint captured something");
+
+        ///ModAssets is internal - export through it by reflection, as FixtureBuilder does
+        typeof(Blueprint).Assembly.GetType("BlueprintsV2.ModAssets")!
+            .GetMethod("ExportToClipboard", BindingFlags.Public | BindingFlags.Static)!
+            .Invoke(null, new object[] { source });
+
+        try
+        {
+            tool.PasteOrReuseLastSnapshot();
+            for (int i = 0; i < 5; i++) yield return null;
+
+            var pasted = BlueprintsV2.Tools.SnapshotTool.CurrentSnapshot;
+            Assert.True(pasted != null, "the paste key put a blueprint in hand");
+            int pastedCount = pasted!.BuildingConfigurations.Count(b => !b.BuildingDisabled);
+            Log?.Line($"  pasted {pastedCount} building(s), source had {expected}");
+            Assert.Equal(expected, pastedCount, "the pasted blueprint holds what was exported");
+            Assert.True(!ReferenceEquals(pasted, source), "it came back through the clipboard, not by reference");
+
+            ///junk on the clipboard: the key falls back to the last snapshot rather than throwing
+            ///or clearing what is in hand
+            UtilLibs.IO_Utils.PutToClipboard("not a blueprint");
+            tool.PasteOrReuseLastSnapshot();
+            for (int i = 0; i < 5; i++) yield return null;
+
+            var afterJunk = BlueprintsV2.Tools.SnapshotTool.CurrentSnapshot;
+            Log?.Line($"  after junk on the clipboard: {(afterJunk == null ? "(nothing in hand)" : afterJunk.FriendlyName)}");
+            Assert.True(afterJunk != null, "junk on the clipboard falls back to a snapshot rather than emptying the hand");
+        }
+        finally
+        {
+            UtilLibs.IO_Utils.PutToClipboard(string.Empty);
+            tool.DeleteBlueprint();
+            BlueprintState.ClearVisuals();
+        }
+    }
 
     // ---- placement helper ----------------------------------------
 

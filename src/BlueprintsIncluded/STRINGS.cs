@@ -639,7 +639,7 @@ public class STRINGS
             public static LocString USE_TITLE = "Use Blueprint";
             public static LocString SNAPSHOT_TITLE = "Take Snapshot";
             public static LocString NOTETOOL_TITLE = "Create Notes";
-            public static LocString SNAPSHOT_REUSE_TITLE = "Use last Snapshot";
+            public static LocString SNAPSHOT_REUSE_TITLE = "Paste blueprint / use last Snapshot";
             public static LocString SELECT_DIFFERENT_TITLE = "Select different Blueprint";
             public static LocString CHANGE_ANCHOR_TITLE = "Change Blueprint Anchor";
             public static LocString TOGGLE_FORCE = "Toggle force rebuild";
@@ -727,7 +727,8 @@ public class STRINGS
                 public static LocString TAKEN = "Snapshot taken!";
                 public static LocString TOOLTIP_TITLE = "SNAPSHOT TOOL";
                 public static LocString NEWSNAPSHOT = "Press {0} to take new snapshot.";
-                public static LocString REUSELASTSNAPSHOT = "Press {0} to reuse your last taken snapshot.";
+                public static LocString REUSELASTSNAPSHOT = "Press {0} to paste a blueprint from your clipboard, or reuse your last taken snapshot.";
+                public static LocString PASTED = "Pasted blueprint from clipboard!";
 
                 public static LocString SELECTPREV_SNAPSHOT = "Previous snapshot: {0}";
                 public static LocString SELECTNEXT_SNAPSHOT = "Next snapshot: {0}";

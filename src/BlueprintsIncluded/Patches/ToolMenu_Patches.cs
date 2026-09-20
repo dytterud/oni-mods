@@ -23,14 +23,22 @@ class ToolMenu_Patches
                 return;
 
             if (e.IsAction(Actions.BlueprintsSnapshotReuseAction.GetKAction())
-                && SnapshotTool.HasSnapshotsStored
                 && __instance.currentlySelectedCollection != SnapshotToolCollection
                 )
             {
+                ///the clipboard is read once, here, and the blueprint handed over: the same key
+                ///inside the tool pastes too, and importing twice would parse it twice.
+                bool pasting = ModAssets.ImportFromClipboard(out var pasted);
+                if (!pasting && !SnapshotTool.HasSnapshotsStored)
+                    return;
+
                 e.Consumed = true;
                 __instance.ChooseCollection(SnapshotToolCollection);
                 __instance.ChooseTool(SnapshotToolCollection.tools[0]);
-                SnapshotTool.Instance.TryVisualizeLastSnapshot();
+                if (pasting)
+                    SnapshotTool.Instance.VisualizePasted(pasted!);
+                else
+                    SnapshotTool.Instance.TryVisualizeLastSnapshot();
             }
             else if (e.IsAction(Actions.BlueprintsToggleNoteVisibility.GetKAction()))
             {

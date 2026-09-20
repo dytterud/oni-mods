@@ -12,6 +12,13 @@ and was never published under it.
 
 ### Added
 
+- **Paste a blueprint straight onto the map.** The snapshot tool's "use last snapshot" key is
+  bound to Ctrl+V, so it now does what that key suggests: a blueprint string on your clipboard is
+  put in hand, ready to place. With nothing usable on the clipboard it brings back your last
+  snapshot, as before. It works from the tool and from anywhere else, where it also switches to
+  the tool. Each path says which of the two it did, so the fallback is never silent. Ported from
+  upstream Blueprints Expanded, where it was silent and the hotkey's help text still described
+  only snapshots. (#97)
 - **Note opacity.** A *Note Opacity* slider in the mod options fades placed blueprint notes, from
   barely visible to the way they look today. Useful when a base is covered in them and you want
   to see what is underneath. The setting is remembered, as mod options always are.
@@ -89,6 +96,12 @@ and was never published under it.
   The check is also stricter in two ways the game already was: it wants a real back wall or an
   actual back-wall building, not merely something sharing that layer, and it no longer reads
   outside the map or across a world boundary for a building sitting at the edge. (#76)
+- **Preconfiguring a building no longer punches a hole in the world border.** The preconfigure
+  screen spawns a temporary copy of the building at the map's bottom-left corner, inside the
+  indestructible border wall. For a building that occupies cells - a tile, a door - that replaced
+  the wall, and destroying the copy afterwards left vacuum there, open to space. The wall is now
+  restored, with the element, mass and temperature it had. Measured in-game: the corner cell went
+  Unobtanium to Vacuum before this change, and stays Unobtanium after. (#80)
 
 - **The note-visibility button's tooltip names the key it is bound to now.** The tooltip was
   written once, when a colony loaded, so rebinding the key mid-game left it showing the old one

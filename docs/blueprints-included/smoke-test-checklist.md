@@ -52,6 +52,10 @@ see [README.md](../../README.md)), launch ONI, load or start a colony.
 - [ ] **Back-wall buildings** (needs the DLC content that has them, e.g. a shelf) - a blueprint
   holding a back wall plus something mounted on it previews green and places. The same building
   previews green over an existing back wall, including a buried one, and red where there is none.
+- [ ] **Paste a blueprint** - copy one to the clipboard (the blueprint list's export button, or
+  the snapshot panel's Copy), then press Ctrl+V both inside the snapshot tool and from another
+  tool. The blueprint lands in hand with a "Pasted" pop-up. With junk on the clipboard the same
+  key brings back your last snapshot instead. The tool's hover card mentions both.
 - [ ] **Note opacity** - set *Note Opacity* in the mod options to about 0.3, then place an
   element note and a text note. Both are faint but readable, and stay faint after changing the
   element or the symbol. At 1 they look as they always have. Hiding and showing notes still works.
