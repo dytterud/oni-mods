@@ -67,6 +67,18 @@ and was never published under it.
 
 ### Fixed
 
+- **Buildings that attach to a back wall are placed correctly.** Three things were wrong with the
+  check that lets a blueprint place them. A building over a *real* back wall was refused, because
+  the occupancy test answered "occupied" for every layer wherever a back wall existed, so it
+  reported the building's own layer as taken. A multi-cell building was accepted while hanging off
+  the end of a back wall, because only the cell it is anchored at was checked. And a rotated
+  building recorded the cells of its unrotated shape, so the preview's own occupancy was wrong.
+  Measured in-game: a shelf over a buried back wall was refused before this change and accepted
+  after; a rotated 3x1 bridge recorded a horizontal row before and the correct vertical one after.
+
+  The check is also stricter in two ways the game already was: it wants a real back wall or an
+  actual back-wall building, not merely something sharing that layer, and it no longer reads
+  outside the map or across a world boundary for a building sitting at the edge. (#76)
 - **Preconfiguring a building no longer punches a hole in the world border.** The preconfigure
   screen spawns a temporary copy of the building at the map's bottom-left corner, inside the
   indestructible border wall. For a building that occupies cells - a tile, a door - that replaced

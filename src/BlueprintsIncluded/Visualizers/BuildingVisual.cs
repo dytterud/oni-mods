@@ -965,16 +965,8 @@ public class BuildingVisual : IVisual
             && Grid.IsVisible(cellParam))
         {
             bool IsValidPlaceLocation = BuildingDef.IsValidPlaceLocation(Visualizer, cellParam, RotatedOrientation, out string failReason);
-            bool IgnorableFailReason =
-                   failReason == global::STRINGS.UI.TOOLTIPS.HELP_BUILDLOCATION_WALL
-                || failReason == global::STRINGS.UI.TOOLTIPS.HELP_BUILDLOCATION_CORNER
-                || failReason == global::STRINGS.UI.TOOLTIPS.HELP_BUILDLOCATION_CORNER_FLOOR
-                //allow "attach to backwall" buildings to be placed, but not replace already placed ones as that will place a non-cancelable visualizer
-                || (failReason == global::STRINGS.UI.TOOLTIPS.HELP_BUILDLOCATION_BACK_WALL_REQUIRED && BlueprintState.LayerOccupiedAt(this, ObjectLayer.Backwall, cellParam) && !BlueprintState.LayerOccupiedAt(this, BuildingDef.ObjectLayer, cellParam));
 
-            //SgtLogger.l("Fail reason of " + BuildingDef.name + ": " + faiReason);
-
-            bool validCell = (IsValidPlaceLocation || IgnorableFailReason);
+            bool validCell = (IsValidPlaceLocation || IgnorableFailReason(cellParam, failReason));
 
 
             //replacement = BuildingDef.IsValidReplaceLocation(pos, RotatedOrientation, BuildingDef.ReplacementLayer, BuildingDef.ObjectLayer);
@@ -984,6 +976,51 @@ public class BuildingVisual : IVisual
 
             return (validCell || replacement);
         }
+        return false;
+    }
+
+    /// <summary>
+    /// Placement failures this mod lets through, because the blueprint itself supplies what the
+    /// game says is missing: the surrounding tiles are in the same blueprint and are not built yet.
+    /// </summary>
+    protected virtual bool IgnorableFailReason(int cellParam, string failReason)
+    {
+        if (failReason == global::STRINGS.UI.TOOLTIPS.HELP_BUILDLOCATION_WALL
+            || failReason == global::STRINGS.UI.TOOLTIPS.HELP_BUILDLOCATION_CORNER
+            || failReason == global::STRINGS.UI.TOOLTIPS.HELP_BUILDLOCATION_CORNER_FLOOR)
+            return true;
+
+        ///"attach to backwall" buildings may be placed over a backwall the blueprint brings with
+        ///it, but must not replace one already placed - that would put down a non-cancelable
+        ///visualizer. Every cell the building covers is checked, not just the one it is anchored
+        ///at: a wider building used to pass while hanging off the end of a one-cell backwall (#76).
+        ///
+        ///Hand-rolled rather than def.RunOnArea: the callback would capture this, the cell and a
+        ///result flag, i.e. one allocation per visual per cursor move on a path that already
+        ///counts bytes (docs §7), and RunOnArea cannot stop at the first bare cell. These are the
+        ///same cells it would visit - the game's own CheckBackWallFoundation walks the same set.
+        ///
+        ///Unlike the game's check this ignores solidity: a buried cell with a backwall behind it
+        ///still counts, which matches the mod placing build orders inside rock everywhere else.
+        if (failReason == global::STRINGS.UI.TOOLTIPS.HELP_BUILDLOCATION_BACK_WALL_REQUIRED)
+        {
+            var def = BuildingDef;
+            int activeWorld = ClusterManager.Instance.activeWorldId;
+            foreach (var offset in def.PlacementOffsets)
+            {
+                int coveredCell = Grid.OffsetCell(cellParam, Rotatable.GetRotatedCellOffset(offset, RotatedOrientation));
+                ///bounds-checked per cell: Grid.OffsetCell is plain arithmetic and HasBackwall
+                ///reads unmanaged memory, so an off-grid cell is a bad read rather than an
+                ///exception - and a cell that wrapped into the next world could answer yes for a
+                ///backwall that is nowhere near this building.
+                if (!Grid.IsValidCellInWorld(coveredCell, activeWorld)
+                    || !BlueprintState.HasBackwallAt(this, coveredCell)
+                    || BlueprintState.LayerOccupiedAt(this, def.ObjectLayer, coveredCell))
+                    return false;
+            }
+            return true;
+        }
+
         return false;
     }
 
