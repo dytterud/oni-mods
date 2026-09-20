@@ -67,6 +67,16 @@ public static class UnderConstructionDataSettingHelper
         cell += Mathf.CeilToInt((def.WidthInCells / 2f)); //spawn it close to the origin, but dont let it clip into negative cell indicies
 
 
+        ///A building that occupies cells replaces the world-border wall it is spawned inside, and
+        ///destroying it again leaves vacuum where the wall was - a hole straight out of the map
+        ///(#80). Remember what the wall was made of first; CleanUp puts it back.
+        borrowedBorderCells.Clear();
+        def.RunOnArea(cell, Orientation.Neutral, borderCell =>
+        {
+            if (Grid.IsValidCell(borderCell) && Grid.Element[borderCell]?.id == SimHashes.Unobtanium)
+                borrowedBorderCells.Add(new BorderCell(borderCell, Grid.Mass[borderCell], Grid.Temperature[borderCell]));
+        });
+
         temporaryTargetBuilding = def.Create(Grid.CellToPos(cell), null, [SimHashes.Unobtanium.CreateTag()], null, 100, def.BuildingComplete);
         temporaryTargetBuilding.GetComponent<DataTransferCleanup>().SetInUse();
         TemporarySelectable = temporaryTargetBuilding.GetComponent<KSelectable>();
@@ -115,6 +125,36 @@ public static class UnderConstructionDataSettingHelper
             UnityEngine.Object.Destroy(temporaryTargetBuilding);
         TemporarySelectable = null;
         UnderConstructionDataTransfer.SelectButtonUnlocked = true;
+        RefillBorrowedBorderCells();
+    }
+
+    ///the world-border cells the temporary building was spawned into, with what they were made of
+    ///before it took them over.
+    private readonly record struct BorderCell(int Cell, float Mass, float Temperature);
+    private static readonly List<BorderCell> borrowedBorderCells = new();
+
+    /// <summary>
+    /// Puts the world-border wall back after the temporary building has been destroyed. Destroying
+    /// a cell-occupying building empties its cells, so without this the border is left with a hole
+    /// in it (#80).
+    /// </summary>
+    static void RefillBorrowedBorderCells()
+    {
+        if (borrowedBorderCells.Count == 0)
+            return;
+
+        var cells = borrowedBorderCells.ToArray();
+        borrowedBorderCells.Clear();
+
+        ///next frame, because the destroy above empties the cells on its way out and would
+        ///overwrite a refill done right here. UIScheduler rather than GameScheduler: the preconfigure
+        ///screen is normally open with the game paused, and the sim clock does not tick then.
+        UIScheduler.Instance.ScheduleNextFrame("preconfigure border refill", _ =>
+        {
+            foreach (var borrowed in cells)
+                SimMessages.ReplaceElement(borrowed.Cell, SimHashes.Unobtanium,
+                    CellEventLogger.Instance.DebugTool, borrowed.Mass, borrowed.Temperature);
+        });
     }
 
 
