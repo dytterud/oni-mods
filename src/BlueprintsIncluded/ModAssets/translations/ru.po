@@ -1,4 +1,4 @@
-msgid ""
+﻿msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
@@ -1171,3 +1171,118 @@ msgstr ""
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.TITLE.TITLETEXT"
 msgid "Current Blueprint State"
 msgstr "Текущее состояние чертежа"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TITLE"
+msgid "Create Blueprint Tool Copy to Clipboard"
+msgstr "Инструмент создания чертежа: копировать в буфер обмена"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TOOLTIP"
+msgid "Whether creating a blueprint also copies it to your clipboard as a shareable string. (configurable in game too)"
+msgstr "Копировать ли созданный чертёж в буфер обмена в виде строки для обмена. (также настраивается в игре)"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE"
+msgid "Snapshot Tool Copy to Clipboard"
+msgstr "Инструмент «Снимок»: копировать в буфер обмена"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP"
+msgid "Whether taking a snapshot also copies it to your clipboard as a shareable string. (configurable in game too)"
+msgstr "Копировать ли сделанный снимок в буфер обмена в виде строки для обмена. (также настраивается в игре)"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.TOGGLENOTEVIS
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.TOGGLENOTEVIS"
+msgid "Toggle blueprint note visibility"
+msgstr "Показать/скрыть заметки чертежа"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.NAME
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.NAME"
+msgid "Air/Liquid Bubbles"
+msgstr "Пузыри воздуха/жидкости"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.TOOLTIP"
+msgid "Show this blueprint's dig commands in the preview"
+msgstr "Показывать команды копания этого чертежа в предварительном просмотре"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.RESETALL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.RESETALL"
+msgid "Reset Filters"
+msgstr "Сбросить фильтры"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.TEXT"
+msgid "FILTERS"
+msgstr "ФИЛЬТРЫ"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.CREATED_COPIED
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.CREATED_COPIED"
+msgid "Created blueprint and copied it to clipboard!"
+msgstr "Чертёж создан и скопирован в буфер обмена!"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.RETAKEN_COPIED
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.RETAKEN_COPIED"
+msgid "Copied the re-taken blueprint to clipboard!"
+msgstr "Пересозданный чертёж скопирован в буфер обмена!"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD"
+msgid "Copy to Clipboard"
+msgstr "Копировать в буфер обмена"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD_TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD_TOOLTIP"
+msgid "Also copy every blueprint this tool creates to your clipboard as a shareable string, ready to paste into the blueprint editor website"
+msgstr "Также копировать каждый созданный этим инструментом чертёж в буфер обмена в виде строки для обмена, готовой для вставки на сайт редактора чертежей"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED"
+msgid "Snapshot taken and copied to clipboard!"
+msgstr "Снимок сделан и скопирован в буфер обмена!"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL"
+msgid "Apply settings to existing buildings:"
+msgstr "Применять настройки к существующим зданиям:"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.TOOLTIP"
+msgid "Finished buildings overlapping with blueprint visualizers containing settings will receive those settings when the blueprint is placed down."
+msgstr "Готовые здания, перекрывающиеся с визуализаторами чертежа, содержащими настройки, получат эти настройки при размещении чертежа."
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.TOOLTIP"
+msgid "Placed buildings receive the additional settings stored in the blueprint, such as filters, priorities and conduit connections.\nDisable to build with each building's default settings instead."
+msgstr "Размещённые здания получают дополнительные настройки, сохранённые в чертеже: фильтры, приоритеты и подключения труб.\nОтключите, чтобы строить с настройками по умолчанию для каждого здания."
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.TOOLTIP"
+msgid "Existing buildings blocking a blueprint building are marked for deconstruction,\nand planned buildings in the way are cancelled, so the blueprint can be built in their place.\nA finished building of the same type is only rebuilt when the blueprint specifies a different material."
+msgstr "Существующие здания, мешающие зданию из чертежа, помечаются на разрушение,\nа запланированные здания на пути отменяются, чтобы чертёж можно было построить на их месте.\nГотовое здание того же типа перестраивается, только если чертёж задаёт другой материал."
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.FX_TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.FX_TEXT"
+msgid "{0} removed from hand"
+msgstr "{0} убрано из рук"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.LABEL"
+msgid "Force Transformations:"
+msgstr "Принудительные преобразования:"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.TOOLTIP"
+msgid "Override checks to allow rotating/flipping of blueprints containing buildings that don't support it.\nVisualizers of buildings incompatible with the transformation will be removed from your hand\nwhen performing a rotation/flipping, until you re-select this blueprint for placement."
+msgstr "Игнорировать проверки, чтобы разрешить поворот/отражение чертежей, содержащих здания, которые этого не поддерживают.\nВизуализаторы зданий, несовместимых с преобразованием, будут убраны из рук\nпри повороте или отражении, пока вы снова не выберете этот чертёж для размещения."
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.LABEL"
+msgid "Use tool menu priority:"
+msgstr "Использовать приоритет из меню инструмента:"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.TOOLTIP"
+msgid "All buildings of the blueprint are placed with the currently configured tool priority.\nOtherwise uses the individual priorities stored in the blueprint building data"
+msgstr "Все здания чертежа размещаются с текущим приоритетом, заданным в инструменте.\nИначе используются отдельные приоритеты, сохранённые в данных зданий чертежа"

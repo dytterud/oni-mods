@@ -1,4 +1,4 @@
-msgid ""
+﻿msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
@@ -25,8 +25,8 @@ msgstr ""
 
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_ALL
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_ALL"
-msgid "All"
-msgstr "Alle"
+msgid "All Defaults"
+msgstr "Alle Standardwerte"
 
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_NONE
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_NONE"
@@ -504,18 +504,18 @@ msgstr "Alle"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.AUTOSYNC
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.AUTOSYNC"
-msgid "Auto. Sync"
-msgstr "Auto. Sync."
+msgid "Auto. Sync to Overlays"
+msgstr "Auto. Overlay-Synchr."
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PRESERVEAIRTILES.NAME
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PRESERVEAIRTILES.NAME"
-msgid "Air Pockets"
-msgstr "Leere Räume"
+msgid "Air/Liquid Bubbles"
+msgstr "Luft-/Flüssigkeitsblasen"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PRESERVEAIRTILES.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PRESERVEAIRTILES.TOOLTIP"
-msgid "Dig commands on tiles that are not solid"
-msgstr "Speichert nicht-feste Räume als Grabe-Befehle"
+msgid "Create Dig commands for tiles that are not solid, but otherwise empty of buildings"
+msgstr "Erstellt Grabe-Befehle für nicht-feste Kacheln, auf denen sonst keine Gebäude stehen"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.NONE
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.NONE"
@@ -614,12 +614,8 @@ msgstr "Spiegeln ({0}:{1}/{2}:{3})"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.FORCEREBUILD
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.FORCEREBUILD"
-msgid ""
-"Replace buildings with mismatched material:\n"
-"{0} (hold {1})"
-msgstr ""
-"Gebäude mit nicht passenden Materialien ersetzen:\n"
-"{0} (halte {1})"
+msgid "Force build over existing buildings:\n{0} (hold {1})"
+msgstr "Bau über bestehende Gebäude erzwingen:\n{0} (halte {1})"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.NAME
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.NAME"
@@ -723,8 +719,8 @@ msgstr "Aktueller Schnappschuss: {0}/{1}"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.LABEL"
-msgid "Rebuild existing with mismatched material:"
-msgstr "Gebäude mit nicht passenden Materialien ersetzen:"
+msgid "Force build over existing buildings:"
+msgstr "Bau über bestehende Gebäude erzwingen:"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.MATERIALOVERRIDES.BUTTON.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.MATERIALOVERRIDES.BUTTON.LABEL"
@@ -755,3 +751,523 @@ msgstr "Nach rechts rotieren"
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.TITLE.TITLETEXT"
 msgid "Current Blueprint State"
 msgstr "Aktueller Blaupausenstatus"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.DELETE_NOTE.NAME
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.DELETE_NOTE.NAME"
+msgid "Delete Note"
+msgstr "Notiz löschen"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.DELETE_NOTE.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.DELETE_NOTE.TOOLTIP"
+msgid "Delete this note entity"
+msgstr "Diese Notiz-Entität löschen"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE"
+msgid "Planned {0} ({1}, {2})"
+msgstr "Geplant: {0} ({1}, {2})"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE_DESC
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE_DESC"
+msgid "There should be {1} of {0} here, at a temperature of {2}."
+msgstr "Hier sollten {1} {0} bei einer Temperatur von {2} sein."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE_SPECIAL
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE_SPECIAL"
+msgid "Planned {0}"
+msgstr "Geplant: {0}"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE_SPECIAL_DESC
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.ELEMENT_NOTE_SPECIAL_DESC"
+msgid "There should be {0} here."
+msgstr "Hier sollte {0} sein."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.INFO_TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.INFO_TITLE"
+msgid "Planned Element Settings:"
+msgstr "Geplante Element-Einstellungen:"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.MASSCONFIG.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.MASSCONFIG.TITLE"
+msgid "Element Target Mass:"
+msgstr "Ziel-Masse des Elements:"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.MASSCONFIG.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.MASSCONFIG.TOOLTIP"
+msgid "Planned Mass: {0}"
+msgstr "Geplante Masse: {0}"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.SANDBOX_SPAWN.NAME
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.SANDBOX_SPAWN.NAME"
+msgid "Spawn Element (Sandbox)"
+msgstr "Element erzeugen (Sandbox)"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.SANDBOX_SPAWN.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.SANDBOX_SPAWN.TOOLTIP"
+msgid "Spawn the configured element and remove this element note."
+msgstr "Das konfigurierte Element erzeugen und diese Element-Notiz entfernen."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEMPERATURECONFIG.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEMPERATURECONFIG.TITLE"
+msgid "Element Target Temperature:"
+msgstr "Ziel-Temperatur des Elements:"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEMPERATURECONFIG.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEMPERATURECONFIG.TOOLTIP"
+msgid "Planned Temperature: {0}"
+msgstr "Geplante Temperatur: {0}"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEXTNOTE_EMPTY.TEXT
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEXTNOTE_EMPTY.TEXT"
+msgid "No Description..."
+msgstr "Keine Beschreibung..."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEXTNOTE_EMPTY.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_BLUEPRINTNOTE.TEXTNOTE_EMPTY.TITLE"
+msgid "Unnamed Note"
+msgstr "Unbenannte Notiz"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.AUTOPREVIEWCUTTOFF.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.AUTOPREVIEWCUTTOFF.TITLE"
+msgid "Automatic Preview Confirmation Threshold"
+msgstr "Schwelle für automatische Vorschau-Bestätigung"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.AUTOPREVIEWCUTTOFF.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.AUTOPREVIEWCUTTOFF.TOOLTIP"
+msgid "Blueprints with more than this number of buildings won't automatically show a ui preview and instead ask for confirmation."
+msgstr "Blaupausen mit mehr Gebäuden als diesem Wert zeigen keine automatische UI-Vorschau, sondern fragen zuerst nach einer Bestätigung."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TITLE"
+msgid "Create Blueprint Tool Copy to Clipboard"
+msgstr "Blaupausen-Tool: In Zwischenablage kopieren"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TOOLTIP"
+msgid "Whether creating a blueprint also copies it to your clipboard as a shareable string. (configurable in game too)"
+msgstr "Ob eine erstellte Blaupause zusätzlich als teilbarer Text in die Zwischenablage kopiert wird. (auch im Spiel einstellbar)"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULT_ANCHOR.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULT_ANCHOR.TITLE"
+msgid "Default Placement Anchoring"
+msgstr "Standard-Ausrichtung beim Platzieren"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULT_ANCHOR.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULT_ANCHOR.TOOLTIP"
+msgid "Placed blueprints are alligned with this position under the cursor by default.\nCan be swapped through via ctrl+R, persisting between blueprint placing."
+msgstr "Platzierte Blaupausen werden standardmäßig an dieser Position unter dem Cursor ausgerichtet.\nMit Strg+R umschaltbar, bleibt zwischen Platzierungen erhalten."
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.EXTRA_DEFAULTS_CATEGORY
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.EXTRA_DEFAULTS_CATEGORY"
+msgid "Extra Filter Selections"
+msgstr "Zusätzliche Filter-Auswahl"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE"
+msgid "Snapshot Tool Copy to Clipboard"
+msgstr "Schnappschuss-Tool: In Zwischenablage kopieren"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP"
+msgid "Whether taking a snapshot also copies it to your clipboard as a shareable string. (configurable in game too)"
+msgstr "Ob ein erstellter Schnappschuss zusätzlich als teilbarer Text in die Zwischenablage kopiert wird. (auch im Spiel einstellbar)"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_FORCE_REPLACER.PENDING_INFO
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_FORCE_REPLACER.PENDING_INFO"
+msgid "This building plan is currently pending to be placed, as soon as the area is cleared of occupying buildings."
+msgstr "Dieser Bauplan wird platziert, sobald der Bereich von blockierenden Gebäuden geräumt ist."
+
+#. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BC
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BC"
+msgid "Bottom Center"
+msgstr "Unten mittig"
+
+#. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BL
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BL"
+msgid "Bottom Left"
+msgstr "Unten links"
+
+#. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BR
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BR"
+msgid "Bottom Right"
+msgstr "Unten rechts"
+
+#. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.C
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.C"
+msgid "Center"
+msgstr "Mittig"
+
+#. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.TL
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.TL"
+msgid "Top Left"
+msgstr "Oben links"
+
+#. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.TR
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.TR"
+msgid "Top Right"
+msgstr "Oben rechts"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.NOTETOOL_TITLE
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.NOTETOOL_TITLE"
+msgid "Create Notes"
+msgstr "Notizen erstellen"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.SELECT_NEXT_FOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.SELECT_NEXT_FOLDER"
+msgid "Next Folder"
+msgstr "Nächster Ordner"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.SELECT_PREV_FOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.SELECT_PREV_FOLDER"
+msgid "Previous Folder"
+msgstr "Vorheriger Ordner"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.TOGGLENOTEVIS
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.TOGGLENOTEVIS"
+msgid "Toggle blueprint note visibility"
+msgstr "Sichtbarkeit der Blaupausen-Notizen umschalten"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUILDINGLIST.HEADER.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUILDINGLIST.HEADER.LABEL"
+msgid "Building List:"
+msgstr "Gebäudeliste:"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUILDINGLIST.SCROLLAREA.CONTENT.NOBUILDINGSINBLUEPRINT.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUILDINGLIST.SCROLLAREA.CONTENT.NOBUILDINGSINBLUEPRINT.LABEL"
+msgid "Blueprint does not contain any buildings"
+msgstr "Die Blaupause enthält keine Gebäude"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUTTONS.APPLYBUTTON.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUTTONS.APPLYBUTTON.TEXT"
+msgid "Save Desc. Changes"
+msgstr "Beschr. speichern"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUTTONS.RESETBUTTON.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.BUTTONS.RESETBUTTON.TEXT"
+msgid "Reset Desc. Changes"
+msgstr "Beschr. zurücksetzen"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.DESCRIPTION.INPUT.TEXTAREA.PLACEHOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.DESCRIPTION.INPUT.TEXTAREA.PLACEHOLDER"
+msgid "Add description to blueprint"
+msgstr "Beschreibung zur Blaupause hinzufügen"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.DESCRIPTION.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.DESCRIPTION.LABEL"
+msgid "Description:"
+msgstr "Beschreibung:"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.BUILDINGCOUNT.DESCRIPTOR.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.BUILDINGCOUNT.DESCRIPTOR.LABEL"
+msgid "Number of Buildings:"
+msgstr "Anzahl der Gebäude:"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.DIGCOUNT.DESCRIPTOR.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.DIGCOUNT.DESCRIPTOR.LABEL"
+msgid "Number of non-solid tiles:"
+msgstr "Anzahl nicht-fester Kacheln:"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.DIMENSION.DESCRIPTOR.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.DIMENSION.DESCRIPTOR.LABEL"
+msgid "Dimensions:"
+msgstr "Abmessungen:"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.ICONCONTAINER.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.ICONCONTAINER.LABEL"
+msgid "Blueprint Icon:"
+msgstr "Blaupausen-Symbol:"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.LABEL"
+msgid "Parameters:"
+msgstr "Parameter:"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.LIQUIDCOUNT.DESCRIPTOR.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.BLUEPRINTINFO.STATS.LIQUIDCOUNT.DESCRIPTOR.LABEL"
+msgid "Number of notes/shapes:"
+msgstr "Anzahl der Notizen/Formen:"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.FILTERS.DATESORT.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.FILTERS.DATESORT.TEXT"
+msgid "Sort by date modified"
+msgstr "Nach Änderungsdatum sortieren"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.FILTERS.NAMESORT.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.FILTERS.NAMESORT.TEXT"
+msgid "Sort by name"
+msgstr "Nach Namen sortieren"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.BLUEPRINTENTRY.TOOLTIP_INFO
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.FILEHIERARCHY.SCROLLAREA.CONTENT.BLUEPRINTENTRY.TOOLTIP_INFO"
+msgid "Show more detailed info about the blueprint or add some notes to it"
+msgstr "Ausführlichere Informationen zur Blaupause anzeigen oder Notizen hinzufügen"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.AMOUNTWARNING.HEADER.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.AMOUNTWARNING.HEADER.LABEL"
+msgid "Large Number of Buildings!"
+msgstr "Große Anzahl an Gebäuden!"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.AMOUNTWARNING.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.AMOUNTWARNING.LABEL"
+msgid "Automatic preview has been stopped due to {0} total buildings in the blueprint."
+msgstr "Die automatische Vorschau wurde wegen insgesamt {0} Gebäuden in der Blaupause gestoppt."
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.AMOUNTWARNING.OVERRIDE.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.AMOUNTWARNING.OVERRIDE.TEXT"
+msgid "Show anyway!"
+msgstr "Trotzdem anzeigen!"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.BUTTONS.ADDOVERRIDES.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.BUTTONS.ADDOVERRIDES.TEXT"
+msgid "Material Overrides"
+msgstr "Material-Überschreibungen"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.BUTTONS.PLACEBPBTN.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.BUTTONS.PLACEBPBTN.TEXT"
+msgid "Place Blueprint"
+msgstr "Blaupause platzieren"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.NAME
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.NAME"
+msgid "Air/Liquid Bubbles"
+msgstr "Luft-/Flüssigkeitsblasen"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.TOOLTIP"
+msgid "Show this blueprint's dig commands in the preview"
+msgstr "Die Grabe-Befehle dieser Blaupause in der Vorschau anzeigen"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.RESETALL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.RESETALL"
+msgid "Reset Filters"
+msgstr "Filter zurücksetzen"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.TEXT"
+msgid "FILTERS"
+msgstr "FILTER"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.HEADER.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.HEADER.LABEL"
+msgid "Preview"
+msgstr "Vorschau"
+
+#. BlueprintsV2.STRINGS.UI.ICONSELECTOR.CLOSEBUTTON.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.ICONSELECTOR.CLOSEBUTTON.TEXT"
+msgid "Close"
+msgstr "Schließen"
+
+#. BlueprintsV2.STRINGS.UI.ICONSELECTOR.ICONLIST.HEADER.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.ICONSELECTOR.ICONLIST.HEADER.LABEL"
+msgid "Icon List"
+msgstr "Symbolliste"
+
+#. BlueprintsV2.STRINGS.UI.ICONSELECTOR.ICONLIST.SCROLLAREA.CONTENT.ITEM.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.ICONSELECTOR.ICONLIST.SCROLLAREA.CONTENT.ITEM.LABEL"
+msgid "ico_spr"
+msgstr "ico_spr"
+
+#. BlueprintsV2.STRINGS.UI.ICONSELECTOR.ICONLIST.SEARCHBAR.INPUT.TEXTAREA.PLACEHOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.ICONSELECTOR.ICONLIST.SEARCHBAR.INPUT.TEXTAREA.PLACEHOLDER"
+msgid "Enter text to filter icons..."
+msgstr "Text eingeben, um Symbole zu filtern..."
+
+#. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.BUTTONS.ELEMENTTOGGLE.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.BUTTONS.ELEMENTTOGGLE.TEXT"
+msgid "Element Notes"
+msgstr "Element-Notizen"
+
+#. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.BUTTONS.TEXTTOGGLE.TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.BUTTONS.TEXTTOGGLE.TEXT"
+msgid "Text Notes"
+msgstr "Text-Notizen"
+
+#. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.COLORPICKERLABEL
+msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.COLORPICKERLABEL"
+msgid "Note Icon Color:"
+msgstr "Farbe des Notiz-Symbols:"
+
+#. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETEXTINPUT.INPUT.TEXTAREA.PLACEHOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETEXTINPUT.INPUT.TEXTAREA.PLACEHOLDER"
+msgid "Add note text..."
+msgstr "Notiztext hinzufügen..."
+
+#. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETEXTINPUT.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETEXTINPUT.LABEL"
+msgid "Note Text:"
+msgstr "Notiztext:"
+
+#. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETITLEINPUT.INPUT.TEXTAREA.PLACEHOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETITLEINPUT.INPUT.TEXTAREA.PLACEHOLDER"
+msgid "Add note name..."
+msgstr "Notizname hinzufügen..."
+
+#. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETITLEINPUT.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.NOTETITLEINPUT.LABEL"
+msgid "Note Name:"
+msgstr "Notizname:"
+
+#. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.SYMBOLPICKERLABEL
+msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.SYMBOLPICKERLABEL"
+msgid "Note Icon:"
+msgstr "Notiz-Symbol:"
+
+#. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.TITLE.SIDESCREENTEXT
+msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.TITLE.SIDESCREENTEXT"
+msgid "Textnote Edit Screen"
+msgstr "Textnotiz bearbeiten"
+
+#. BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.TITLE.TITLETEXT
+msgctxt "BlueprintsV2.STRINGS.UI.NOTETOOLSTATECONTAINER.TITLE.TITLETEXT"
+msgid "Note Creation Tool"
+msgstr "Notiz-Tool"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.CREATED_COPIED
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.CREATED_COPIED"
+msgid "Created blueprint and copied it to clipboard!"
+msgstr "Blaupause erstellt und in die Zwischenablage kopiert!"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.RETAKEN_COPIED
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.RETAKEN_COPIED"
+msgid "Copied the re-taken blueprint to clipboard!"
+msgstr "Neu aufgenommene Blaupause in die Zwischenablage kopiert!"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.AUTOSYNC_TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.AUTOSYNC_TOOLTIP"
+msgid "Automatically synchronize the filters with the active overlay"
+msgstr "Die Filter automatisch mit dem aktiven Overlay synchronisieren"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_COLLECT_NATURAL_ELEMENTS.NAME
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_COLLECT_NATURAL_ELEMENTS.NAME"
+msgid "Create Tile Notes"
+msgstr "Kachel-Notizen erstellen"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_COLLECT_NATURAL_ELEMENTS.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_COLLECT_NATURAL_ELEMENTS.TOOLTIP"
+msgid "Store the world element tiles of the chosen element states as Element Notes in the blueprint."
+msgstr "Die Welt-Elementkacheln der gewählten Aggregatzustände als Element-Notizen in der Blaupause speichern."
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_COLLECT_NOTES.NAME
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_COLLECT_NOTES.NAME"
+msgid "Blueprint Notes"
+msgstr "Blaupausen-Notizen"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_COLLECT_NOTES.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_COLLECT_NOTES.TOOLTIP"
+msgid "Store notes from the blueprint note tool in the blueprint."
+msgstr "Notizen des Notiz-Tools in der Blaupause speichern."
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_FILTER_NOTES.NAME
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_FILTER_NOTES.NAME"
+msgid "Blueprint Notes"
+msgstr "Blaupausen-Notizen"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_FILTER_NOTES.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_FILTER_NOTES.TOOLTIP"
+msgid "Blueprint Notes only"
+msgstr "Nur Blaupausen-Notizen"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PLANNINGTOOL_SHAPES.NAME
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PLANNINGTOOL_SHAPES.NAME"
+msgid "PlanningTool Shapes"
+msgstr "PlanningTool-Formen"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PLANNINGTOOL_SHAPES.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PLANNINGTOOL_SHAPES.TOOLTIP"
+msgid "Store PlanningTool-Mod Shapes in the blueprint\nOnly works when the PlanningTool mod is enabled."
+msgstr "Formen des PlanningTool-Mods in der Blaupause speichern\nFunktioniert nur, wenn der PlanningTool-Mod aktiviert ist."
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD"
+msgid "Copy to Clipboard"
+msgstr "In Zwischenablage kopieren"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD_TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD_TOOLTIP"
+msgid "Also copy every blueprint this tool creates to your clipboard as a shareable string, ready to paste into the blueprint editor website"
+msgstr "Jede von diesem Tool erstellte Blaupause zusätzlich als teilbaren Text in die Zwischenablage kopieren, bereit zum Einfügen auf der Blaupausen-Editor-Website"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.NOTE_TOOL.NAME
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.NOTE_TOOL.NAME"
+msgid "Create Notes"
+msgstr "Notizen erstellen"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.NOTE_TOOL.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.NOTE_TOOL.TOOLTIP"
+msgid "Create Text- and ElementNotes in the world that can be stored in Blueprints."
+msgstr "Text- und Element-Notizen in der Welt erstellen, die in Blaupausen gespeichert werden können."
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.NOTE_TOOL.TOOLTIP_TITLE
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.NOTE_TOOL.TOOLTIP_TITLE"
+msgid "NOTE TOOL"
+msgstr "NOTIZ-TOOL"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED"
+msgid "Snapshot taken and copied to clipboard!"
+msgstr "Schnappschuss erstellt und in die Zwischenablage kopiert!"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.SELECTNEXTFOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.SELECTNEXTFOLDER"
+msgid "Next folder: {0}"
+msgstr "Nächster Ordner: {0}"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.SELECTPREVFOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.SELECTPREVFOLDER"
+msgid "Previous folder: {0}"
+msgstr "Vorheriger Ordner: {0}"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.FLIP_BLOCKED
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.FLIP_BLOCKED"
+msgid "Cannot flip the current blueprint.\nThis is prevented by the contained building: {0}"
+msgstr "Die aktuelle Blaupause kann nicht gespiegelt werden.\nVerhindert durch das enthaltene Gebäude: {0}"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL"
+msgid "Apply settings to existing buildings:"
+msgstr "Einstellungen auf bestehende Gebäude anwenden:"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.TOOLTIP"
+msgid "Finished buildings overlapping with blueprint visualizers containing settings will receive those settings when the blueprint is placed down."
+msgstr "Fertige Gebäude, die sich mit Blaupausen-Visualisierungen mit Einstellungen überschneiden, erhalten diese Einstellungen beim Platzieren der Blaupause."
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.TOOLTIP"
+msgid "Placed buildings receive the additional settings stored in the blueprint, such as filters, priorities and conduit connections.\nDisable to build with each building's default settings instead."
+msgstr "Platzierte Gebäude erhalten die in der Blaupause gespeicherten Zusatzeinstellungen, etwa Filter, Prioritäten und Leitungsanschlüsse.\nDeaktivieren, um stattdessen mit den Standardeinstellungen jedes Gebäudes zu bauen."
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.TOOLTIP"
+msgid "Existing buildings blocking a blueprint building are marked for deconstruction,\nand planned buildings in the way are cancelled, so the blueprint can be built in their place.\nA finished building of the same type is only rebuilt when the blueprint specifies a different material."
+msgstr "Bestehende Gebäude, die ein Gebäude der Blaupause blockieren, werden zum Abriss markiert,\nund geplante Gebäude im Weg werden abgebrochen, damit die Blaupause an ihrer Stelle gebaut werden kann.\nEin fertiges Gebäude desselben Typs wird nur dann neu gebaut, wenn die Blaupause ein anderes Material vorgibt."
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.FX_TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.FX_TEXT"
+msgid "{0} removed from hand"
+msgstr "{0} aus der Hand entfernt"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.LABEL"
+msgid "Force Transformations:"
+msgstr "Transformationen erzwingen:"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.TOOLTIP"
+msgid "Override checks to allow rotating/flipping of blueprints containing buildings that don't support it.\nVisualizers of buildings incompatible with the transformation will be removed from your hand\nwhen performing a rotation/flipping, until you re-select this blueprint for placement."
+msgstr "Prüfungen übergehen, um Drehen/Spiegeln von Blaupausen zu erlauben, die Gebäude ohne Unterstützung dafür enthalten.\nVisualisierungen von Gebäuden, die mit der Transformation nicht kompatibel sind, werden beim Drehen/Spiegeln aus der Hand entfernt,\nbis diese Blaupause erneut zum Platzieren ausgewählt wird."
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.LABEL"
+msgid "Use tool menu priority:"
+msgstr "Priorität aus dem Tool-Menü verwenden:"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.PRIORITYOVERRIDE.TOOLTIP"
+msgid "All buildings of the blueprint are placed with the currently configured tool priority.\nOtherwise uses the individual priorities stored in the blueprint building data"
+msgstr "Alle Gebäude der Blaupause werden mit der aktuell eingestellten Tool-Priorität platziert.\nAndernfalls werden die einzelnen Prioritäten aus den Gebäudedaten der Blaupause verwendet"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.ROTATION_BLOCKED
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.ROTATION_BLOCKED"
+msgid "Cannot rotate the current blueprint.\nThis is prevented by the contained building: {0}"
+msgstr "Die aktuelle Blaupause kann nicht gedreht werden.\nVerhindert durch das enthaltene Gebäude: {0}"
