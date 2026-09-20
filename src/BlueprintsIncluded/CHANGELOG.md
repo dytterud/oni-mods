@@ -57,6 +57,11 @@ and was never published under it.
 
 ### Fixed
 
+- **The note-visibility button's tooltip names the key it is bound to now.** The tooltip was
+  written once, when a colony loaded, so rebinding the key mid-game left it showing the old one
+  until the next load. It is now rebuilt each time it is shown. With no key bound (the default),
+  it no longer ends in "[NONE]". (#68)
+
 - **Selecting a text note no longer writes the note's own text back to it.** Opening a note's
   side screen pushed its title and text into the input fields, and those pushes came back
   through the fields' change handlers, so every selection re-saved the note and fired a
