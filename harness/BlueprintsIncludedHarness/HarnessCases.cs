@@ -91,6 +91,7 @@ internal static class HarnessCases
         new HarnessCase("preconfigure-button-shows-for-smi-backed-buildings", PreconfigureButtonShowsForSmiBackedBuildings),
         new HarnessCase("building-data-api-survives-a-dead-gameobject", BuildingDataApiSurvivesDeadGameObject),
         new HarnessCase("anim-less-previews-are-all-tile-visuals", AnimLessPreviewsAreAllTileVisuals),
+        new HarnessCase("note-side-screen-selection-does-not-write-back", NoteSideScreenSelection),
         new HarnessCase("grid-snap-row-is-in-the-bundle-and-wired", GridSnapRowIsWired),
         new HarnessCase("grid-snap-drag-places-copies-edge-to-edge", GridSnapDragPlacesCopies),
     };
@@ -2793,6 +2794,100 @@ internal static class HarnessCases
             st.IsPlacingSnapshot = false;
             cfg.RequireConstructable_Tech = savedTech;
             cfg.RequireConstructable_Material = savedMat;
+        }
+    }
+
+    // ---- #63: selecting a note must not write its own text back -------------------
+
+    // TextNoteSideScreen and TextNote are internal - reach both by reflection.
+    private static readonly Type NoteSideScreenType =
+        typeof(Blueprint).Assembly.GetType("BlueprintsV2.UnityUI.TextNoteSideScreen")!;
+    private static readonly Type TextNoteType =
+        typeof(Blueprint).Assembly.GetType("BlueprintsV2.BlueprintData.NoteToolPlacedEntities.TextNote")!;
+
+    private static Component CreateTextNote(int cell, string title, string text, string symbol) =>
+        (Component)TextNoteType.GetMethod("Create", BindingFlags.Public | BindingFlags.Static)!
+            .Invoke(null, new object[] { cell, title, text, symbol, Color.white, false })!;
+
+    private static int noteUpdateInfoCalls;
+    private static void CountNoteUpdateInfo() => noteUpdateInfoCalls++;
+
+    /// <summary>
+    /// Selecting a text note pushes the note's own title and text into the side screen's input
+    /// fields. Those pushes used to come back through the fields' change handlers - the raw
+    /// OnValueChanged event ignores FInputField2's DataTextUpdate guard - and write the note's
+    /// values straight back to it, firing the multiplayer note sync on every selection (#63).
+    ///
+    /// Also covers the trap in fixing it: the spurious fire was the only thing repainting the two
+    /// clear buttons on this path, so suppressing it without an explicit refresh would leave them
+    /// showing the previously selected note's state.
+    /// </summary>
+    private static IEnumerator NoteSideScreenSelection()
+    {
+        var xy = Grid.CellToXY(AnchorCell);
+        int cellA = Grid.XYToCell(xy.x - 7, xy.y - 3), cellB = Grid.XYToCell(xy.x - 6, xy.y - 3);
+        foreach (int c in new[] { cellA, cellB })
+            if (Grid.IsSolidCell(c))
+                SimMessages.Dig(c, skipEvent: true);
+        for (int i = 0; i < 30 && (Grid.IsSolidCell(cellA) || Grid.IsSolidCell(cellB)); i++)
+            yield return null;
+
+        var symbolMap = (System.Collections.IDictionary)AccessTools.Field(TextNoteType, "SymbolMap").GetValue(null)!;
+        string symbol = symbolMap.Keys.Cast<string>().FirstOrDefault() ?? string.Empty;
+        var withText = CreateTextNote(cellA, "Title A", "Text A", symbol);
+        var empty = CreateTextNote(cellB, string.Empty, string.Empty, symbol);
+        Assert.True(withText != null && empty != null, "created two text notes");
+
+        var screen = (Component?)UnityEngine.Object.FindObjectsByType(NoteSideScreenType, FindObjectsSortMode.None).FirstOrDefault();
+        Assert.True(screen != null, "the text-note side screen exists");
+        screen!.gameObject.SetActive(true);
+        for (int i = 0; i < 3; i++) yield return null;
+        Assert.True((bool)AccessTools.Field(NoteSideScreenType, "spawned").GetValue(screen)!,
+            "the side screen has spawned, so it pushes text into its inputs");
+
+        var setTarget = NoteSideScreenType.GetMethod("SetTarget")!;
+        var titleInput = (UtilLibs.UIcmp.FInputField2)AccessTools.Field(NoteSideScreenType, "TitleInput").GetValue(screen)!;
+        var clearTitle = AccessTools.Field(NoteSideScreenType, "ClearTitle").GetValue(screen)!;
+        var clearText = AccessTools.Field(NoteSideScreenType, "ClearText").GetValue(screen)!;
+        var interactable = AccessTools.Field(typeof(UtilLibs.UIcmp.FButton), "interactable");
+        bool Interactable(object button) => (bool)interactable.GetValue(button)!;
+
+        var harmony = new Harmony("bpi-harness-63");
+        try
+        {
+            harmony.Patch(AccessTools.Method(TextNoteType, "UpdateInfo"),
+                prefix: new HarmonyMethod(AccessTools.Method(typeof(HarnessCases), nameof(CountNoteUpdateInfo))));
+
+            setTarget.Invoke(screen, new object[] { withText!.gameObject });
+            for (int i = 0; i < 3; i++) yield return null;
+
+            noteUpdateInfoCalls = 0;
+            setTarget.Invoke(screen, new object[] { empty!.gameObject });
+            for (int i = 0; i < 3; i++) yield return null;
+
+            Log?.Line($"  selecting a note: {noteUpdateInfoCalls} write-back(s), " +
+                      $"title field \"{titleInput.Text}\", clear buttons title={Interactable(clearTitle)} text={Interactable(clearText)}");
+
+            Assert.Equal(0, noteUpdateInfoCalls, "selecting a note writes nothing back to it");
+            Assert.Equal(string.Empty, titleInput.Text, "the field shows the newly selected note's title");
+            Assert.True(!Interactable(clearTitle) && !Interactable(clearText),
+                "the clear buttons follow the new note rather than keeping the previous one's state");
+
+            ///and back to the note that has text: the buttons come alive again
+            setTarget.Invoke(screen, new object[] { withText.gameObject });
+            for (int i = 0; i < 3; i++) yield return null;
+            Assert.Equal("Title A", titleInput.Text, "the field shows the re-selected note's title");
+            Assert.True(Interactable(clearTitle) && Interactable(clearText),
+                "the clear buttons are enabled for a note that has text");
+            Assert.Equal(0, noteUpdateInfoCalls, "still nothing written back");
+        }
+        finally
+        {
+            harmony.UnpatchAll("bpi-harness-63");
+            NoteSideScreenType.GetMethod("ClearTarget")!.Invoke(screen, null);
+            screen.gameObject.SetActive(false);
+            BlueprintNote.ClearExistingNote(cellA);
+            BlueprintNote.ClearExistingNote(cellB);
         }
     }
 
