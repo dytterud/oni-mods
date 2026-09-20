@@ -1,4 +1,4 @@
-msgid ""
+﻿msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
@@ -21,11 +21,6 @@ msgstr "蓝图工具概览同步"
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLSYNC.TOOLTIP"
 msgid "Whether the Blueprint Tool syncs with the current overlay. (configurable in game too)"
 msgstr "蓝图工具与当前概览同步。（游戏内也可调）"
-
-#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_ALL
-msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_ALL"
-msgid "All"
-msgstr "全部"
 
 #. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_NONE
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.DEFAULTMENUSELECTION.DEFAULTMENUSELECTION_NONE"
@@ -485,18 +480,18 @@ msgstr "全部"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.AUTOSYNC
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.AUTOSYNC"
-msgid "Auto. Sync"
-msgstr "自动同步"
+msgid "Auto. Sync to Overlays"
+msgstr "自动与概览同步"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PRESERVEAIRTILES.NAME
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PRESERVEAIRTILES.NAME"
-msgid "Air Pockets"
+msgid "Air/Liquid Bubbles"
 msgstr "空腔(镂空)"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PRESERVEAIRTILES.TOOLTIP
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.BLUEPRINTV2_PRESERVEAIRTILES.TOOLTIP"
-msgid "Dig commands on tiles that are not solid"
-msgstr "放置蓝图时自动挖开堵塞区域"
+msgid "Create Dig commands for tiles that are not solid, but otherwise empty of buildings"
+msgstr "为非固体且没有建筑的格子创建挖掘命令"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.NONE
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.NONE"
@@ -594,12 +589,8 @@ msgstr "翻转({0}:{1}/{2}:{3})"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.FORCEREBUILD
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.FORCEREBUILD"
-msgid ""
-"Replace buildings with mismatched material:\n"
-"{0} (hold {1})"
-msgstr ""
-"替换使用不同材料的建筑:\n"
-"{0} (按住{1})"
+msgid "Force build over existing buildings:\n{0} (hold {1})"
+msgstr "强制建在现有建筑之上:\n{0} (按住{1})"
 
 #. BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.NAME
 msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.NAME"
@@ -703,8 +694,8 @@ msgstr "当前快照: {0}/{1}"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.LABEL"
-msgid "Rebuild existing with mismatched material:"
-msgstr "重建已有材料不匹配的建筑:"
+msgid "Force build over existing buildings:"
+msgstr "强制建在现有建筑之上:"
 
 #. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.MATERIALOVERRIDES.BUTTON.LABEL
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.MATERIALOVERRIDES.BUTTON.LABEL"
@@ -735,18 +726,6 @@ msgstr "右旋蓝图"
 msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.TITLE.TITLETEXT"
 msgid "Current Blueprint State"
 msgstr "当前蓝图状态"
-
-#~ msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.REQUIRECONSTRUCTABLE.TITLE"
-#~ msgid "Require Constructable"
-#~ msgstr "可建造性"
-
-#~ msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.REQUIRECONSTRUCTABLE.TOOLTIP"
-#~ msgid "Whether buildings must be constructable by the player to be used in blueprints."
-#~ msgstr "建筑必须可由玩家建造才能用于蓝图。"
-
-#~ msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.FLIP_BLUEPRINT_TITLE"
-#~ msgid "FLIP Blueprint"
-#~ msgstr "翻转蓝图"
 
 #. BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BC
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINT_ANCHORSTATE.BC"
@@ -876,11 +855,6 @@ msgid ""
 msgstr ""
 "默认情况下，放置的蓝图会与光标下的此位置对齐。\n"
 "可通过 Ctrl+R 循环切换，设置会在蓝图放置之间保持。"
-
-#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.EXTRA_DEFAULTS_CATEGORY
-msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.EXTRA_DEFAULTS_CATEGORY"
-msgid "Extra Filter Selections"
-msgstr "额外筛选选项"
 
 #. BlueprintsV2.STRINGS.BLUEPRINTS_FORCE_REPLACER.PENDING_INFO
 msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_FORCE_REPLACER.PENDING_INFO"
@@ -1208,10 +1182,107 @@ msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.FILTERBUTTON.RESETALL
 msgid "Reset Filters"
 msgstr "重置"
 
-#~ msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.FORCEREBUILD"
-#~ msgid ""
-#~ "Force rebuild existing buildings with blueprint materials if different:\n"
-#~ "{0} (hold {1} to enable)"
-#~ msgstr ""
-#~ "如果蓝图材料不同，强制重建现有建筑：\n"
-#~ "{0}（按住{1}启用）"
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TITLE"
+msgid "Create Blueprint Tool Copy to Clipboard"
+msgstr "创建蓝图工具：复制到剪贴板"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.CREATEBLUEPRINTTOOLCOPYTOCLIPBOARD.TOOLTIP"
+msgid "Whether creating a blueprint also copies it to your clipboard as a shareable string. (configurable in game too)"
+msgstr "创建蓝图时是否同时将其作为可分享的字符串复制到剪贴板。（也可在游戏内设置）"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TITLE"
+msgid "Snapshot Tool Copy to Clipboard"
+msgstr "快照工具：复制到剪贴板"
+
+#. BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.BLUEPRINTS_CONFIG.SNAPSHOTTOOLCOPYTOCLIPBOARD.TOOLTIP"
+msgid "Whether taking a snapshot also copies it to your clipboard as a shareable string. (configurable in game too)"
+msgstr "拍摄快照时是否同时将其作为可分享的字符串复制到剪贴板。（也可在游戏内设置）"
+
+#. BlueprintsV2.STRINGS.UI.ACTIONS.TOGGLENOTEVIS
+msgctxt "BlueprintsV2.STRINGS.UI.ACTIONS.TOGGLENOTEVIS"
+msgid "Toggle blueprint note visibility"
+msgstr "切换蓝图便签可见性"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.NAME
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.NAME"
+msgid "Air/Liquid Bubbles"
+msgstr "空腔(镂空)"
+
+#. BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.BLUEPRINTSELECTOR.PREVIEW.DIGPLACERFILTER.TOOLTIP"
+msgid "Show this blueprint's dig commands in the preview"
+msgstr "在预览中显示此蓝图的挖掘指令"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.CREATED_COPIED
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.CREATED_COPIED"
+msgid "Created blueprint and copied it to clipboard!"
+msgstr "已创建蓝图并复制到剪贴板！"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.RETAKEN_COPIED
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.CREATE_TOOL.RETAKEN_COPIED"
+msgid "Copied the re-taken blueprint to clipboard!"
+msgstr "已将重新截取的蓝图复制到剪贴板！"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD"
+msgid "Copy to Clipboard"
+msgstr "复制到剪贴板"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD_TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.FILTERLAYERS.COPYTOCLIPBOARD_TOOLTIP"
+msgid "Also copy every blueprint this tool creates to your clipboard as a shareable string, ready to paste into the blueprint editor website"
+msgstr "同时将此工具创建的每个蓝图作为可分享的字符串复制到剪贴板，可直接粘贴到蓝图编辑器网站"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.SNAPSHOT_TOOL.TAKEN_COPIED"
+msgid "Snapshot taken and copied to clipboard!"
+msgstr "已拍摄快照并复制到剪贴板！"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.SELECTNEXTFOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.SELECTNEXTFOLDER"
+msgid "Next folder: {0}"
+msgstr "下一个文件夹：{0}"
+
+#. BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.SELECTPREVFOLDER
+msgctxt "BlueprintsV2.STRINGS.UI.TOOLS.USE_TOOL.SELECTPREVFOLDER"
+msgid "Previous folder: {0}"
+msgstr "上一个文件夹：{0}"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.LABEL"
+msgid "Apply settings to existing buildings:"
+msgstr "将设置应用到现有建筑："
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSETTINGSTOEXISTING.TOOLTIP"
+msgid "Finished buildings overlapping with blueprint visualizers containing settings will receive those settings when the blueprint is placed down."
+msgstr "与含有设置的蓝图建筑预览重叠的已建成建筑，会在放置蓝图时接收这些设置。"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.APPLYSTOREDSETTINGS.TOOLTIP"
+msgid "Placed buildings receive the additional settings stored in the blueprint, such as filters, priorities and conduit connections.\nDisable to build with each building's default settings instead."
+msgstr "放置的建筑会接收蓝图中保存的附加设置，例如筛选、优先级和管道连接。\n关闭则改用每个建筑的默认设置建造。"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCEREBUILD.TOOLTIP"
+msgid "Existing buildings blocking a blueprint building are marked for deconstruction,\nand planned buildings in the way are cancelled, so the blueprint can be built in their place.\nA finished building of the same type is only rebuilt when the blueprint specifies a different material."
+msgstr "挡住蓝图建筑的现有建筑会被标记为拆解，\n挡路的计划建筑会被取消，以便蓝图可以建在原处。\n同类型的已建成建筑只有在蓝图指定了不同材料时才会重建。"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.FX_TEXT
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.FX_TEXT"
+msgid "{0} removed from hand"
+msgstr "{0} 已从手中移除"
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.LABEL
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.LABEL"
+msgid "Force Transformations:"
+msgstr "强制变换："
+
+#. BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.TOOLTIP
+msgctxt "BlueprintsV2.STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.FORCETRANSFORMATIONTOGGLE.TOOLTIP"
+msgid "Override checks to allow rotating/flipping of blueprints containing buildings that don't support it.\nVisualizers of buildings incompatible with the transformation will be removed from your hand\nwhen performing a rotation/flipping, until you re-select this blueprint for placement."
+msgstr "跳过检查，允许旋转/翻转含有不支持该操作的建筑的蓝图。\n与该变换不兼容的建筑预览会在旋转或翻转时从手中移除，\n直到你再次选择该蓝图进行放置。"
