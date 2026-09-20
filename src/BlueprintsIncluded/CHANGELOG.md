@@ -12,6 +12,14 @@ and was never published under it.
 
 ### Added
 
+- **Blueprints can hold rocket modules.** A module attaches to a hardpoint on the module below
+  it, and in a blueprint that module is only a preview - so the game refused everything above the
+  first one and a blueprint of a whole rocket could not be placed. Each module preview now
+  registers its own hardpoint, so the stack above it is accepted. Modules flip but do not rotate,
+  and are not offered inside a rocket's interior. Ported from upstream Blueprints Expanded, with
+  a bug fixed on the way: upstream unregisters the wrong cell when a module moves, so stale
+  attach points pile up as the cursor is dragged. (#74)
+
 - **Replacing a building now clears its connection points too.** A blueprint building placed over
   existing machinery only ever cleared the cells the building itself fills. Its ports - pipe and
   gas connections, power connectors, radbolt ports - sit on separate layers, so a pipe or wire
