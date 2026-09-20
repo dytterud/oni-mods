@@ -12,14 +12,24 @@ and was never published under it.
 
 ### Added
 
-- **"Copy to Clipboard" for the snapshot and create-blueprint tools.** A new checkbox under
-  *Auto. Sync to Overlays* in both tools' filter menus. With it ticked, what you drag out is also
-  exported to your clipboard as the same shareable string the blueprint list's export button
-  produces, so it can be pasted straight into the blueprint editor website — no round trip through a
-  saved file. Snapshots are copied as soon as they are taken; a new blueprint is copied once you
-  confirm its name, so the string carries that name, and re-taking an existing blueprint copies the
-  updated version. Each tool remembers its own setting, and both are in the mod options as *Create
-  Blueprint Tool Copy to Clipboard* and *Snapshot Tool Copy to Clipboard* (off by default).
+- **Save or copy a snapshot from the blueprint panel.** Two buttons appear while placing a
+  snapshot: *Save as blueprint*, which asks for a name and keeps the snapshot in your blueprint
+  collection, and *Copy to clipboard*, which exports it as the usual shareable string. Snapshots
+  are otherwise lost when you leave the game. Ported from upstream Blueprints Expanded, where both
+  buttons were wired to the same handler (so Export did nothing) and saving would have thrown,
+  because a snapshot has no file location until it is named. (#96)
+
+- **"Copy to Clipboard" for the create-blueprint tool.** A new checkbox under *Auto. Sync to
+  Overlays* in the tool's filter menu. With it ticked, a blueprint you create is also exported to
+  your clipboard as the same shareable string the blueprint list's export button produces, so it
+  can be pasted straight into the blueprint editor website — no round trip through a saved file.
+  The copy happens once you confirm the name, so the string carries it, and re-taking an existing
+  blueprint copies the updated version. The setting is remembered, and is in the mod options as
+  *Create Blueprint Tool Copy to Clipboard* (off by default).
+
+  The snapshot tool had the same checkbox, added at the same time; it is gone again in favour of
+  the Copy to clipboard button above, which does the same thing on demand, from the panel you are
+  already looking at, without overwriting your clipboard on every snapshot.
 
 - **Snap to Grid.** A new toggle in the blueprint state panel. With it on, clicking places the
   blueprint as usual and dragging places more copies on a grid anchored at the click, for both
