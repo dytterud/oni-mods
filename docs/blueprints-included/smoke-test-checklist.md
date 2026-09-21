@@ -44,6 +44,10 @@ see [README.md](../../README.md)), launch ONI, load or start a colony.
   source.
 - [ ] Place over existing/!valid terrain — replacement visualizers show which buildings
   are blocked; no crash.
+- [ ] **Rocket modules** (needs the rocketry DLC) - capture a rocket, or a couple of stacked
+  modules, then place the blueprint on a launchpad. The whole stack previews green and builds,
+  not just the bottom module. Flipping works, rotating does not, and the modules are not offered
+  inside a rocket interior.
 - [ ] **Replace over ports** - place a blueprint holding a powered, piped building (a gas pump,
   an air conditioner) on top of existing pipework and wire. What sits on its pipe and power ports
   is cleared along with its footprint, and the finished building connects up. A blueprint bridge

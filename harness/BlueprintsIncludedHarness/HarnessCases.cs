@@ -85,6 +85,7 @@ internal static class HarnessCases
         new HarnessCase("mod-component-lookup-resolves-and-caches", ModComponentLookupResolvesAndCaches),
         new HarnessCase("replacement-vis-places-once-per-cell", ReplacementVisPlacesOnce),
         new HarnessCase("replacement-vis-claims-its-port-cells", ReplacementVisClaimsPortCells),
+        new HarnessCase("rocket-modules-stack-on-previewed-hardpoints", RocketModulesStack),
         new HarnessCase("scheduled-seating-kick-delivers-when-time-runs", SeatingKickDelivers),
         new HarnessCase("completed-construction-applies-stored-settings", CompletionAppliesStoredSettings),
         new HarnessCase("rotation-counts-in-same-building-detection", RotationConsideredForSameBuilding),
@@ -2605,6 +2606,99 @@ internal static class HarnessCases
     ///BPV2_BuildingReplacer is ReplacementVisualizerMultiEntityConfig.BUILDING_ID - that type is
     ///internal to the mod, so the id is spelled out here; Assets.GetPrefab fails loudly on a rename.
     private const string BuildingReplacerPrefabId = "BPV2_BuildingReplacer";
+
+    // ---- #74: rocket modules ------------------------------------------------------
+
+    /// <summary>
+    /// A rocket module attaches to a hardpoint on the module below it. In a blueprint the module
+    /// below is only a preview, so the game refuses the one above - which would make a blueprint
+    /// of a whole rocket unplaceable. Each module preview therefore registers its own hardpoint,
+    /// and an attach-point failure on one of those cells is ignored.
+    ///
+    /// Asserts the routing (a module def gets a RocketModuleVisual), that the upper module of a
+    /// stacked pair is accepted on the lower one's hardpoint, that moving the blueprint drops the
+    /// stale registration, and that clearing it empties the registry.
+    /// </summary>
+    private static IEnumerator RocketModulesStack()
+    {
+        var moduleDef = Assets.BuildingDefs.FirstOrDefault(d =>
+            d != null && d.BuildingPreview != null && d.BuildingComplete != null
+            && d.BuildingComplete.GetComponent<RocketModule>() != null
+            && d.BuildingComplete.TryGetComponent<BuildingAttachPoint>(out var ap)
+            && ap.points != null && ap.points.Any(pt => pt.attachableType == GameTags.Rocket));
+        if (moduleDef == null)
+        {
+            Log?.Line("  REACHABILITY: no rocket module with a rocket hardpoint in this install " +
+                      "(needs the rocketry DLC content), so module stacking is unexercised");
+            yield break;
+        }
+
+        var attachPoint = moduleDef.BuildingComplete.GetComponent<BuildingAttachPoint>();
+        var hardPoint = attachPoint.points.First(pt => pt.attachableType == GameTags.Rocket);
+        Log?.Line($"  using {moduleDef.PrefabID} {moduleDef.WidthInCells}x{moduleDef.HeightInCells}, " +
+                  $"hardpoint at offset ({hardPoint.position.x},{hardPoint.position.y})");
+
+        var typeOf = typeof(Blueprint).Assembly.GetType("BlueprintsV2.ModAssets")!
+            .GetMethod("GetVisualizerType", BindingFlags.Public | BindingFlags.Static)!;
+        Assert.Equal("ROCKET", typeOf.Invoke(null, new object[] { moduleDef })!.ToString(),
+            "a rocket module routes to the rocket visual");
+
+        var registry = (System.Collections.IDictionary)AccessTools
+            .Field(typeof(RocketModuleVisual), "AttachmentPoints").GetValue(null)!;
+
+        var anchorXY = Grid.CellToXY(AnchorCell);
+        var target = new Vector2I(anchorXY.x + 26, anchorXY.y + 14);
+        yield return ClearRegion(target, 12, 12);
+
+        var st = BlueprintState.CurrentStateInfo();
+        st.IsPlacingSnapshot = true;
+        try
+        {
+            ///two modules, the upper one sitting on the lower one's hardpoint
+            var bp = new Blueprint("harness-rocket-stack", "");
+            AddConfig(bp, moduleDef, new Vector2I(0, 0));
+            AddConfig(bp, moduleDef, new Vector2I(hardPoint.position.x, hardPoint.position.y));
+            bp.CacheCost();
+
+            BlueprintState.VisualizeBlueprint(target, bp);
+            for (int i = 0; i < 6; i++) yield return null;
+
+            var visuals = LiveVisuals().OfType<RocketModuleVisual>().ToList();
+            Log?.Line($"  {visuals.Count} rocket visual(s), hardpoint cells " +
+                      string.Join(", ", visuals.Select(v => Grid.CellToXY(v.DirtyCell).ToString())));
+            Assert.Equal(2, visuals.Count, "both modules got a rocket visual");
+
+            var upper = visuals.OrderByDescending(v => Grid.CellToXY(v.CurrentCell).y).First();
+            var lower = visuals.OrderBy(v => Grid.CellToXY(v.CurrentCell).y).First();
+            Assert.True(lower.DirtyCell >= 0, "the lower module registered a hardpoint");
+            Assert.Equal(Grid.CellToXY(lower.DirtyCell), Grid.CellToXY(upper.CurrentCell),
+                "the upper module sits on the lower one's hardpoint");
+
+            bool accepted = upper.ValidCell(upper.CurrentCell, out _);
+            Log?.Line($"  upper module on the previewed hardpoint: accepted={accepted}");
+            Assert.True(accepted, "a module is accepted on another preview's hardpoint");
+
+            ///moving the blueprint must drop the stale registration
+            int staleCell = lower.DirtyCell;
+            var moved = new Vector2I(target.x + 4, target.y);
+            BlueprintState.UpdateVisual(BlueprintState.PlayerId_DefaultTilePreviews, moved, false, bp);
+            for (int i = 0; i < 4; i++) yield return null;
+
+            var points = (System.Collections.Generic.HashSet<int>)registry[BlueprintState.PlayerId_DefaultTilePreviews]!;
+            Log?.Line($"  after moving: {points.Count} registered point(s), stale cell still present={points.Contains(staleCell)}");
+            Assert.True(!points.Contains(staleCell), "moving the blueprint unregisters the old hardpoint");
+            Assert.Equal(2, points.Count, "each module registers exactly one hardpoint");
+
+            BlueprintState.ClearVisuals();
+            for (int i = 0; i < 3; i++) yield return null;
+            Assert.Equal(0, points.Count, "clearing the blueprint empties the hardpoint registry");
+        }
+        finally
+        {
+            BlueprintState.ClearVisuals();
+            st.IsPlacingSnapshot = false;
+        }
+    }
 
     // ---- #49 / #66: connection points are claimed too -------------------------------
 
