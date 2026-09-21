@@ -150,8 +150,10 @@ public class ElementNote : BlueprintNote, IMultiSliderControl
                 renderer?.material = VacuumMat;
                 break;
         }
-        if (!vaccuum)
-            renderer!.material.color = element.substance.colour;
+        ///the one line here that assumed a renderer while every neighbour uses ?. - same defence
+        ///as BlueprintNote.ChangeVisibility
+        if (!vaccuum && renderer != null)
+            renderer.material.color = element.substance.colour;
         ApplyNoteOpacity();
     }
 

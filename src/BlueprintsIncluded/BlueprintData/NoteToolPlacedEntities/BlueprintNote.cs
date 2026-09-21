@@ -61,7 +61,20 @@ public class BlueprintNote : KMonoBehaviour
         base.OnCleanUp();
     }
 
-    private void ChangeVisibility(bool visible) => renderer.enabled = visible;
+    /// <summary>
+    /// The guard is defence, not a known defect. Upstream crashes here (their issue #362) because
+    /// their note re-creates its renderer and nulls the field in OnCleanUp; this fork keeps the
+    /// placer prefab's own MeshRenderer and never reassigns it, so the field cannot be null by any
+    /// path traced here - the unsubscribe above is still what keeps a destroyed note off the
+    /// static event. Unity's == also covers a destroyed renderer, which is the one shape reading
+    /// cannot rule out: the event is static and outlives a colony reload.
+    /// </summary>
+    private void ChangeVisibility(bool visible)
+    {
+        if (renderer == null)
+            return;
+        renderer.enabled = visible;
+    }
 
     /// <summary>
     /// Fades the note to the configured opacity. The note's own colour carries an alpha already
