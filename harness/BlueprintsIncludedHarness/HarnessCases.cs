@@ -805,6 +805,16 @@ internal static class HarnessCases
             BlueprintState.ToggleNoteVisibility();
             for (int i = 0; i < 3; i++) yield return null;
             Log?.Line("  toggled twice after deleting the note - no exception, so OnCleanUp unsubscribed");
+
+            ///and directly: nothing is left subscribed to the static event. A destroyed note still
+            ///on it is the shape behind upstream's issue #362 - there it fires on a nulled
+            ///renderer, here it would fire on a destroyed one. Either way the subscriber list is
+            ///what says whether the unsubscribe held.
+            var subscribers = ((Delegate?)AccessTools
+                .Field(typeof(BlueprintNote), "OnNoteVisibilityChanged").GetValue(null))
+                ?.GetInvocationList().Length ?? 0;
+            Log?.Line($"  subscribers left on the visibility event: {subscribers}");
+            Assert.Equal(0, subscribers, "a deleted note leaves nothing subscribed to the static toggle event");
         }
         finally
         {

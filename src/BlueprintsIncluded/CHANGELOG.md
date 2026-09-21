@@ -95,6 +95,13 @@ and was never published under it.
 
 ### Fixed
 
+- **Hardening: toggling note visibility cannot crash on a note's renderer.** Upstream crashes
+  here (their issue #362) because their notes re-create the renderer and clear the field when the
+  note is destroyed. This fork keeps the original renderer and never reassigns it, so the crash
+  has no path here - the guard is defence for the one shape reading cannot rule out, a note
+  surviving on the global toggle across a reload. The same guard replaces the one tinting line
+  that assumed a renderer while its neighbours did not. (#107)
+
 - **Buildings that attach to a back wall are placed correctly.** Three things were wrong with the
   check that lets a blueprint place them. A building over a *real* back wall was refused, because
   the occupancy test answered "occupied" for every layer wherever a back wall existed, so it
