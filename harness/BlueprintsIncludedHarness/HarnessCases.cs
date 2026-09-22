@@ -93,6 +93,7 @@ internal static class HarnessCases
         new HarnessCase("preconfigure-screen-loads-the-plan's-settings", PreconfigureLoadsStoredSettings),
         new HarnessCase("preconfigure-leaves-the-world-border-intact", PreconfigureLeavesTheBorderIntact),
         new HarnessCase("preconfigure-screen-opens-while-the-game-is-paused", PreconfigureWorksWhilePaused),
+        new HarnessCase("preconfigure-button-latch-fails-open", PreconfigureButtonLatchFailsOpen),
         new HarnessCase("preconfigure-button-shows-for-smi-backed-buildings", PreconfigureButtonShowsForSmiBackedBuildings),
         new HarnessCase("building-data-api-survives-a-dead-gameobject", BuildingDataApiSurvivesDeadGameObject),
         new HarnessCase("anim-less-previews-are-all-tile-visuals", AnimLessPreviewsAreAllTileVisuals),
@@ -2054,6 +2055,12 @@ internal static class HarnessCases
             .GetMethod("CleanUp", BindingFlags.NonPublic | BindingFlags.Static)
             ?.Invoke(null, null);
 
+    /// <summary><c>UnderConstructionDataSettingHelper.ResetSessionState</c> is internal too.</summary>
+    private static void PreconfigureResetSessionState()
+        => typeof(UnderConstructionDataSettingHelper)
+            .GetMethod("ResetSessionState", BindingFlags.NonPublic | BindingFlags.Static)
+            ?.Invoke(null, null);
+
     /// <summary>
     /// Runs <c>SameBuildingAlreadyFinishedInPlace</c> for <paramref name="def"/> at
     /// <paramref name="cell"/>, as though the blueprint entry were captured at
@@ -2340,6 +2347,98 @@ internal static class HarnessCases
                     SelectTool.Instance.Select(null);
             }
         }
+    }
+
+    // ---- the preconfigure button's latch has to fail open -------------
+
+    /// <summary>
+    /// #109: <c>UnderConstructionDataTransfer.SelectButtonUnlocked</c> is a plain <c>static</c>
+    /// that <c>OnSidescreenButtonPressed</c> takes and only <c>CleanUp</c> gives back - and
+    /// <c>CleanUp</c> is reached only from a <c>SelectObject</c> event. Nothing re-initialises it
+    /// on colony load, so once it is stuck every planned building in every colony loaded
+    /// afterwards shows Preconfigure greyed out until the game is restarted. That is the shape of
+    /// the upstream report: not one building, <i>any</i> building button.
+    ///
+    /// <para>Two halves, because the latch has two ways to come back:</para>
+    /// <list type="number">
+    /// <item>a session that ends normally hands it back - <c>SidescreenButtonInteractable()</c> is
+    /// false while the screen is open and true again once it closes;</item>
+    /// <item>a session that is abandoned hands it back too, through the teardown reset that
+    /// <c>Game.DestroyInstances</c> now runs.</item>
+    /// </list>
+    ///
+    /// <para>The second half sets the latch directly rather than spawning a building and dropping
+    /// it: abandoning a live session for real means quitting to the main menu, which ends the
+    /// harness run, and destroying the temporary building here without the deselect first is the
+    /// <c>SimpleInfoScreen</c> NRE storm documented on <see cref="EndPreconfigureEditing"/>. What
+    /// it cannot prove from inside one run is that <c>Game.DestroyInstances</c> calls the reset -
+    /// only that the reset releases the latch when it is called.</para>
+    /// </summary>
+    private static IEnumerator PreconfigureButtonLatchFailsOpen()
+    {
+        var transferComponent = UnityEngine.Object
+            .FindObjectsByType<UnderConstructionDataTransfer>(FindObjectsSortMode.None)
+            .FirstOrDefault(t => t != null && t.GetStoredData().ContainsKey("Prioritizable"));
+        var plan = transferComponent == null ? null : transferComponent.building;
+        if (plan == null)
+        {
+            Log?.Line("  REACHABILITY: no queued building carrying stored data - earlier cases " +
+                      "normally leave one behind");
+            yield break;
+        }
+
+        var transfer = plan.GetComponent<UnderConstructionDataTransfer>();
+
+        ///an earlier case that leaked the latch would make this one pass for the wrong reason
+        Assert.True(transfer.SidescreenButtonInteractable(),
+            "the Preconfigure button starts out interactable");
+
+        bool tornDown = false;
+        try
+        {
+            ///through the button itself, not StartEditingUnderConstructionData - the latch is the
+            ///button's, and the press path is what #109 made exception-safe
+            transfer.OnSidescreenButtonPressed();
+            for (int i = 0; i < 10; i++)
+                yield return null;
+
+            Assert.True(!transfer.SidescreenButtonInteractable(),
+                "the button greys out while a preconfigure session is open");
+
+            yield return EndPreconfigureEditing();
+            tornDown = true;
+            for (int i = 0; i < 3; i++)
+                yield return null;
+
+            Assert.True(transfer.SidescreenButtonInteractable(),
+                "a session that ends normally hands the latch back");
+        }
+        finally
+        {
+            if (!tornDown)
+            {
+                PreconfigureCleanUp();
+                if (SelectTool.Instance != null)
+                    SelectTool.Instance.Select(null);
+            }
+        }
+
+        ///second half: the colony goes away with the latch taken
+        UnderConstructionDataTransfer.SelectButtonUnlocked = false;
+        Assert.True(!transfer.SidescreenButtonInteractable(),
+            "a taken latch really does grey the button out, so the reset below is testing something");
+
+        PreconfigureResetSessionState();
+
+        Log?.Line($"  after the teardown reset: unlocked={UnderConstructionDataTransfer.SelectButtonUnlocked}, " +
+                  $"temporary selectable={(UnderConstructionDataSettingHelper.TemporarySelectable == null ? "null" : "still set")}");
+
+        Assert.True(transfer.SidescreenButtonInteractable(),
+            "an abandoned session does not outlive the colony - the latch fails open on teardown");
+        Assert.True(UnderConstructionDataSettingHelper.TemporarySelectable == null,
+            "the teardown reset drops its reference to the temporary building too");
+
+        yield break;
     }
 
     // ---- a GameScheduler-driven path delivers for real ---------------

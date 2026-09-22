@@ -103,6 +103,16 @@ and was never published under it.
 
 ### Fixed
 
+- **The Preconfigure button no longer stays greyed out for the rest of the session.** Pressing it
+  takes a lock that only closing the screen gives back, and closing it is driven by the game's
+  "something else was selected" event. Leave the colony with the screen open and no such event
+  arrives, so the lock stays taken - and it is not part of a save, so every planned building in
+  every colony loaded afterwards showed the button greyed out until the game was restarted. The
+  lock is now released when a colony is torn down, released again if opening the screen throws,
+  and the screen refuses to open at all rather than starting a session it could never end.
+  Reported upstream as their issue #363; upstream's own fix is not published, so this is this
+  fork's. (#109)
+
 - **Hardening: toggling note visibility cannot crash on a note's renderer.** Upstream crashes
   here (their issue #362) because their notes re-create the renderer and clear the field when the
   note is destroyed. This fork keeps the original renderer and never reassigns it, so the crash

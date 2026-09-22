@@ -1,4 +1,5 @@
-﻿using BlueprintsV2.Tools;
+﻿using BlueprintsV2.BlueprintData;
+using BlueprintsV2.Tools;
 using BlueprintsV2.UnityUI;
 using HarmonyLib;
 
@@ -24,6 +25,9 @@ internal class CleanupPatch
             SpriteSelectorScreen.DestroyInstance();
             BlueprintSelectionScreen.DestroyInstance();
             BlueprintRenamingScreen.DestroyInstance();
+            ///a preconfigure session that is still open when the colony is torn down never gets its
+            ///SelectObject event, and its button latch is a process-lifetime static (#109)
+            UnderConstructionDataSettingHelper.ResetSessionState();
         }
     }
 }

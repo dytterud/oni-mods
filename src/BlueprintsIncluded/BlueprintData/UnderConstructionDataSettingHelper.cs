@@ -78,7 +78,18 @@ public static class UnderConstructionDataSettingHelper
         });
 
         temporaryTargetBuilding = def.Create(Grid.CellToPos(cell), null, [SimHashes.Unobtanium.CreateTag()], null, 100, def.BuildingComplete);
-        temporaryTargetBuilding.GetComponent<DataTransferCleanup>().SetInUse();
+
+        ///DataTransferCleanup is what ends the session: its SelectObject handler is the only route
+        ///to HandleDeselection, and CleanUp is the only thing that hands the button's latch back.
+        ///A BuildingComplete that never went through BuildingLoader.CreateBuildingComplete does not
+        ///carry one, so without this the session would start and never be endable (#109).
+        if (!temporaryTargetBuilding.TryGetComponent<DataTransferCleanup>(out var cleanup))
+        {
+            SgtLogger.error($"{def.PrefabID} has no {nameof(DataTransferCleanup)}; abandoning the preconfigure session.");
+            CleanUp();
+            return;
+        }
+        cleanup.SetInUse();
         TemporarySelectable = temporaryTargetBuilding.GetComponent<KSelectable>();
         //prevent "build outside start biome" achievment from triggering
         temporaryTargetBuilding.GetComponent<KPrefabID>().AddTag(GameTags.TemplateBuilding);
@@ -123,9 +134,35 @@ public static class UnderConstructionDataSettingHelper
     {
         if (temporaryTargetBuilding != null)
             UnityEngine.Object.Destroy(temporaryTargetBuilding);
+        temporaryTargetBuilding = null;
+        lastSelected = null;
         TemporarySelectable = null;
         UnderConstructionDataTransfer.SelectButtonUnlocked = true;
         RefillBorrowedBorderCells();
+    }
+
+    /// <summary>
+    /// Drops an in-flight edit session when the colony itself is going away, without touching the
+    /// world it is leaving behind.
+    ///
+    /// <para><see cref="CleanUp"/> is reached only from a <see cref="GameHashes.SelectObject"/>
+    /// event, so any way of ending a session that produces no such event - quitting to the main
+    /// menu with the preconfigure screen open, most obviously - leaves
+    /// <see cref="UnderConstructionDataTransfer.SelectButtonUnlocked"/> taken. It is a plain
+    /// <c>static</c>, not per-save, and nothing re-initialises it on load, so from then on every
+    /// planned building in every colony loaded afterwards shows Preconfigure greyed out until the
+    /// game is restarted (#109).</para>
+    /// </summary>
+    internal static void ResetSessionState()
+    {
+        ///no Destroy and no border refill: the objects and the cells both belong to a world that is
+        ///being torn down, and RefillBorrowedBorderCells would schedule a SimMessages write against
+        ///a Grid that is on its way out.
+        temporaryTargetBuilding = null;
+        lastSelected = null;
+        TemporarySelectable = null;
+        borrowedBorderCells.Clear();
+        UnderConstructionDataTransfer.SelectButtonUnlocked = true;
     }
 
     ///the world-border cells the temporary building was spawned into, with what they were made of
