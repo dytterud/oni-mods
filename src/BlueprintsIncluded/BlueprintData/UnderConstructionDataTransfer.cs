@@ -115,7 +115,19 @@ public class UnderConstructionDataTransfer : KMonoBehaviour
         if (!SelectButtonUnlocked)
             return;
         SelectButtonUnlocked = false;
-        UnderConstructionDataSettingHelper.StartEditingUnderConstructionData(this);
+        try
+        {
+            UnderConstructionDataSettingHelper.StartEditingUnderConstructionData(this);
+        }
+        catch (Exception e)
+        {
+            ///The latch is already taken here and only CleanUp gives it back, so a throw anywhere
+            ///in the session setup would grey the button out on every planned building for the
+            ///rest of the process - it is static, and nothing re-initialises it on colony load
+            ///(#109).
+            SgtLogger.error($"Could not start a preconfigure session for {building.Def.PrefabID}:\n{e}");
+            UnderConstructionDataSettingHelper.CleanUp();
+        }
     }
 
     public int HorizontalGroupID() => -1;

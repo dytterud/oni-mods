@@ -93,6 +93,8 @@ internal static class HarnessCases
         new HarnessCase("preconfigure-screen-loads-the-plan's-settings", PreconfigureLoadsStoredSettings),
         new HarnessCase("preconfigure-leaves-the-world-border-intact", PreconfigureLeavesTheBorderIntact),
         new HarnessCase("preconfigure-screen-opens-while-the-game-is-paused", PreconfigureWorksWhilePaused),
+        new HarnessCase("preconfigure-button-latch-fails-open", PreconfigureButtonLatchFailsOpen),
+        new HarnessCase("preconfigure-seed-can-be-picked-and-kept", PreconfigureSeedCanBePickedAndKept),
         new HarnessCase("preconfigure-button-shows-for-smi-backed-buildings", PreconfigureButtonShowsForSmiBackedBuildings),
         new HarnessCase("building-data-api-survives-a-dead-gameobject", BuildingDataApiSurvivesDeadGameObject),
         new HarnessCase("anim-less-previews-are-all-tile-visuals", AnimLessPreviewsAreAllTileVisuals),
@@ -2054,6 +2056,12 @@ internal static class HarnessCases
             .GetMethod("CleanUp", BindingFlags.NonPublic | BindingFlags.Static)
             ?.Invoke(null, null);
 
+    /// <summary><c>UnderConstructionDataSettingHelper.ResetSessionState</c> is internal too.</summary>
+    private static void PreconfigureResetSessionState()
+        => typeof(UnderConstructionDataSettingHelper)
+            .GetMethod("ResetSessionState", BindingFlags.NonPublic | BindingFlags.Static)
+            ?.Invoke(null, null);
+
     /// <summary>
     /// Runs <c>SameBuildingAlreadyFinishedInPlace</c> for <paramref name="def"/> at
     /// <paramref name="cell"/>, as though the blueprint entry were captured at
@@ -2340,6 +2348,610 @@ internal static class HarnessCases
                     SelectTool.Instance.Select(null);
             }
         }
+    }
+
+    // ---- the preconfigure button's latch has to fail open -------------
+
+    /// <summary>
+    /// #109: <c>UnderConstructionDataTransfer.SelectButtonUnlocked</c> is a plain <c>static</c>
+    /// that <c>OnSidescreenButtonPressed</c> takes and only <c>CleanUp</c> gives back - and
+    /// <c>CleanUp</c> is reached only from a <c>SelectObject</c> event. Nothing re-initialises it
+    /// on colony load, so once it is stuck every planned building in every colony loaded
+    /// afterwards shows Preconfigure greyed out until the game is restarted. That is the shape of
+    /// the upstream report: not one building, <i>any</i> building button.
+    ///
+    /// <para>Two halves, because the latch has two ways to come back:</para>
+    /// <list type="number">
+    /// <item>a session that ends normally hands it back - <c>SidescreenButtonInteractable()</c> is
+    /// false while the screen is open and true again once it closes;</item>
+    /// <item>a session that is abandoned hands it back too, through the teardown reset that
+    /// <c>Game.DestroyInstances</c> now runs.</item>
+    /// </list>
+    ///
+    /// <para>The second half sets the latch directly rather than spawning a building and dropping
+    /// it: abandoning a live session for real means quitting to the main menu, which ends the
+    /// harness run, and destroying the temporary building here without the deselect first is the
+    /// <c>SimpleInfoScreen</c> NRE storm documented on <see cref="EndPreconfigureEditing"/>. What
+    /// it cannot prove from inside one run is that <c>Game.DestroyInstances</c> calls the reset -
+    /// only that the reset releases the latch when it is called.</para>
+    /// </summary>
+    private static IEnumerator PreconfigureButtonLatchFailsOpen()
+    {
+        var transferComponent = UnityEngine.Object
+            .FindObjectsByType<UnderConstructionDataTransfer>(FindObjectsSortMode.None)
+            .FirstOrDefault(t => t != null && t.GetStoredData().ContainsKey("Prioritizable"));
+        var plan = transferComponent == null ? null : transferComponent.building;
+        if (plan == null)
+        {
+            Log?.Line("  REACHABILITY: no queued building carrying stored data - earlier cases " +
+                      "normally leave one behind");
+            yield break;
+        }
+
+        var transfer = plan.GetComponent<UnderConstructionDataTransfer>();
+
+        ///an earlier case that leaked the latch would make this one pass for the wrong reason
+        Assert.True(transfer.SidescreenButtonInteractable(),
+            "the Preconfigure button starts out interactable");
+
+        bool tornDown = false;
+        try
+        {
+            ///through the button itself, not StartEditingUnderConstructionData - the latch is the
+            ///button's, and the press path is what #109 made exception-safe
+            transfer.OnSidescreenButtonPressed();
+            for (int i = 0; i < 10; i++)
+                yield return null;
+
+            Assert.True(!transfer.SidescreenButtonInteractable(),
+                "the button greys out while a preconfigure session is open");
+
+            yield return EndPreconfigureEditing();
+            tornDown = true;
+            for (int i = 0; i < 3; i++)
+                yield return null;
+
+            Assert.True(transfer.SidescreenButtonInteractable(),
+                "a session that ends normally hands the latch back");
+        }
+        finally
+        {
+            if (!tornDown)
+            {
+                PreconfigureCleanUp();
+                if (SelectTool.Instance != null)
+                    SelectTool.Instance.Select(null);
+            }
+        }
+
+        ///second half: the colony goes away with the latch taken
+        UnderConstructionDataTransfer.SelectButtonUnlocked = false;
+        Assert.True(!transfer.SidescreenButtonInteractable(),
+            "a taken latch really does grey the button out, so the reset below is testing something");
+
+        PreconfigureResetSessionState();
+
+        Log?.Line($"  after the teardown reset: unlocked={UnderConstructionDataTransfer.SelectButtonUnlocked}, " +
+                  $"temporary selectable={(UnderConstructionDataSettingHelper.TemporarySelectable == null ? "null" : "still set")}");
+
+        Assert.True(transfer.SidescreenButtonInteractable(),
+            "an abandoned session does not outlive the colony - the latch fails open on teardown");
+        Assert.True(UnderConstructionDataSettingHelper.TemporarySelectable == null,
+            "the teardown reset drops its reference to the temporary building too");
+
+        yield break;
+    }
+
+    // ---- #110: can the seed picker pick a seed on a preconfigured planter? ----
+
+    /// <summary>
+    /// #110: upstream was told the Hydroponic Farm "cannot select seeds and cannot perform
+    /// planting" during a preconfigure session. Reachability was never established by reading -
+    /// <c>ReceptacleSideScreen</c> is Klei code and <c>lib/</c> holds reference assemblies with no
+    /// method bodies - so this walks the screen the way a player does and measures each step:
+    /// does it take the temporary building as a target, does the picker list rows, is a row
+    /// selectable, does clicking it register a choice, does confirming it reach the receptacle,
+    /// and does the choice survive the session onto the plan.
+    ///
+    /// <para>A <b>finished</b> Farm Tile built in the colony and selected normally is the control,
+    /// and it runs last on purpose: <c>PlanterSideScreen</c> is not instantiated until something
+    /// has selected a planter, so a control that ran first would find no screen at all. If the
+    /// control gets through and the preconfigured ones do not, the fault is in the preconfigure
+    /// machinery; if only the Hydroponic Farm stalls, it is in the building.</para>
+    ///
+    /// <para>Most of this is <c>protected</c> or <c>private</c> on Klei's screen, so it goes
+    /// through reflection; the harness is not in that assembly. <c>CreateOrder</c> stands in for
+    /// pressing the confirm button, which is what that button calls.</para>
+    /// </summary>
+    private static IEnumerator PreconfigureSeedCanBePickedAndKept()
+    {
+        var readings = new List<PickerReading>();
+
+        foreach (string prefabId in new[] { "FarmTile", "HydroponicFarm" })
+        {
+            var def = Assets.GetBuildingDef(prefabId);
+            if (def == null)
+            {
+                Log?.Line($"  REACHABILITY: no BuildingDef for {prefabId} in this install");
+                continue;
+            }
+
+            var probe = new ProbeSeedPicker(def);
+            yield return probe;
+            if (probe.Reading.Reached)
+                readings.Add(probe.Reading);
+        }
+
+        ///the control, last, so PlanterSideScreen already exists
+        var controlDef = Assets.GetBuildingDef("FarmTile");
+        if (controlDef == null)
+        {
+            Log?.Line("  REACHABILITY: no FarmTile BuildingDef - no control");
+        }
+        else
+        {
+            int cell = FreeFootprintCell(controlDef);
+            if (cell < 0)
+            {
+                Log?.Line("  REACHABILITY: no clear spot for the control FarmTile");
+            }
+            else
+            {
+                controlDef.RunOnArea(cell, Orientation.Neutral, c =>
+                {
+                    if (Grid.IsSolidCell(c))
+                        SimMessages.Dig(c, skipEvent: true);
+                });
+                var built = controlDef.Build(cell, Orientation.Neutral, resource_storage: null,
+                    FixtureBuilder.SelectElements(controlDef), temperature: 293.15f,
+                    playsound: false, timeBuilt: 0f);
+                for (int i = 0; i < 10; i++)
+                    yield return null;
+
+                if (built == null)
+                {
+                    Log?.Line("  REACHABILITY: the control FarmTile did not build");
+                }
+                else
+                {
+                    try
+                    {
+                        ///select it the way the game does, so the details screen wires the side screen up
+                        Game.Instance.Trigger((int)GameHashes.SelectObject, built);
+                        if (SelectTool.Instance != null && built.TryGetComponent<KSelectable>(out var sel))
+                            SelectTool.Instance.Select(sel);
+                        for (int i = 0; i < 10; i++)
+                            yield return null;
+
+                        readings.Add(MeasurePicker(built, "FarmTile (finished, control)"));
+                    }
+                    finally
+                    {
+                        if (SelectTool.Instance != null)
+                            SelectTool.Instance.Select(null);
+                        if (Game.Instance != null)
+                            Game.Instance.Trigger((int)GameHashes.SelectObject, null);
+                    }
+                    for (int i = 0; i < 3; i++)
+                        yield return null;
+                    built.DeleteObject();
+                }
+            }
+        }
+
+        Assert.True(readings.Count > 0,
+            "at least one planter could be probed - see the REACHABILITY lines above");
+
+        foreach (var r in readings)
+            Log?.Line($"  SUMMARY {r.Label}: accepted={r.ScreenAcceptedTarget}, listed={r.ListedCount}, " +
+                      $"selectableRows={r.SelectableCount}, clicked={r.ClickedTag}, " +
+                      $"selectedAfterClick={r.SelectedTagAfterClick}, " +
+                      $"canDepositAfterClick={r.AdditionalCanDepositAfterClick}, " +
+                      $"requestedAfterConfirm={r.RequestedTagAfterConfirm}, storedOnPlan={r.StoredOnPlan}");
+
+        var control = readings.FirstOrDefault(r => r.Label != null && r.Label.Contains("control"));
+        if (control.Label == null || control.SelectableCount <= 0)
+        {
+            Log?.Line("  REACHABILITY: the control never got a selectable row either, so nothing " +
+                      "measured here can be attributed to the preconfigure session");
+            yield break;
+        }
+
+        foreach (var r in readings)
+        {
+            Assert.True(r.ScreenAcceptedTarget,
+                $"the receptacle side screen accepts {r.Label} as a target");
+            Assert.True(r.ListedCount > 0,
+                $"{r.Label}'s seed picker lists something ({r.ListedCount})");
+            Assert.True(r.SelectableCount > 0,
+                $"at least one row in {r.Label}'s picker is selectable ({r.SelectableCount} of {r.ListedCount})");
+            Assert.True(r.SelectedTagAfterClick != "(none)",
+                $"clicking a row on {r.Label} registers a choice (got {r.SelectedTagAfterClick})");
+            Assert.True(r.RequestedTagAfterConfirm != "(none)",
+                $"confirming the choice on {r.Label} reaches the receptacle (got {r.RequestedTagAfterConfirm})");
+        }
+
+        foreach (var r in readings.Where(r => r.Label != null && r.Label.Contains("preconfigure")))
+            Assert.True(r.StoredOnPlan.Contains(r.ClickedTag),
+                $"the {r.Label} plan keeps the seed chosen during the session " +
+                $"(clicked {r.ClickedTag}, stored {r.StoredOnPlan})");
+    }
+
+    /// <summary>What one walk over the receptacle side screen saw.</summary>
+    private struct PickerReading
+    {
+        public string Label;
+        /// <summary>False when the walk never got as far as a screen, so the rest means nothing.</summary>
+        public bool Reached;
+        public bool ScreenAcceptedTarget;
+        public int ListedCount;
+        public int SelectableCount;
+        public string ClickedTag;
+        public string SelectedTagAfterClick;
+        public string AdditionalCanDepositAfterClick;
+        public string RequestedTagAfterConfirm;
+        public string StoredOnPlan;
+    }
+
+    /// <summary>
+    /// Points the receptacle side screen at <paramref name="target"/>, clicks the first selectable
+    /// row and confirms it, reporting what happened at each step. Synchronous: every step here is
+    /// a direct call, not something the screen does a frame later.
+    /// </summary>
+    private static PickerReading MeasurePicker(GameObject target, string label)
+    {
+        var reading = new PickerReading
+        {
+            Label = label,
+            ListedCount = -1,
+            SelectableCount = -1,
+            ClickedTag = "(none)",
+            SelectedTagAfterClick = "(none)",
+            AdditionalCanDepositAfterClick = "(unread)",
+            RequestedTagAfterConfirm = "(none)",
+            StoredOnPlan = "(none)",
+        };
+
+        var receptacle = target.GetComponent<SingleEntityReceptacle>();
+        var operational = target.GetComponent<Operational>();
+        var plot = target.GetComponent<PlantablePlot>();
+        Log?.Line($"  {label} at {Grid.CellToXY(Grid.PosToCell(target))}: " +
+                  $"receptacle={receptacle != null}, " +
+                  $"operational={(operational == null ? "n/a" : operational.IsOperational.ToString())}, " +
+                  $"liquidPipeInput={(plot == null ? "n/a" : plot.has_liquid_pipe_input.ToString())}, " +
+                  $"direction={(receptacle == null ? "n/a" : receptacle.Direction.ToString())}, " +
+                  $"rotatable={(receptacle == null ? "n/a" : (receptacle.rotatable != null).ToString())}, " +
+                  $"validPlant={(plot == null ? "n/a" : plot.ValidPlant.ToString())}");
+
+        var screen = Resources.FindObjectsOfTypeAll<ReceptacleSideScreen>()
+            .FirstOrDefault(sc => sc != null && sc.gameObject.scene.IsValid());
+        if (screen == null)
+        {
+            Log?.Line("  REACHABILITY: no ReceptacleSideScreen instance in the scene");
+            return reading;
+        }
+
+        reading.Reached = true;
+        reading.ScreenAcceptedTarget = screen.IsValidForTarget(target);
+        Log?.Line($"  screen={screen.GetType().Name}, IsValidForTarget={reading.ScreenAcceptedTarget}");
+        if (!reading.ScreenAcceptedTarget)
+            return reading;
+
+        screen.SetTarget(target);
+
+        var map = ScreenField(screen, "depositObjectMap")?.GetValue(screen) as IDictionary;
+        reading.ListedCount = map?.Count ?? -1;
+        Log?.Line($"  depositObjectMap={reading.ListedCount}, " +
+                  $"RequiresAvailableAmountToDeposit={CallBool(screen, "RequiresAvailableAmountToDeposit")}");
+        if (map == null || map.Count == 0)
+            return reading;
+
+        ///false for the second argument: that is the row-enabled test. Passing true also runs
+        ///AdditionalCanDepositTest, which is false until something IS selected, so it would report
+        ///every row unselectable no matter what.
+        var canDeposit = typeof(ReceptacleSideScreen).GetMethod("CanDepositEntity",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        object? firstSelectable = null;
+        string firstSelectableName = "(none)";
+        reading.SelectableCount = 0;
+        var sample = new List<string>();
+        foreach (DictionaryEntry pair in map)
+        {
+            bool ok = false;
+            if (canDeposit != null)
+            {
+                try
+                {
+                    ok = (bool)canDeposit.Invoke(screen, new[] { pair.Value, (object)false })!;
+                }
+                catch (Exception e)
+                {
+                    sample.Add("CanDepositEntity threw " + (e.InnerException ?? e).GetType().Name);
+                }
+            }
+            string entityName = NameOfEntity(pair.Value);
+            if (ok)
+            {
+                reading.SelectableCount++;
+                if (firstSelectable == null)
+                {
+                    firstSelectable = pair.Key;
+                    firstSelectableName = entityName;
+                }
+            }
+            if (sample.Count < 6)
+                sample.Add($"{entityName}={ok}");
+        }
+        Log?.Line($"  CanDepositEntity(row): {reading.SelectableCount}/{map.Count} true; " +
+                  $"sample {string.Join(", ", sample)}");
+
+        if (firstSelectable == null)
+            return reading;
+
+        reading.ClickedTag = firstSelectableName;
+        var toggleClicked = typeof(ReceptacleSideScreen).GetMethod("ToggleClicked",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        try
+        {
+            toggleClicked?.Invoke(screen, new[] { firstSelectable });
+        }
+        catch (Exception e)
+        {
+            Log?.Line($"  ToggleClicked threw {(e.InnerException ?? e).GetType().Name}: " +
+                      $"{(e.InnerException ?? e).Message}");
+        }
+
+        var selectedField = ScreenField(screen, "selectedDepositObjectTag");
+        var selected = selectedField?.GetValue(screen);
+        if (selected is Tag selectedTag && selectedTag.IsValid)
+            reading.SelectedTagAfterClick = selectedTag.ToString();
+        reading.AdditionalCanDepositAfterClick = CallBool(screen, "AdditionalCanDepositTest");
+        Log?.Line($"  clicked {reading.ClickedTag} -> selectedDepositObjectTag=" +
+                  $"{reading.SelectedTagAfterClick}, AdditionalCanDepositTest=" +
+                  $"{reading.AdditionalCanDepositAfterClick}");
+
+        ///AdditionalCanDepositTest is three clauses AND-ed: a valid (and, with the mutations DLC,
+        ///plantable) seed tag, plot.ValidPlant, and the seed being in stock in the receptacle's
+        ///OWN world. Report each separately - a false from the third means the temporary building
+        ///is not in the world the player's seeds are in.
+        ///the second clause of AdditionalCanDepositTest: PlantablePlot.ValidPlant, which is
+        ///"plantPreview == null || plantPreview.Valid" - i.e. whether the ghost plant the screen
+        ///just put in the plot reports that it could live there. Read AFTER the click, because
+        ///before it there is no preview and the answer is trivially true.
+        object? preview = plot == null
+            ? null
+            : typeof(PlantablePlot).GetField("plantPreview", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.GetValue(plot);
+        Log?.Line($"  plot after click: ValidPlant={(plot == null ? "n/a" : plot.ValidPlant.ToString())}, " +
+                  $"plantPreview={(preview == null || preview.Equals(null) ? "null" : "present")}, " +
+                  $"previewValid={(preview is EntityPreview ep && !ep.Equals(null) ? ep.Valid.ToString() : "n/a")}");
+
+        ///the first clause of AdditionalCanDepositTest with mutations on: the seed tag AND the
+        ///subspecies tag have to name a plantable seed together
+        var additionalAfter = ScreenField(screen, "selectedDepositObjectAdditionalTag")?.GetValue(screen);
+        string plantable = "(unread)";
+        if (selected is Tag seedTag)
+        {
+            try
+            {
+                plantable = PlantSubSpeciesCatalog.Instance
+                    .IsValidPlantableSeed(seedTag, additionalAfter is Tag sub ? sub : Tag.Invalid)
+                    .ToString();
+            }
+            catch (Exception e)
+            {
+                plantable = "threw " + e.GetType().Name;
+            }
+        }
+        Log?.Line($"  subspecies: selectedDepositObjectAdditionalTag=" +
+                  $"{(additionalAfter is Tag t2 && t2.IsValid ? t2.ToString() : "(invalid)")}, " +
+                  $"receptacle.requestedEntityAdditionalFilterTag=" +
+                  $"{(receptacle != null && receptacle.requestedEntityAdditionalFilterTag.IsValid ? receptacle.requestedEntityAdditionalFilterTag.ToString() : "(invalid)")}, " +
+                  $"IsValidPlantableSeed={plantable}, " +
+                  $"anyNonOriginalDiscovered={PlantSubSpeciesCatalog.Instance.AnyNonOriginalDiscovered}");
+
+        int targetCell = Grid.PosToCell(target);
+        var world = receptacle == null ? null : receptacle.GetMyWorld();
+        string stock = "(unread)";
+        if (world != null && selected is Tag chosen)
+        {
+            var additional = ScreenField(screen, "selectedDepositObjectAdditionalTag")?.GetValue(screen);
+            try
+            {
+                stock = world.worldInventory
+                    .GetCountWithAdditionalTag(chosen, additional is Tag extra ? extra : Tag.Invalid,
+                                               world.IsModuleInterior)
+                    .ToString();
+            }
+            catch (Exception e)
+            {
+                stock = "threw " + e.GetType().Name;
+            }
+        }
+        Log?.Line($"  world: cellWorldIdx={(Grid.IsValidCell(targetCell) ? Grid.WorldIdx[targetCell].ToString() : "n/a")}, " +
+                  $"GetMyWorldId={(receptacle == null ? "n/a" : receptacle.GetMyWorldId().ToString())}, " +
+                  $"GetMyWorld={(world == null ? "null" : world.id.ToString())}, " +
+                  $"plantMutations={DlcManager.FeaturePlantMutationsEnabled()}, " +
+                  $"stockInThatWorld={stock}");
+
+        ///what the confirm button ends up calling: ReceptacleSideScreen.CreateOrder forwards the
+        ///two selected tags straight to the receptacle
+        if (receptacle != null && selected is Tag confirmTag)
+        {
+            try
+            {
+                receptacle.CreateOrder(confirmTag, additionalAfter is Tag extra2 ? extra2 : Tag.Invalid);
+            }
+            catch (Exception e)
+            {
+                Log?.Line($"  CreateOrder threw {e.GetType().Name}: {e.Message}");
+            }
+        }
+
+        if (receptacle != null && receptacle.requestedEntityTag.IsValid)
+            reading.RequestedTagAfterConfirm = receptacle.requestedEntityTag.ToString();
+        Log?.Line($"  after confirm: requestedEntityTag={reading.RequestedTagAfterConfirm}");
+
+        return reading;
+    }
+
+    /// <summary>A <c>SelectableEntity</c>'s prefab tag, without a compile-time reference to it.</summary>
+    private static string NameOfEntity(object? entity)
+    {
+        if (entity == null)
+            return "(null)";
+        var tagField = entity.GetType().GetField("tag", BindingFlags.Public | BindingFlags.Instance);
+        return tagField?.GetValue(entity)?.ToString() ?? entity.GetType().Name;
+    }
+
+    private static FieldInfo? ScreenField(ReceptacleSideScreen screen, string name)
+    {
+        var field = typeof(ReceptacleSideScreen)
+            .GetField(name, BindingFlags.NonPublic | BindingFlags.Instance);
+        if (field == null)
+            Log?.Line($"  (no field {name} on ReceptacleSideScreen - Klei renamed it?)");
+        return field;
+    }
+
+    private static string CallBool(ReceptacleSideScreen screen, string name)
+    {
+        var method = typeof(ReceptacleSideScreen)
+            .GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance);
+        if (method == null)
+            return "(no such method)";
+        try
+        {
+            return method.Invoke(screen, null)?.ToString() ?? "(null)";
+        }
+        catch (Exception e)
+        {
+            return "threw " + (e.InnerException ?? e).GetType().Name;
+        }
+    }
+
+    /// <summary>First cell in a sweep well clear of the other cases' regions whose whole
+    /// footprint is inside the map and empty on the building layer. -1 if there is none.</summary>
+    private static int FreeFootprintCell(BuildingDef def)
+    {
+        var anchor = Grid.CellToXY(AnchorCell);
+        for (int dy = -28; dy >= -34; dy--)
+        {
+            for (int dx = -16; dx <= 16; dx++)
+            {
+                int cell = Grid.XYToCell(anchor.x + dx, anchor.y + dy);
+                if (!Grid.IsValidCell(cell))
+                    continue;
+
+                bool clear = true;
+                def.RunOnArea(cell, Orientation.Neutral, c =>
+                {
+                    if (!Grid.IsValidCell(c)
+                        || Grid.Objects[c, (int)ObjectLayer.Building] != null
+                        || Grid.Objects[c, (int)def.ObjectLayer] != null)
+                        clear = false;
+                });
+                if (clear)
+                    return cell;
+            }
+        }
+        return -1;
+    }
+
+    /// <summary>
+    /// Queues a plan for <paramref name="def"/>, opens a preconfigure session on it, walks the
+    /// receptacle side screen against the temporary building and then checks what the plan kept.
+    /// Yield it, then read <see cref="Reading"/>.
+    /// </summary>
+    private sealed class ProbeSeedPicker : IEnumerator
+    {
+        private readonly IEnumerator steps;
+
+        public PickerReading Reading;
+
+        public ProbeSeedPicker(BuildingDef def) => steps = Run(def);
+
+        private IEnumerator Run(BuildingDef def)
+        {
+            int cell = FreeFootprintCell(def);
+            if (cell < 0)
+            {
+                Log?.Line($"  REACHABILITY: no clear {def.WidthInCells}x{def.HeightInCells} spot " +
+                          $"for a {def.PrefabID} plan");
+                yield break;
+            }
+
+            GameObject? plan = null;
+            bool savedInstant = DebugHandler.InstantBuildMode;
+            DebugHandler.InstantBuildMode = false;
+            try
+            {
+                ///a plan, not a finished building - UnderConstructionDataTransfer only exists on one
+                plan = def.TryPlace(null, Grid.CellToPosCBC(cell, def.SceneLayer), Orientation.Neutral,
+                                    FixtureBuilder.SelectElements(def), null);
+            }
+            catch (Exception e)
+            {
+                Log?.Line($"  REACHABILITY: TryPlace threw for {def.PrefabID}: {e.GetType().Name}: {e.Message}");
+            }
+            finally
+            {
+                DebugHandler.InstantBuildMode = savedInstant;
+            }
+
+            if (plan == null || !plan.TryGetComponent<UnderConstructionDataTransfer>(out var transfer))
+            {
+                Log?.Line($"  REACHABILITY: no {def.PrefabID} plan carrying an UnderConstructionDataTransfer " +
+                          $"at {Grid.CellToXY(cell)}");
+                yield break;
+            }
+
+            bool tornDown = false;
+            try
+            {
+                transfer.OnSidescreenButtonPressed();
+                for (int i = 0; i < 15; i++)
+                    yield return null;
+
+                var temp = UnderConstructionDataSettingHelper.TemporarySelectable;
+                if (temp == null)
+                {
+                    Log?.Line($"  REACHABILITY: the {def.PrefabID} session spawned no temporary building");
+                    yield break;
+                }
+
+                Reading = MeasurePicker(temp.gameObject, $"{def.PrefabID} (preconfigure session)");
+
+                yield return EndPreconfigureEditing();
+                tornDown = true;
+                for (int i = 0; i < 3; i++)
+                    yield return null;
+
+                var stored = transfer.GetStoredData();
+                Log?.Line($"  stored keys on the plan: {string.Join(", ", stored.Keys)}");
+                foreach (var entry in stored)
+                {
+                    if (entry.Value != null && entry.Value.Contains("requestedEntityTag"))
+                        Reading.StoredOnPlan = $"{entry.Key}={entry.Value}";
+                }
+                Log?.Line($"  plan kept: {Reading.StoredOnPlan}");
+            }
+            finally
+            {
+                if (!tornDown)
+                {
+                    PreconfigureCleanUp();
+                    if (SelectTool.Instance != null)
+                        SelectTool.Instance.Select(null);
+                }
+                if (plan != null)
+                    plan.DeleteObject();
+            }
+        }
+
+        public bool MoveNext() => steps.MoveNext();
+        public void Reset() => steps.Reset();
+        public object Current => steps.Current;
     }
 
     // ---- a GameScheduler-driven path delivers for real ---------------
