@@ -103,6 +103,17 @@ and was never published under it.
 
 ### Fixed
 
+- **A seed can actually be chosen when preconfiguring a planter.** Picking a seed on a planned
+  Farm Tile, Hydroponic Farm or Planter Box highlighted the row and then did nothing: the confirm
+  button stayed dead. The preconfigure screen edits a throwaway copy of the building spawned inside
+  the world-border wall, and choosing a seed puts a ghost plant in it - a ghost that reports it
+  could not live where it is standing, which is one of the conditions the planter screen requires
+  before it will let you plant. The stand-in now answers for the plot you are actually going to
+  build. Measured in-game on a Farm Tile and a Hydroponic Farm: before the change both reported the
+  ghost invalid and refused the seed while a finished Farm Tile in the colony accepted it; after,
+  all three accept it and the choice is carried onto the plan. Reported upstream as their issue
+  #363; upstream's own fix is not published, so this is this fork's. (#110)
+
 - **The Preconfigure button no longer stays greyed out for the rest of the session.** Pressing it
   takes a lock that only closing the screen gives back, and closing it is driven by the game's
   "something else was selected" event. Leave the colony with the screen open and no such event
