@@ -228,6 +228,35 @@ public static class UnderConstructionDataSettingHelper
     }
 
     /// <summary>
+    /// Lets a seed actually be chosen on a preconfigured planter.
+    ///
+    /// <para>The temporary building is spawned inside the world-border wall, where nothing could
+    /// grow. Picking a seed puts an <c>EntityPreview</c> ghost plant in the plot, the ghost reports
+    /// itself invalid for where it is standing, and <c>PlantablePlot.ValidPlant</c> goes false -
+    /// which is the second clause of <c>PlanterSideScreen.AdditionalCanDepositTest</c>, so the
+    /// screen greys out its confirm button. The row highlights and nothing else happens: "cannot
+    /// select seeds and cannot perform planting" (#110).</para>
+    ///
+    /// <para>Measured in-game on both a Farm Tile and a Hydroponic Farm: preconfigured, the preview
+    /// reports <c>Valid=false</c> and the deposit test fails; a finished Farm Tile standing in the
+    /// colony reports true for both. The building being edited is a plan somewhere else entirely,
+    /// so where this stand-in happens to sit says nothing about whether the plant will live - and
+    /// the real plot is checked when the seed is actually delivered.</para>
+    /// </summary>
+    [HarmonyPatch(typeof(PlantablePlot), nameof(PlantablePlot.ValidPlant), MethodType.Getter)]
+    public class PlantablePlot_ValidPlant_Patch
+    {
+        public static bool Prefix(PlantablePlot __instance, ref bool __result)
+        {
+            if (__instance.gameObject != temporaryTargetBuilding)
+                return true;
+
+            __result = true;
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Prevents the ComplexFabricatorSideScreen from showing the temporary target building as a valid target since recipes arent configurable and it crashes the soldering station.
     /// </summary>
     [HarmonyPatch(typeof(ComplexFabricatorSideScreen), nameof(ComplexFabricatorSideScreen.IsValidForTarget))]
