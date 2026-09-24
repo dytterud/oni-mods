@@ -709,6 +709,11 @@ internal class ModAssets
                 return VisualizerType.TILE;
             }
         }
+        ///checked after the tile branches so their precedence is unchanged; no module is a tile.
+        else if (def.BuildingComplete.TryGetComponent<RocketModule>(out _))
+        {
+            return VisualizerType.ROCKET;
+        }
         else
         {
             return VisualizerType.BUILDING;

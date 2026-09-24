@@ -580,6 +580,9 @@ public static class BlueprintState
                     case VisualizerType.UTILITY:
                         AddVisual(new UtilityVisual(buildingConfig, cell, playerId), buildingConfig.BuildingDef);
                         break;
+                    case VisualizerType.ROCKET:
+                        AddVisual(new RocketModuleVisual(buildingConfig, cell, playerId), buildingConfig.BuildingDef);
+                        break;
                     case VisualizerType.BUILDING:
                     default:
                         AddVisual(new BuildingVisual(buildingConfig, cell, playerId), buildingConfig.BuildingDef);
@@ -767,6 +770,9 @@ public static class BlueprintState
             ///re-seats (docs §7). Cleared after CleanDirtyVisuals above, so the live ones have
             ///already unregistered themselves from the renderer.
             CleanableVisuals[playerId].Clear();
+            ///CleanDirtyVisuals above already had each module visual drop its own hardpoint;
+            ///this makes sure none outlives the blueprint however it was registered.
+            RocketModuleVisual.ClearAttachmentPoints(playerId);
 
             ///see CleanDirtyVisuals: the colour cache outlives a single update, but not the
             ///blueprint it describes.
