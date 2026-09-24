@@ -30,6 +30,9 @@ public class ReplacementVis : KMonoBehaviour
     protected int cell;
 
     protected HashSet<int> occupiedCells = new();
+    /// the building's connection points (conduit, power and radbolt ports), each on the layer its
+    /// port lives on rather than the def's own object layer; recomputed with occupiedCells
+    protected List<(int Cell, ObjectLayer Layer)> portOccupations = [];
     protected Extents extents;
     protected static Dictionary<Deconstructable, ReplacementVis> queuedDeconstructablesGlobal = new();
 
@@ -38,15 +41,24 @@ public class ReplacementVis : KMonoBehaviour
 
 
     [MyCmpGet] protected KBatchedAnimController? kbac;
-    private HandleVector<int>.Handle partitionerEntry;
+    /// one partitioner entry per watched object layer: the def's own, plus every port layer
+    private readonly List<HandleVector<int>.Handle> partitionerEntries = [];
+    /// the one-off next-frame check SeatVis schedules; kept so UnseatVis can call it off
+    private SchedulerHandle scheduledSpawnCheck;
     [MyCmpReq] KSelectable selectable = null!;
     [MyCmpReq] InfoDescription description = null!;
     [MyCmpGet] protected VisualizerRotatable? visRot;
     [MyCmpGet] protected SpriteRenderer tileSpriteRenderer = null!;
 
     List<int> subs = [];
+    /// the running DelayedPlacementCheck; doubles as the guard against starting a second one, so
+    /// it stays set until FinalizePlacementCheck has returned
     Coroutine? check = null;
     bool replacementInProgress = false;
+    /// set once TryPlacingQueuedBP has actually built something. The vis is torn down on that
+    /// same frame, but a partitioner callback can still land before the teardown finishes, when
+    /// replacementInProgress is already false again - this is what stops a second placement.
+    bool placementSuccessful = false;
     bool markedForDeletion = false;
     HashSet<ObjectLayer> layersToReplace = null!;
 
@@ -141,35 +153,71 @@ public class ReplacementVis : KMonoBehaviour
     }
     protected virtual void UnseatVis()
     {
+        ///a vis unseated in the frame it was seated must not have the seating check fire at it later
+        if (scheduledSpawnCheck.IsValid)
+            scheduledSpawnCheck.ClearScheduler();
+
         foreach (var occupiedCell in occupiedCells)
         {
             Visualizers[occupiedCell, (int)def.ObjectLayer] = null;
+        }
+        foreach (var (portCell, portLayer) in portOccupations)
+        {
+            ///only release a port slot this vis still holds; a later vis may have taken it over
+            if (Visualizers[portCell, (int)portLayer] == this)
+                Visualizers[portCell, (int)portLayer] = null;
         }
 
         if (TryReplacing)
         {
             RefreshPendingDeconstructs(false);
-            GameScenePartitioner.Instance.Free(ref this.partitionerEntry);
+            for (int i = 0; i < partitionerEntries.Count; i++)
+            {
+                var entry = partitionerEntries[i];
+                GameScenePartitioner.Instance.Free(ref entry);
+            }
+            partitionerEntries.Clear();
         }
     }
     protected virtual void SeatVis()
     {
         DetermineOccupiedCells();
         foreach (var occupiedCell in occupiedCells)
-        {
-            var existingVisOnCell = Visualizers[occupiedCell, (int)def.ObjectLayer];
-            if (existingVisOnCell != null && existingVisOnCell != this)
-            {
-                existingVisOnCell.DestroySelf();
-            }
-            Visualizers[occupiedCell, (int)def.ObjectLayer] = this;
-        }
+            Claim(occupiedCell, def.ObjectLayer);
+        foreach (var (portCell, portLayer) in portOccupations)
+            Claim(portCell, portLayer);
+
         if (TryReplacing)
         {
             RefreshPendingDeconstructs(true);
-            partitionerEntry = GameScenePartitioner.Instance.Add("ReplacementVis.ReCheckPlacement", (object)this.gameObject, new Extents(this.extents.x - 1, this.extents.y - 1, this.extents.width + 2, this.extents.height + 2), GameScenePartitioner.Instance.objectLayers[(int)def.ObjectLayer], OnPreoccupiedCellChanged);
-            GameScheduler.Instance.ScheduleNextFrame("ReplacementVisInitialCheck", OnPreoccupiedCellChanged);
+            ///met something it may not deconstruct and already tore itself down - registering
+            ///now would leave entries behind that nothing ever frees
+            if (markedForDeletion)
+                return;
+
+            ///ports sit on other object layers than the building itself, so a pipe or wire laid on
+            ///one only shows up on that layer's partitioner - watch each distinct layer involved
+            var watched = new Extents(extents.x - 1, extents.y - 1, extents.width + 2, extents.height + 2);
+            var watchedLayers = new HashSet<ObjectLayer> { def.ObjectLayer };
+            foreach (var (_, portLayer) in portOccupations)
+                watchedLayers.Add(portLayer);
+            foreach (var layer in watchedLayers)
+            {
+                partitionerEntries.Add(GameScenePartitioner.Instance.Add("ReplacementVis.ReCheckPlacement", gameObject, watched,
+                    GameScenePartitioner.Instance.objectLayers[(int)layer], OnPreoccupiedCellChanged));
+            }
+            scheduledSpawnCheck = GameScheduler.Instance.ScheduleNextFrame("ReplacementVisInitialCheck", OnPreoccupiedCellChanged);
         }
+    }
+    /// registers this vis at (cell, layer), evicting any other vis that held that slot
+    void Claim(int targetCell, ObjectLayer layer)
+    {
+        var existingVisOnCell = Visualizers[targetCell, (int)layer];
+        if (existingVisOnCell != null && existingVisOnCell != this)
+        {
+            existingVisOnCell.DestroySelf();
+        }
+        Visualizers[targetCell, (int)layer] = this;
     }
     void RefreshPendingDeconstructs(bool deconstruct)
     {
@@ -179,7 +227,35 @@ public class ReplacementVis : KMonoBehaviour
                 DoDeconstrucThingsAt(cell, layer, deconstruct);
 
             if (deconstruct)
+            {
+                ///DoDeconstrucThingsAt destroys the vis on meeting something it may not deconstruct
+                if (markedForDeletion)
+                    return;
                 CancelPlannedOccupyingBuildings(cell);
+            }
+        }
+
+        ///A pipe or wire on a port does not block placement, so the building is usually queued
+        ///while whatever sits on its ports is still waiting for a dupe. Undoing those deconstructs
+        ///once the building is placed would leave the old utility in place and the claim would
+        ///have achieved nothing - they are only called off when the vis goes away unplaced.
+        if (!deconstruct && placementSuccessful)
+            return;
+
+        foreach (var (portCell, portLayer) in portOccupations)
+        {
+            ///a port conflicts only on its own layer, so nothing else at that cell is touched
+            var occupant = Grid.Objects[portCell, (int)portLayer];
+            if (occupant != null && occupant.TryGetComponent<Constructable>(out _))
+            {
+                ///only planned, nothing to deconstruct - cancel the plan instead
+                if (deconstruct)
+                    occupant.Trigger((int)GameHashes.Cancel);
+                continue;
+            }
+            DoDeconstrucThingsAt(portCell, portLayer, deconstruct);
+            if (deconstruct && markedForDeletion)
+                return;
         }
     }
 
@@ -237,24 +313,31 @@ public class ReplacementVis : KMonoBehaviour
     IEnumerator DelayedPlacementCheck()
     {
         yield return null;
-        FinalizePlacementCheck();
+        ///The scene partitioner dispatches synchronously, so a Grid.Objects write made while
+        ///finalizing re-enters OnPreoccupiedCellChanged on this same call stack. `check` is that
+        ///callback's guard, so it is only lowered once the finalize step has fully returned.
+        try
+        {
+            if (!placementSuccessful)
+                FinalizePlacementCheck();
+        }
+        finally
+        {
+            check = null;
+        }
     }
     void FinalizePlacementCheck()
     {
-        check = null;
-        if (!TryReplacing || replacementInProgress)
+        if (placementSuccessful || markedForDeletion || !TryReplacing || replacementInProgress)
             return;
         if (TryPlacingQueuedBP())
-        {
-            UnseatVis();
             DestroySelf();
-        }
-        else
+        else if (!markedForDeletion)
             UpdateVisualState();
     }
     void OnPreoccupiedCellChanged(object data)
     {
-        if (check != null || replacementInProgress || markedForDeletion)
+        if (placementSuccessful || check != null || replacementInProgress || markedForDeletion)
             return;
         check = StartCoroutine(DelayedPlacementCheck());
     }
@@ -285,6 +368,16 @@ public class ReplacementVis : KMonoBehaviour
     bool TryPlacingQueuedBP()
     {
         replacementInProgress = true;
+
+        ///a pipe, wire or plan may have moved onto a claimed cell since seating; deal with it now
+        ///rather than build next to it. Meeting something it may not deconstruct destroys the vis.
+        RefreshPendingDeconstructs(true);
+        if (markedForDeletion)
+        {
+            replacementInProgress = false;
+            return false;
+        }
+
         Vector3 posCbc = Grid.CellToPosCBC(cell, Grid.SceneLayer.Building);
         GameObject builtItem;
 
@@ -303,6 +396,9 @@ public class ReplacementVis : KMonoBehaviour
         {
             builtItem = def.Build(cell, orientation, null, selectedElements, ModAssets.GetSpawnTemperature(def, selectedElements), null, false, GameClock.Instance.GetTime());
         }
+        ///latch before the in-progress flag drops, so no window exists where both are clear
+        if (builtItem != null)
+            placementSuccessful = true;
         replacementInProgress = false;
         if (builtItem == null)
             return false;
@@ -330,33 +426,96 @@ public class ReplacementVis : KMonoBehaviour
 
     }
 
+    int RotatedCell(CellOffset offset) => Grid.OffsetCell(cell, Rotatable.GetRotatedCellOffset(offset, orientation));
+
     void DetermineOccupiedCells()
     {
         occupiedCells.Clear();
-        foreach (var offset in def.PlacementOffsets)
+        if (TryGetBridgeEnds(out var firstEnd, out var secondEnd))
         {
-            var rotated = Rotatable.GetRotatedCellOffset(offset, orientation);
-            occupiedCells.Add(Grid.OffsetCell(cell, rotated));
+            occupiedCells.Add(RotatedCell(firstEnd));
+            occupiedCells.Add(RotatedCell(secondEnd));
         }
-        Grid.CellToXY(cell, out int x, out int y);
-        int val1_1 = x;
-        int val1_2 = y;
-        foreach (int placementCell in occupiedCells)
+        else
         {
-            int val2_1 = 0;
-            int val2_2 = 0;
-            ref int local1 = ref val2_1;
-            ref int local2 = ref val2_2;
-            Grid.CellToXY(placementCell, out local1, out local2);
-            x = Math.Min(x, val2_1);
-            y = Math.Min(y, val2_2);
-            val1_1 = Math.Max(val1_1, val2_1);
-            val1_2 = Math.Max(val1_2, val2_2);
+            foreach (var offset in def.PlacementOffsets)
+                occupiedCells.Add(RotatedCell(offset));
         }
-        this.extents.x = x;
-        this.extents.y = y;
-        this.extents.width = val1_1 - x + 1;
-        this.extents.height = val1_2 - y + 1;
+
+        DeterminePortOccupations();
+
+        ///the watched area spans the footprint and every port, so a utility laid on a port after
+        ///seating still reaches OnPreoccupiedCellChanged
+        Grid.CellToXY(cell, out int minX, out int minY);
+        int maxX = minX, maxY = minY;
+        foreach (int watchedCell in occupiedCells.Concat(portOccupations.Select(port => port.Cell)))
+        {
+            Grid.CellToXY(watchedCell, out int cx, out int cy);
+            minX = Math.Min(minX, cx);
+            minY = Math.Min(minY, cy);
+            maxX = Math.Max(maxX, cx);
+            maxY = Math.Max(maxY, cy);
+        }
+        extents.x = minX;
+        extents.y = minY;
+        extents.width = maxX - minX + 1;
+        extents.height = maxY - minY + 1;
+    }
+
+    /// <summary>
+    /// A bridge passes over whatever lies under its span and only conflicts where it connects, so
+    /// its footprint narrows to its two end cells. Never applies to a building that fills its
+    /// cells, or to a 1x1 one.
+    /// </summary>
+    bool TryGetBridgeEnds(out CellOffset firstEnd, out CellOffset secondEnd)
+    {
+        firstEnd = secondEnd = default;
+        var complete = def.BuildingComplete;
+        if (complete == null
+            || (def.WidthInCells == 1 && def.HeightInCells == 1)
+            || complete.GetComponent<SimCellOccupier>() != null)
+            return false;
+
+        if (complete.GetComponent<ConduitBridgeBase>() != null)
+        {
+            firstEnd = def.UtilityInputOffset;
+            secondEnd = def.UtilityOutputOffset;
+            return true;
+        }
+        if (complete.TryGetComponent<UtilityNetworkLink>(out var link))
+        {
+            firstEnd = link.link1;
+            secondEnd = link.link2;
+            return true;
+        }
+        return false;
+    }
+
+    void DeterminePortOccupations()
+    {
+        portOccupations.Clear();
+
+        void AddPort(CellOffset offset, ObjectLayer layer)
+        {
+            int portCell = RotatedCell(offset);
+            if (!Grid.IsValidCell(portCell) || portOccupations.Contains((portCell, layer)))
+                return;
+            portOccupations.Add((portCell, layer));
+        }
+
+        if (def.InputConduitType != ConduitType.None)
+            AddPort(def.UtilityInputOffset, Grid.GetObjectLayerForConduitType(def.InputConduitType));
+        if (def.OutputConduitType != ConduitType.None)
+            AddPort(def.UtilityOutputOffset, Grid.GetObjectLayerForConduitType(def.OutputConduitType));
+        if (def.RequiresPowerInput)
+            AddPort(def.PowerInputOffset, ObjectLayer.WireConnectors);
+        if (def.RequiresPowerOutput)
+            AddPort(def.PowerOutputOffset, ObjectLayer.WireConnectors);
+        ///there is no radbolt conduit layer; a radbolt joint plate sits on the building layer
+        if (def.UseHighEnergyParticleInputPort)
+            AddPort(def.HighEnergyParticleInputOffset, ObjectLayer.Building);
+        if (def.UseHighEnergyParticleOutputPort)
+            AddPort(def.HighEnergyParticleOutputOffset, ObjectLayer.Building);
     }
 
     protected virtual void UpdateVisualState()
