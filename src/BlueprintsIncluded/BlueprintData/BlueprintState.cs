@@ -5,6 +5,7 @@ using BlueprintsV2.BlueprintData.PlanningToolMod_Integration;
 using BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
 using BlueprintsV2.ModAPI;
 using BlueprintsV2.Tools;
+using BlueprintsV2.UnityUI;
 using BlueprintsV2.Visualizers;
 using ONI_Together_API;
 using ONI_Together_API.Networking;
@@ -33,29 +34,35 @@ public static class BlueprintState
     public static void ToggleHotkeyTooltips() => ExtendedCardTooltips = !ExtendedCardTooltips;
     public static bool ExtendedCardTooltips { get; private set; } = true;
 
-    public static string SelectedBlueprintFolder = string.Empty;
-
     /// <summary>
-    /// Whether placed blueprint notes are drawn. Toggled from the hotkey or the top-left
-    /// control-screen button; each <see cref="NoteToolPlacedEntities.BlueprintNote"/> subscribes
-    /// and hides its own renderer. Not serialized - notes come back visible on load.
+    /// Whether placed notes are shown. Deliberately not saved: a loaded colony always starts with
+    /// its notes visible (see <see cref="ResetNoteVisibility"/>).
     /// </summary>
     public static bool NoteVisibility { get; private set; } = true;
 
     /// <summary>
-    /// Set by the top-left control-screen patch so its button tracks the state no matter who
-    /// toggled it. Every toggle path fans out from here; a caller that refreshed the UI itself
-    /// would leave the button stale for every other caller.
+    /// Flips <see cref="NoteVisibility"/> for every seated note and repaints the top-left button.
+    /// Every path goes through here - the button, the hotkey, anything else - so the button
+    /// cannot drift out of step with the state.
     /// </summary>
-    ///System.Action explicitly: bare Action resolves to Klei's game-action enum here.
-    public static System.Action? NoteVisibilityUiRefresh { get; set; }
-
     public static void ToggleNoteVisibility()
     {
         NoteVisibility = !NoteVisibility;
-        NoteToolPlacedEntities.BlueprintNote.TriggerNoteVisibilityChange(NoteVisibility);
-        NoteVisibilityUiRefresh?.Invoke();
+        BlueprintNote.NotifyNoteVisibility(NoteVisibility);
+        NoteVisibilityButton.Refresh();
     }
+
+    /// <summary>
+    /// Called when a colony is torn down. The flag is a process-lifetime static, so without this
+    /// hiding notes in one colony would carry into the next one loaded.
+    /// </summary>
+    internal static void ResetNoteVisibility()
+    {
+        NoteVisibility = true;
+        NoteVisibilityButton.Forget();
+    }
+
+    public static string SelectedBlueprintFolder = string.Empty;
 
     public static bool InstantBuild => DebugHandler.InstantBuildMode || Game.Instance.SandboxModeActive && SandboxToolParameterMenu.instance.settings.InstantBuild;
 
@@ -770,9 +777,8 @@ public static class BlueprintState
             ///re-seats (docs §7). Cleared after CleanDirtyVisuals above, so the live ones have
             ///already unregistered themselves from the renderer.
             CleanableVisuals[playerId].Clear();
-
-            ///the rocket hardpoint set is static and keyed by player, so a cleared blueprint would
-            ///otherwise leave its modules' attach points standing for the rest of the session
+            ///CleanDirtyVisuals above already had each module visual drop its own hardpoint;
+            ///this makes sure none outlives the blueprint however it was registered.
             RocketModuleVisual.ClearAttachmentPoints(playerId);
 
             ///see CleanDirtyVisuals: the colour cache outlives a single update, but not the

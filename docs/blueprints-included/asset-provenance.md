@@ -101,13 +101,31 @@ text elements are the JSON blobs above, keyed by their `Content` field.
 
 ## Rebuilding them ourselves
 
-Tracked as [#114](https://github.com/dytterud/oni-mods/issues/114). What makes it tractable, all
-established above: the game runs Unity 6000.3.5f2 and these were built with 6000.3.8f1; the
-prefabs need only the `com.unity.ugui` package; `ModAssets.LoadAssets` names the five prefabs to
-recreate under `Assets/UIs/`, and their child paths are an API contract with the `transform.Find`
-calls in `src/BlueprintsIncluded/UnityUI/`.
-Build for `StandaloneWindows64`, `StandaloneOSX` and `StandaloneLinux64` with default options,
-output extensionless as `blueprints_ui`.
+Tracked as [#114](https://github.com/dytterud/oni-mods/issues/114). The Unity project is a
+separate repository, [`dytterud/oni-blueprints-ui`](https://github.com/dytterud/oni-blueprints-ui);
+its README and NOTICE carry the detail. In short:
+
+- **The prefabs are a spec, not prefab files.** `spec/*.json` holds the serialized state of the
+  five prefabs `ModAssets.LoadAssets` loads, extracted from `b1e3175`'s bundle, the MIT one above.
+  A generic editor script rebuilds them field by field, and `tools/compare.py` diffs a built bundle
+  against the spec. `blueprintInfoScreen`, which nothing loads, is left out.
+- **The bundles carry 34 sprites**, not the handful #114 first estimated.
+  - **12 are the game's own art.** The rebuilt bundle ships a same-sized white placeholder under
+    each name, and `ModAssets.UseGameSprites` swaps the game's sprite in after
+    `Assets.OnPrefabInit`, so no Klei art ships. The harness case
+    `game-sprites-replace-the-bundle-art` asserts the swap. Against today's bundles it replaces the
+    embedded copies with the originals. Three copies are pixel-identical to the game's; the rest
+    differ only on anti-aliased edges (alpha at most 37/255), which is recompression, not different
+    art.
+  - **The other 22 are not in the game.** These are icons, rounded corners and scrollbar art. They
+    are carried over under upstream's MIT grant; where they came from before BlueprintsV2 is not
+    recorded.
+- **The NotoSans font and TMP font asset are dropped.** `TMPConverter` already gives every label
+  the game's fonts.
+
+Until a build from that project replaces them, the bundles here are still `b1e3175`'s. To swap them
+in, copy its `out/<platform>/blueprints_ui` over `ModAssets/assets/<platform>/blueprints_ui`,
+confirm with `git hash-object` that all three changed, and run the in-game harness.
 
 Doing it would let `BuildGridSnapRow` and the overflow fixup go back into the prefab, and would
 take the last third-party art out of this repository.

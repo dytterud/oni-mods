@@ -28,6 +28,8 @@ internal class CleanupPatch
             ///a preconfigure session that is still open when the colony is torn down never gets its
             ///SelectObject event, and its button latch is a process-lifetime static (#109)
             UnderConstructionDataSettingHelper.ResetSessionState();
+            ///note visibility is not saved; the next colony starts with its notes shown
+            BlueprintState.ResetNoteVisibility();
         }
     }
 }

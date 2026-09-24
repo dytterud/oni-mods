@@ -642,16 +642,9 @@ public class BuildingVisual : IVisual
             //is same def AND the building cell is aligned with the visualizer cell (aka the building is in the exact same spot as the vis.)
             if (building.Def == def && Grid.PosToCell(existingBuilding) == cellParam)
             {
-                ///Drywall is 1x1 on the Backwall layer and carries a Rotatable used for visual
-                ///variation rather than a meaningful placement orientation, so comparing its
-                ///rotation would make identical drywall read as "different" and cause spurious
-                ///rebuild churn. A building with no Rotatable has no orientation to disagree about.
-                bool isDrywall = def.ObjectLayer == ObjectLayer.Backwall && def.WidthInCells == 1 && def.HeightInCells == 1;
-                bool hasSameRotation = !existingBuilding.TryGetComponent<Rotatable>(out var rotatable)
-                                       || rotatable.Orientation == RotatedOrientation;
-
-                //take rotation in consideration, unless its drywall
-                if (!isDrywall && !hasSameRotation)
+                ///a same-def building facing another way is a different placement: treating it as
+                ///"already here" would skip it, or push this entry's settings (and orientation) onto it
+                if (!FacesAsPlaced(building))
                     return false;
 
                 if (excludeConduits)
@@ -662,6 +655,34 @@ public class BuildingVisual : IVisual
         }
         return false;
     }
+
+    /// <summary>
+    /// Whether <paramref name="existing"/> faces the orientation this visual would place it in.
+    /// Only a disagreement counts: a def without a <see cref="Rotatable"/> has no orientation to
+    /// compare, and neither does one whose orientation is purely cosmetic
+    /// (<see cref="OrientationIsCosmetic"/>).
+    /// </summary>
+    private bool FacesAsPlaced(Building existing)
+    {
+        var def = BuildingDef;
+        if (OrientationIsCosmetic(def) || !def.BuildingComplete.TryGetComponent<Rotatable>(out _))
+            return true;
+
+        ///read from the instance, not the prefab; a planned building lacking one cannot disagree either
+        if (!existing.TryGetComponent<Rotatable>(out var existingRotatable))
+            return true;
+
+        return existingRotatable.Orientation == RotatedOrientation;
+    }
+
+    /// <summary>
+    /// One-cell back-wall buildings (drywall and the like) carry a <see cref="Rotatable"/> only for
+    /// visual variety; their rotation says nothing about placement. Decided
+    /// by layer and footprint so any such def, modded or DLC, is covered without naming it.
+    /// </summary>
+    private static bool OrientationIsCosmetic(BuildingDef def)
+        => def.ObjectLayer == ObjectLayer.Backwall && def.WidthInCells == 1 && def.HeightInCells == 1;
+
     public virtual bool CanApplyConduitSettings(int cellParam)
     {
         if (!SameBuildingAlreadyFinishedInPlace(cellParam, out var otherConduit, false, includePlanned: true))

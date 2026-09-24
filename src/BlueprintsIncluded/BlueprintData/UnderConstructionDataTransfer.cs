@@ -65,28 +65,27 @@ public class UnderConstructionDataTransfer : KMonoBehaviour
     }
 
     /// <summary>
-    /// <see cref="GetStoredData"/> parsed back into <see cref="JObject"/>s, for
-    /// <see cref="API_Methods.GetAllAdditionalBuildingData"/>.
-    ///
-    /// A malformed entry is skipped and logged rather than thrown: this feeds a public API surface
-    /// that external mods reflect into, and the stored strings come from
-    /// <see cref="SetDataToApply(string, string)"/>, which any caller can reach.
+    /// The pending data, parsed. An entry that does not parse as a JSON object is logged and left
+    /// out rather than thrown: the strings can come from any caller of the public
+    /// <see cref="SetDataToApply(string, string)"/>, and this feeds the public
+    /// <see cref="API_Methods.GetAllAdditionalBuildingData"/>, where one bad entry must not cost
+    /// the caller every other setting or surface as an exception it cannot explain.
     /// </summary>
     internal Dictionary<string, JObject> GetDataDeserialized()
     {
-        var result = new Dictionary<string, JObject>();
-        foreach (var data in GetStoredData())
+        var parsed = new Dictionary<string, JObject>(ToApplyData.Count);
+        foreach (var entry in ToApplyData)
         {
             try
             {
-                result[data.Key] = JObject.Parse(data.Value);
+                parsed[entry.Key] = JObject.Parse(entry.Value);
             }
             catch (Exception e)
             {
-                SgtLogger.error($"Could not deserialize stored data for {data.Key}:\n{e.Message}");
+                SgtLogger.error($"Skipping unreadable pending data for {entry.Key} on {gameObject.name}:\n{e.Message}");
             }
         }
-        return result;
+        return parsed;
     }
 
     public static void TransferDataTo(GameObject targetBuilding, Dictionary<string, string> toApply)
@@ -115,19 +114,7 @@ public class UnderConstructionDataTransfer : KMonoBehaviour
         if (!SelectButtonUnlocked)
             return;
         SelectButtonUnlocked = false;
-        try
-        {
-            UnderConstructionDataSettingHelper.StartEditingUnderConstructionData(this);
-        }
-        catch (Exception e)
-        {
-            ///The latch is already taken here and only CleanUp gives it back, so a throw anywhere
-            ///in the session setup would grey the button out on every planned building for the
-            ///rest of the process - it is static, and nothing re-initialises it on colony load
-            ///(#109).
-            SgtLogger.error($"Could not start a preconfigure session for {building.Def.PrefabID}:\n{e}");
-            UnderConstructionDataSettingHelper.CleanUp();
-        }
+        UnderConstructionDataSettingHelper.StartEditingUnderConstructionData(this);
     }
 
     public int HorizontalGroupID() => -1;

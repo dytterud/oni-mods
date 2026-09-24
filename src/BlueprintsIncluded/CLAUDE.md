@@ -15,7 +15,8 @@ commits touching upstream `BlueprintsV2/` or `UtilLibs/`, and BlueprintsV2 bug r
 upstream. Never judge an upstream change from its diff alone — read its issue and commit message
 for intent first. Upstream relicensed to All Rights Reserved on 2026-09-07: read its code for
 behaviour, but never paste or transliterate it — issues describe the change in prose and the port
-is written fresh.
+is written fresh. Implementing an `upstream-sync` issue is clean-room: work from the issue alone,
+in a session that has not read upstream's code for that change and does not access upstream.
 
 ## Layout
 

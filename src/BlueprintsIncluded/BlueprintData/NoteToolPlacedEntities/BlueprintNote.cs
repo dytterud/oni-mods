@@ -19,58 +19,49 @@ public class BlueprintNote : KMonoBehaviour
         renderer = GetComponentInChildren<MeshRenderer>();
     }
 
-    /// <summary>
-    /// Raised when <see cref="BlueprintState.ToggleNoteVisibility"/> runs. Static because the
-    /// toggle is global and notes come and go; every seated note subscribes for its lifetime.
-    /// </summary>
-    private static event Action<bool>? OnNoteVisibilityChanged;
-
-    internal static void TriggerNoteVisibilityChange(bool on) => OnNoteVisibilityChanged?.Invoke(on);
-
-    private int refreshHandle = -1, cancelHandle = -1;
-
     public override void OnSpawn()
     {
         base.OnSpawn();
         if (SeatIndicator)
+        {
             Seat();
+            ///only seated notes own a mesh the player placed; unseated ones are transient previews
+            ///and stay out of the global show/hide switch
+            OnNoteVisibilityChanged += SetVisible;
+            SetVisible(BlueprintState.NoteVisibility);
+        }
 
-        refreshHandle = Subscribe((int)GameHashes.RefreshUserMenu, OnRefreshUserMenu);
-        cancelHandle = Subscribe((int)GameHashes.Cancel, Cancel);
+        Subscribe((int)GameHashes.RefreshUserMenu, OnRefreshUserMenu);
+        Subscribe((int)GameHashes.Cancel, Cancel);
 
         ///a note restored from a save never goes through SetInfo, so fade it here too
         ApplyNoteOpacity();
-
-        ///only seated notes own a rendered mesh; unseated ones have nothing to hide.
-        if (SeatIndicator)
-        {
-            OnNoteVisibilityChanged += ChangeVisibility;
-            ChangeVisibility(BlueprintState.NoteVisibility);
-        }
     }
 
     public override void OnCleanUp()
     {
-        Unsubscribe(cancelHandle);
-        Unsubscribe(refreshHandle);
-        ///a static event outlives the note, so failing to detach here would leak this instance
-        ///and then fire ChangeVisibility on a destroyed object.
-        if (SeatIndicator)
-            OnNoteVisibilityChanged -= ChangeVisibility;
-
+        ///the event is static, so a note that stayed on it would outlive its GameObject and be
+        ///called on a destroyed renderer. Removing a handler that was never added is a no-op.
+        OnNoteVisibilityChanged -= SetVisible;
         base.OnCleanUp();
     }
 
     /// <summary>
-    /// The guard is defence, not a known defect. Upstream crashes here (their issue #362) because
-    /// their note re-creates its renderer and nulls the field in OnCleanUp; this fork keeps the
-    /// placer prefab's own MeshRenderer and never reassigns it, so the field cannot be null by any
-    /// path traced here - the unsubscribe above is still what keeps a destroyed note off the
-    /// static event. Unity's == also covers a destroyed renderer, which is the one shape reading
-    /// cannot rule out: the event is static and outlives a colony reload.
+    /// Every seated note listens here for the global show/hide switch in
+    /// <see cref="BlueprintState.ToggleNoteVisibility"/>. A static event rather than a scan over
+    /// the note layer, so a toggle reaches exactly the live seated notes and each note owns its
+    /// own subscribe and unsubscribe.
     /// </summary>
-    private void ChangeVisibility(bool visible)
+    private static event Action<bool>? OnNoteVisibilityChanged;
+
+    /// <summary>
+    /// Pushes a new visibility to every seated note that currently exists.
+    /// </summary>
+    internal static void NotifyNoteVisibility(bool visible) => OnNoteVisibilityChanged?.Invoke(visible);
+
+    private void SetVisible(bool visible)
     {
+        ///Unity's overloaded == also catches a renderer that has been destroyed under us
         if (renderer == null)
             return;
         renderer.enabled = visible;
