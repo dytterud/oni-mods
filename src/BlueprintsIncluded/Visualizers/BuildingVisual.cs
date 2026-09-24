@@ -642,18 +642,6 @@ public class BuildingVisual : IVisual
             //is same def AND the building cell is aligned with the visualizer cell (aka the building is in the exact same spot as the vis.)
             if (building.Def == def && Grid.PosToCell(existingBuilding) == cellParam)
             {
-                ///Drywall is 1x1 on the Backwall layer and carries a Rotatable used for visual
-                ///variation rather than a meaningful placement orientation, so comparing its
-                ///rotation would make identical drywall read as "different" and cause spurious
-                ///rebuild churn. A building with no Rotatable has no orientation to disagree about.
-                bool isDrywall = def.ObjectLayer == ObjectLayer.Backwall && def.WidthInCells == 1 && def.HeightInCells == 1;
-                bool hasSameRotation = !existingBuilding.TryGetComponent<Rotatable>(out var rotatable)
-                                       || rotatable.Orientation == RotatedOrientation;
-
-                //take rotation in consideration, unless its drywall
-                if (!isDrywall && !hasSameRotation)
-                    return false;
-
                 if (excludeConduits)
                     return !building.TryGetComponent<IHaveUtilityNetworkMgr>(out _);
 
