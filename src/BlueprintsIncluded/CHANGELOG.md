@@ -88,6 +88,15 @@ and was never published under it.
 
 ### Changed
 
+- **The mod ships the UI bundles it was forked with.** Upstream relicensed their repository from
+  MIT to All Rights Reserved on 2026-09-07, a few hours after this fork was taken, and two later
+  updates to the interface bundles had copied their files from after that point. Those bundles are
+  back to the fork's own, and the two things they carried are now produced in code instead: the
+  Snap to Grid row is assembled from controls the pinned bundles already contain, and the folder
+  dropdown's entry labels are set to overflow rather than truncate, so a Chinese folder name still
+  renders. Nothing looks or behaves differently in game. An unused slider prefab for upstream's own
+  note-opacity control went with them. (#113)
+
 - **All five translations are complete again.** German and French were missing about half the mod's
   text and fell back to English; Korean, Russian and Chinese had smaller gaps. Every string the mod
   shows is now translated in all five languages, including this fork's own additions, which have

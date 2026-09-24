@@ -1,0 +1,113 @@
+﻿# Asset provenance — the `blueprints_ui` bundles
+
+The three files at `src/BlueprintsIncluded/ModAssets/assets/{windows,mac,linux}/blueprints_ui`
+are Unity AssetBundles this fork did not build. They came from upstream, and **which** upstream
+revision they came from is a licensing question, not a housekeeping one. This records the answer,
+the evidence, and the rule that follows from it.
+
+## The relicense cut
+
+| | |
+|---|---|
+| Upstream MIT from | [`4a8c9a8`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/4a8c9a8) — 2024-07-08 |
+| **Upstream relicensed to All Rights Reserved** | [`771622f`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/771622f) — **2026-09-07 21:57:24 UTC** |
+| This fork's initial commit | `c84e698` — 2026-09-07 17:08:22 UTC |
+
+The fork predates the relicense by 4h49m. An MIT grant attaches to the version it was published
+under and is not retractable, so everything upstream published **before 21:57:24Z on 2026-09-07**
+may be used under MIT, including material pulled later. Everything published after it may not.
+
+That is the only line that matters, and it is a wall-clock one — not "before the fork" and not
+"before upstream's LICENSE commit appears in a `git log --since`". Two upstream commits land
+inside the same afternoon on opposite sides of it.
+
+## Where the bundles came from
+
+Bundles are binaries, so provenance is decidable: a git blob SHA is a content hash, and two
+repositories that hold the same bytes report the same SHA.
+
+| Our commit | Date (UTC) | Identical to upstream | Upstream date (UTC) | |
+|---|---|---|---|---|
+| `b1e3175` | 09-07 17:25 | [`e856903`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/e856903) | 09-04 21:33 | MIT — **what ships today** |
+| `895fa78` | 09-10 16:57 | [`063fb40`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/063fb40) | 09-07 22:47 | 50 minutes after the cut |
+| `f3888d6` (#95) | 09-18 15:26 | [`cc28b8b`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/cc28b8b) | 09-16 16:07 | after the cut |
+
+The two later pulls were reverted in #113. The bundles in the tree are `b1e3175`'s, whose blobs
+are `4345a5e` (linux), `5434116` (mac) and `2335a6f` (windows) — check them with
+`git hash-object`, not by eye.
+
+**`895fa78`'s commit message is wrong.** It says "Rebuild the UI bundles so Chinese text
+renders"; nothing was rebuilt, and there is no Unity project in this repo that could have rebuilt
+them. The bytes are upstream's.
+
+## What the two pulls actually contained
+
+Decompressed and diffed at the object level, not by file size:
+
+- `b1e3175` → `895fa78` is **one property on one text element**. The folder dropdown's entry
+  label went `"Overflow": 3` (Truncate) → `"Overflow": 0`. The `.resS` stream — every texture,
+  every font atlas — is byte-identical, so there was never a font change here and reverting
+  cannot regress glyph rendering. Truncate drops a *line* that does not fit its rect vertically,
+  which is why CJK names came out empty where Latin ones did not; `Ellipsis` would have the same
+  bug. `ModAssets.LoadAssets` now sets `Overflow` on the loaded prefab instead.
+- `895fa78` → `f3888d6` adds the **GridSnap row** under `InfoItemsContainer` — the row, its
+  `Checkbox`/`Checkmark`, a `Label`, and `WidthInput`/`HeightInput` with their `TextArea`,
+  `Text` and `Placeholder` — plus five `…INFOITEMSCONTAINER.GRIDSNAP.*` text blocks.
+  `CurrentBlueprintStateScreen.BuildGridSnapRow` now assembles that row from parts the pinned
+  bundle already has.
+- `f3888d6` also brought **`assets/uis/noteoptions.prefab`**, which nothing in this repo has ever
+  referenced: a `UnityEngine.UI.Slider` and a checkbox for upstream's own note-opacity toggle,
+  plus three sprites and 12 KiB of `.resS`. This fork's note opacity is a PLib config float. It
+  is gone and nothing needs it back.
+
+## The bundles contain no mod code
+
+Every `MonoScript` the three bundles reference resolves to one of two assemblies:
+
+    UnityEngine.UI      AspectRatioFitter, Button, ContentSizeFitter, GridLayoutGroup,
+                        HorizontalLayoutGroup, Image, LayoutElement, Mask, Outline,
+                        RectMask2D, ScrollRect, Scrollbar, Text, VerticalLayoutGroup
+    Unity.TextMeshPro   TMP_FontAsset, TMP_InputField
+
+No `BlueprintsV2`, no `UtilLibs`, no `Assembly-CSharp`, no Klei type. The prefabs are stock uGUI.
+Mod behaviour is attached at runtime by name — `transform.Find("InfoItemsContainer/GridSnap")`
+and friends — and labels are plain `UnityEngine.UI.Text` whose *text content is a JSON
+descriptor* that `TMPConverter.ReplaceAllText` parses and swaps for a Klei `LocText`.
+
+Two things follow. The bundles could be rebuilt in a stock Unity project with no ONI assemblies
+at all, which is [#114](https://github.com/dytterud/oni-mods/issues/114). And the four `UtilLibs`
+classes retained in [pruned `UtilLibs` files](../utillibs-pruned.md) for "prefab safety" are not
+needed for that — there is no prefab script to break.
+
+## Reproducing the analysis
+
+Nothing here has to be taken on trust. The bundles are `UnityFS` archives holding **one
+LZMA-compressed block**; the block table itself is LZ4. Decompress with Python — `lz4` and the
+stdlib `lzma`, the latter fed a `FORMAT_ALONE` header with an unknown size (`b"\xff" * 8`),
+because Unity stores the 5 props bytes without a length. That yields a serialized file plus a
+`.resS`. The `MonoScript` entries are `(className, namespace, assemblyName)` string triplets; the
+text elements are the JSON blobs above, keyed by their `Content` field.
+
+## The rule
+
+- **No binary crosses from upstream.** Ever, regardless of licence. A binary cannot be reviewed
+  in a diff, its provenance is invisible in the tree, and "it matched upstream's blob exactly" is
+  the thing to avoid rather than the thing to check for.
+- **Upstream commits after 2026-09-07 21:57:24 UTC are read for behaviour only.** Understand what
+  a change does, then write it here. Do not copy text, and record in the changelog entry what was
+  done differently — the ports already do this and it is what keeps them defensible.
+- **The bundles are pinned.** If a change appears to need a new one, it needs a rebuild, not a
+  re-import.
+
+## Rebuilding them ourselves
+
+Tracked as [#114](https://github.com/dytterud/oni-mods/issues/114). What makes it tractable, all
+established above: the game runs Unity 6000.3.5f2 and these were built with 6000.3.8f1; the
+prefabs need only the `com.unity.ugui` package; `ModAssets.LoadAssets` names the five prefabs to
+recreate under `Assets/UIs/`, and their child paths are an API contract with the `transform.Find`
+calls in `src/BlueprintsIncluded/UnityUI/`.
+Build for `StandaloneWindows64`, `StandaloneOSX` and `StandaloneLinux64` with default options,
+output extensionless as `blueprints_ui`.
+
+Doing it would let `BuildGridSnapRow` and the overflow fixup go back into the prefab, and would
+take the last third-party art out of this repository.
