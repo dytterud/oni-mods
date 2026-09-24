@@ -93,6 +93,39 @@ namespace UtilLibs
 			return true;
 		}
 
+		/// <summary>
+		/// Re-aligns one already-converted label and has it auto-size to at most
+		/// <paramref name="fontSizeMax"/>, in place - for a label cloned into a smaller box than the
+		/// bundle authored it for. Writes the <see cref="TMPImportFix"/> as well, for the same reason
+		/// <see cref="SetTextOverflow"/> does: on a clone that has not spawned yet, its OnSpawn would
+		/// otherwise put the authored alignment and sizing back.
+		/// </summary>
+		/// <returns>false when the path does not resolve, or resolves to something that is not a
+		/// converted label.</returns>
+		public static bool SetTextFit(GameObject root, string path, TextAlignmentOptions alignment, float fontSizeMax)
+		{
+			if (root == null)
+				return false;
+
+			Transform label = root.transform.Find(path);
+			if (label == null || !label.TryGetComponent(out LocText text))
+				return false;
+
+			float fontSizeMin = Mathf.Min(text.fontSizeMin, fontSizeMax);
+			text.alignment = alignment;
+			text.enableAutoSizing = true;
+			text.fontSizeMin = fontSizeMin;
+			text.fontSizeMax = fontSizeMax;
+			if (label.TryGetComponent(out TMPImportFix importFix))
+			{
+				importFix.alignment = alignment;
+				importFix.autoResize = true;
+				importFix.fontSizeMin = fontSizeMin;
+				importFix.fontSizeMax = fontSizeMax;
+			}
+			return true;
+		}
+
 		private static bool isValidJSon(string data)
 		{
 			if (string.IsNullOrWhiteSpace(data)) return false;
