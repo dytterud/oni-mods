@@ -253,17 +253,6 @@ internal class API_Methods
     public static Dictionary<string, JObject> GetAdditionalBuildingData(GameObject gameObject)
     {
         var buildingData = new Dictionary<string, JObject>();
-        ///Public reflectable surface (#61) with no internal callers, so the argument comes from
-        ///another mod and cannot be constrained from here. Handing a dead GameObject to every
-        ///registered handler in turn would throw from whichever one dereferenced it first, with the
-        ///caller's own name nowhere in the stack.
-        ///
-        ///<para>IsNullOrDestroyed rather than == null, matching the sibling guards below: a
-        ///destroyed Unity object is not null on the managed side, and that is the case an external
-        ///caller is most likely to hit.</para>
-        if (gameObject.IsNullOrDestroyed())
-            return buildingData;
-
         foreach (var kvp in AdditionalBuildingDataEntries)
         {
             var DataHandler = kvp.Value;
@@ -277,69 +266,16 @@ internal class API_Methods
     }
 
     /// <summary>
-    /// Returns ALL building data stored on a gameobject, including data parked on an
-    /// <see cref="UnderConstructionDataTransfer"/> carrier - so an unfinished building yields its
-    /// pending settings too, which <see cref="GetAdditionalBuildingData"/> does not.
-    ///
-    /// Part of the reflection-friendly surface for external mods; nothing in this mod calls it.
-    /// </summary>
-    public static Dictionary<string, JObject> GetAllAdditionalBuildingData(GameObject gameObject)
-    {
-        ///Guarded in its own right, not just via the call below. Upstream 8018c30 guards only
-        ///GetAdditionalBuildingData, which is not enough here: this method dereferences the same
-        ///GameObject again for TryGetComponent, so a guard on the inner call alone would leave the
-        ///outer entry point throwing for exactly the external caller the guard exists for.
-        if (gameObject.IsNullOrDestroyed())
-            return new Dictionary<string, JObject>();
-
-        var buildingData = GetAdditionalBuildingData(gameObject);
-        if (gameObject.TryGetComponent<UnderConstructionDataTransfer>(out var dataCarrier))
-        {
-            foreach (var kvp in dataCarrier.GetDataDeserialized())
-            {
-                if (kvp.Value == null || kvp.Key.IsNullOrWhiteSpace())
-                    continue;
-                buildingData[kvp.Key] = kvp.Value;
-            }
-        }
-        return buildingData;
-    }
-
-    /// <summary>
     /// applies any additional data stored in the blueprint to the newly placed blueprint building plan (or finished building in sandbox)
     /// </summary>
     /// <param name="gameObject"></param>
     /// <param name="buildingConfig"></param>
     public static void ApplyAdditionalBuildingData(GameObject gameObject, BuildingConfig buildingConfig, ulong playerId = BlueprintState.PlayerId_DefaultTilePreviews)
-        => ApplyAdditionalBuildingData(gameObject, buildingConfig?.BuildingDef!, buildingConfig?.AdditionalBuildingData!, playerId);
-
-    /// <summary>
-    /// Reflection-friendly entry point: <see cref="BuildingConfig"/> is this mod's own type and an
-    /// external mod cannot name it without a hard assembly reference, whereas
-    /// <see cref="BuildingDef"/> and a plain dictionary are both reachable by reflection.
-    ///
-    /// The three-argument form is redundant with the four-argument one and exists only so a
-    /// reflecting caller can bind a method without supplying the optional player id. Upstream
-    /// ships both and external callers look them up by signature, so dropping either would defeat
-    /// the point of having the surface at all.
-    /// </summary>
-    public static void ApplyAdditionalBuildingData(GameObject gameObject, BuildingDef configDef, Dictionary<string, JObject> buildingData)
-        => ApplyAdditionalBuildingData(gameObject, configDef, buildingData, BlueprintState.PlayerId_DefaultTilePreviews);
-
-    /// <inheritdoc cref="ApplyAdditionalBuildingData(GameObject, BuildingDef, Dictionary{string, JObject})"/>
-    public static void ApplyAdditionalBuildingData(GameObject gameObject, BuildingDef configDef, Dictionary<string, JObject> buildingData, ulong playerId = BlueprintState.PlayerId_DefaultTilePreviews)
     {
-        //A *runtime* guard the nullable annotations cannot express: Unity's fake-null means a
-        //destroyed GameObject still satisfies the compiler's non-null contract while failing
-        //== null at runtime. Replacement can tear a building down before a deferred apply runs,
-        //so liveness is checked once here rather than in each of the ~37 registered handlers.
-        if (gameObject.IsNullOrDestroyed() || configDef.IsNullOrDestroyed() || buildingData == null)
-            return;
-
         if (BlueprintState.CurrentStateInfo(playerId).ApplyBlueprintSettings == false)
             return;
 
-        if (gameObject.TryGetComponent<Building>(out var building) && building.Def != configDef)
+        if (gameObject.TryGetComponent<Building>(out var building) && building.Def != buildingConfig.BuildingDef)
             return;
 
         bool isUnderConstruction = (gameObject.TryGetComponent<UnderConstructionDataTransfer>(out var transfer));
@@ -349,7 +285,7 @@ internal class API_Methods
             var DataHandler = kvp.Value;
             string key = kvp.Key;
 
-            if (buildingData.TryGetValue(key, out var data))
+            if (buildingConfig.TryGetDataValue(key, out var data))
             {
                 if (data == null)
                 {
@@ -383,10 +319,6 @@ internal class API_Methods
     }
     public static void TryApplyingStoredData(GameObject gameObject, string Key, JObject? data)
     {
-        //see ApplyAdditionalBuildingData for why liveness is checked at the dispatch sites
-        if (gameObject.IsNullOrDestroyed())
-            return;
-
         if (AdditionalBuildingDataEntries.TryGetValue(Key, out var Methods) && data != null)
         {
             try
@@ -402,11 +334,9 @@ internal class API_Methods
 
 
     public delegate JObject GetBlueprintDataDelegate(GameObject go);
-    /// <summary><paramref name="go"/> is alive and <paramref name="data"/> is never null: both
-    /// dispatch paths (<see cref="ApplyAdditionalBuildingData"/>,
-    /// <see cref="TryApplyingStoredData"/>) check both before invoking, so handlers do not need
-    /// to. The liveness half cannot be expressed in the signature - a destroyed GameObject is
-    /// non-null to the compiler and null to Unity - so it is a runtime check at those two sites.</summary>
+    /// <summary><paramref name="data"/> is never null: both dispatch paths
+    /// (<see cref="ApplyAdditionalBuildingData"/>, <see cref="TryApplyingStoredData"/>)
+    /// null-check before invoking, so handlers do not need to.</summary>
     public delegate void SetBlueprintDataDelegate(GameObject go, JObject data);
 
 

@@ -64,31 +64,6 @@ public class UnderConstructionDataTransfer : KMonoBehaviour
         return new(ToApplyData);
     }
 
-    /// <summary>
-    /// <see cref="GetStoredData"/> parsed back into <see cref="JObject"/>s, for
-    /// <see cref="API_Methods.GetAllAdditionalBuildingData"/>.
-    ///
-    /// A malformed entry is skipped and logged rather than thrown: this feeds a public API surface
-    /// that external mods reflect into, and the stored strings come from
-    /// <see cref="SetDataToApply(string, string)"/>, which any caller can reach.
-    /// </summary>
-    internal Dictionary<string, JObject> GetDataDeserialized()
-    {
-        var result = new Dictionary<string, JObject>();
-        foreach (var data in GetStoredData())
-        {
-            try
-            {
-                result[data.Key] = JObject.Parse(data.Value);
-            }
-            catch (Exception e)
-            {
-                SgtLogger.error($"Could not deserialize stored data for {data.Key}:\n{e.Message}");
-            }
-        }
-        return result;
-    }
-
     public static void TransferDataTo(GameObject targetBuilding, Dictionary<string, string> toApply)
     {
         foreach (var data in toApply)
@@ -115,19 +90,7 @@ public class UnderConstructionDataTransfer : KMonoBehaviour
         if (!SelectButtonUnlocked)
             return;
         SelectButtonUnlocked = false;
-        try
-        {
-            UnderConstructionDataSettingHelper.StartEditingUnderConstructionData(this);
-        }
-        catch (Exception e)
-        {
-            ///The latch is already taken here and only CleanUp gives it back, so a throw anywhere
-            ///in the session setup would grey the button out on every planned building for the
-            ///rest of the process - it is static, and nothing re-initialises it on colony load
-            ///(#109).
-            SgtLogger.error($"Could not start a preconfigure session for {building.Def.PrefabID}:\n{e}");
-            UnderConstructionDataSettingHelper.CleanUp();
-        }
+        UnderConstructionDataSettingHelper.StartEditingUnderConstructionData(this);
     }
 
     public int HorizontalGroupID() => -1;
