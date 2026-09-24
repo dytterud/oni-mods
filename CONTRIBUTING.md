@@ -123,33 +123,10 @@ KSerialization save compatibility and every `.po` translation. It's intentional.
 
 ## Upstream
 
-Blueprints Included is a fork of Blueprints Expanded with no shared git history, so
-upstream work can't be merged or cherry-picked. What arrives from upstream arrives
-this way.
-
-**The licence line.** Upstream was MIT until **2026-09-07 21:57:24 UTC**, when it
-relicensed away from MIT. Since 2026-09-24 it uses a source-available licence that
-allows no compiled builds. Everything published before the line is used here under
-MIT, with its notices kept in [LICENSE](LICENSE) and [NOTICE](NOTICE). Nothing
-published after it may be copied into this mod. The dates and evidence are in
-[asset provenance](docs/blueprints-included/asset-provenance.md).
-
-**What may be taken:** behaviour and ideas, never expression. That means:
-- what a feature does, or which bug a fix addresses, learned from upstream's public
-  history, its issues, its change notes, or by running the released mod;
-- never code, strings, translations, art or binaries from after the line;
-- never decompiling upstream's DLLs, only running them.
-
-**Clean-room.** A change worth having becomes an `upstream-sync` issue that describes
-the behaviour in prose, with no upstream code in it. It is implemented from the issue
-alone, by someone who has not read upstream's code for that change. The PR template
-asks you to confirm this. The only shortcut is a fix too small to carry any
-expression, such as a single token.
-
-**Never replace a `UtilLibs` file wholesale from upstream.** Pruned files come back
-from this repository's history ([pruned `UtilLibs` files](docs/utillibs-pruned.md)).
-`UtilMethods.cs` in particular differs on purpose: upstream's copy carries string
-constants aimed at AI coding assistants, which this fork removed.
+Nothing is copied from upstream Blueprints Expanded after its 2026-09-07 relicense.
+What may be taken, and how, is in
+[provenance](docs/blueprints-included/asset-provenance.md#the-rule); read it before
+porting anything.
 
 `upstream-sync` issues are labelled `bug` or `enhancement` alongside `upstream-sync`.
 Feature parity with upstream is a goal, so an `enhancement` one is a port waiting

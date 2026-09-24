@@ -31,9 +31,8 @@ The one thing that is *not* compatible is running both at the same time — see 
 Switching means disabling one and enabling the other, which is safe; having both enabled is not.
 
 **The limits of that promise.** Compatibility is maintained by not gratuitously diverging, not by
-testing against upstream — nothing here runs upstream's build, so a format change landing there
-would be found by the upstream scan rather than
-caught automatically. If upstream ever changes the blueprint schema, this fork follows it rather
+testing against upstream — nothing here tests against upstream's build, so a format change landing
+there would have to be noticed rather than caught automatically. If upstream ever changes the blueprint schema, this fork follows it rather
 than forking the format. If that ever stops being possible, it will be said here plainly rather
 than discovered by someone losing a blueprint library.
 
@@ -63,10 +62,10 @@ boots the game and asserts against a live colony, and a manual smoke checklist f
 can't see.
 
 **The trade-off, stated plainly:** upstream keeps developing, and this fork does not automatically
-get its new work. A scheduled scan opens an issue for each upstream change so nothing is missed
-silently, but anything still open is a feature or fix you would have upstream and don't have here —
+get its new work. Upstream changes worth having are tracked as issues, and anything still open is a
+feature or fix you would have upstream and don't have here —
 see the open [`upstream-sync`](https://github.com/dytterud/oni-mods/issues?q=is%3Aissue+is%3Aopen+label%3Aupstream-sync)
-issues and [how porting works](../../CONTRIBUTING.md#upstream).
+issues and [how porting works](../../docs/blueprints-included/asset-provenance.md#the-rule).
 
 Per-release detail is in [CHANGELOG.md](CHANGELOG.md).
 
@@ -82,8 +81,7 @@ copy `Builds/BlueprintsIncluded/` into your `Klei/OxygenNotIncluded/mods/local/`
 | [CHANGELOG.md](CHANGELOG.md) | what changed, per release |
 | [In-game regression testing](../../docs/blueprints-included/in-game-regression-testing.md) | the harness, and §7's performance measurements |
 | [Smoke-test checklist](../../docs/blueprints-included/smoke-test-checklist.md) | the manual pass, for what assertions can't see |
-| [Upstream](../../CONTRIBUTING.md#upstream) | what may be taken from upstream, and how |
-| [Asset provenance](../../docs/blueprints-included/asset-provenance.md) | where the UI bundles came from, and why they are pinned |
+| [Provenance](../../docs/blueprints-included/asset-provenance.md) | what came from upstream, and what may be taken from it |
 | [steamdesc.bbcode](steamdesc.bbcode) | the Steam Workshop page text, kept here so it is reviewed and updated alongside the code |
 
 ## Credit

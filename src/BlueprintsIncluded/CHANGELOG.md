@@ -261,9 +261,9 @@ Development infrastructure; no effect on the mod in-game:
   unit tests structurally can't reach. Plus a perf mode for timing blueprint operations.
 - Unit test projects (xUnit), and a manual [smoke-test checklist](../../docs/blueprints-included/smoke-test-checklist.md)
   for what neither tier covers.
-- An automated upstream scan that opens issues for fixes and features landing in upstream
-  `BlueprintsV2/` or `UtilLibs/` — see [CONTRIBUTING.md](../../CONTRIBUTING.md#upstream). This
-  fork has no shared git history with upstream, so nothing can be cherry-picked.
+- Upstream fixes and features are tracked as `upstream-sync` issues — see
+  [CONTRIBUTING.md](../../docs/blueprints-included/asset-provenance.md#the-rule). This fork has no shared git history with
+  upstream, so nothing can be cherry-picked.
 - [CONTRIBUTING.md](../../CONTRIBUTING.md), [NOTICE](../../NOTICE), and issue forms.
 
 ### Changed

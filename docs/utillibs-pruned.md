@@ -4,16 +4,15 @@
 mod dll. It serves *every* Imalas ONI mod, so most of it was machinery this fork never called.
 On 2026-09-10 the unreachable part — the bulk of the library — was removed.
 
-The file list below is the record of what went, and it is what the upstream scan checks before
-raising anything about an upstream `UtilLibs` change. It is
+The file list below is the record of what went; check it before porting an upstream `UtilLibs`
+change. It is
 deliberately not summarised as a count: a count goes stale the moment one more file is
 pruned or restored, and the list is the thing that has to be right.
 
 ## Why this is not a new judgement
 
-The upstream scan already ignored upstream commits touching helpers this mod cannot reach. Two of the five `UtilLibs`
-commits it had triaged before the prune landed in files on this list. Removing them makes a
-standing verdict physical; it does not change what the job reports.
+Every file on the list was already unreachable from this mod, so no change to one could reach the
+shipped dll. Removing them made that standing fact physical; nothing a player sees changed.
 
 ## How the set was chosen
 
@@ -43,7 +42,7 @@ Needed only if a ported `BlueprintsV2` change actually calls the helper.
 1. Take the file from before the prune — `git show 58f2ed0^:src/UtilLibs/<path>` — and put it
    back at `src/UtilLibs/<path>`.
 2. If upstream has changed it since and the port needs that change, describe it and reimplement
-   it [clean-room](../CONTRIBUTING.md#upstream) — never take
+   it [clean-room](blueprints-included/asset-provenance.md#the-rule) — never take
    upstream's copy.
 3. Keep this project's conventions: block-scoped namespaces, `ImplicitUsings` off, `Nullable`
    off. See [CLAUDE.md](../CLAUDE.md).

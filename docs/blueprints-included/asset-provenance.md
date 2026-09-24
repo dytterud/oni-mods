@@ -1,9 +1,9 @@
-﻿# Asset provenance — the `blueprints_ui` bundles
+﻿# Provenance — what came from upstream, and what may
 
-The three files at `src/BlueprintsIncluded/ModAssets/assets/{windows,mac,linux}/blueprints_ui`
-are Unity AssetBundles this fork did not build. They came from upstream, and **which** upstream
-revision they came from is a licensing question, not a housekeeping one. This records the answer,
-the evidence, and the rule that follows from it.
+This fork was taken from upstream **Blueprints Expanded** under MIT. What it may take from
+upstream since then is a licensing question, not a housekeeping one. This page records where the
+licence line is, the rule that follows from it, and the evidence for the one binary that did come
+from upstream: the `blueprints_ui` UI bundles.
 
 ## The relicense cut
 
@@ -93,14 +93,27 @@ text elements are the JSON blobs above, keyed by their `Content` field.
 
 ## The rule
 
-- **No binary crosses from upstream.** Ever, regardless of licence. A binary cannot be reviewed
-  in a diff, its provenance is invisible in the tree, and "it matched upstream's blob exactly" is
-  the thing to avoid rather than the thing to check for.
-- **Upstream commits after 2026-09-07 21:57:24 UTC are read for behaviour only.** Understand what
-  a change does, then write it here. Do not copy text, and record in the changelog entry what was
-  done differently — the ports already do this and it is what keeps them defensible.
-- **The bundles are pinned.** If a change appears to need a new one, it needs a rebuild, not a
-  re-import.
+- **Behaviour and ideas, never expression.** From anything upstream published after 2026-09-07
+  21:57:24 UTC, what may be taken is what a feature does or which bug a fix addresses. It may be
+  learned from upstream's public history, its issues, its change notes, or by running the released
+  mod. Code, strings, translations and art may not be taken, whether pasted, lightly edited or
+  transliterated.
+- **No binary crosses from upstream.** Ever, regardless of licence. A binary cannot be reviewed in a
+  diff, its provenance is invisible in the tree, and "it matched upstream's blob exactly" is the
+  thing to avoid rather than the thing to check for. The UI bundles are built here (below).
+- **No decompiling.** Upstream's released DLLs may be run, never decompiled, disassembled or opened
+  in a decompiler. In the EEA, where this fork is developed, the Software Directive allows
+  decompiling only for interoperability (art. 6), while studying a program by running it is
+  protected (art. 5(3)).
+- **Clean-room.** An upstream change worth having becomes an `upstream-sync` issue that describes
+  the behaviour in prose, with no upstream code and without upstream's internal structure. It is
+  implemented from the issue alone, by someone who has not read upstream's code for that change;
+  the PR template asks for this. The only shortcut is a fix too small to carry any expression,
+  such as a single token.
+- **Never replace a `UtilLibs` file wholesale from upstream.** A pruned file comes back from this
+  repository's history ([pruned `UtilLibs` files](../utillibs-pruned.md)). `UtilMethods.cs`
+  differs on purpose: upstream's copy carries string constants aimed at AI coding assistants,
+  which this fork removed.
 
 ## Rebuilding them ourselves
 
