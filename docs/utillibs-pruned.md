@@ -33,16 +33,20 @@ that only four `UtilLibs` files ever differed from upstream, and none of them ar
 `UtilMethods.cs` and `InjectionMethods.cs` are still live, `UtilLibs.csproj` was kept, and
 `UI/FUI/FSlider.cs` is retained (see below).
 
-So **restore from upstream, not from this repo's history** — upstream is newer and was
-equivalent at the fork point.
+So **restore from this repo's history, not from upstream.** The copy from before the prune
+(`58f2ed0^`) is the one this fork holds under MIT. Upstream relicensed to All Rights Reserved on
+2026-09-07 (see [asset provenance](blueprints-included/asset-provenance.md#the-relicense-cut)), so
+its newer copy is not ours to take.
 
 ### Restoring one
 
 Needed only if a ported `BlueprintsV2` change actually calls the helper.
 
-1. Take the file from upstream `UtilLibs/<path>` in
-   [`Sgt-Imalas/Sgt_Imalas-Oni-Mods`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods).
-2. Drop it at `src/UtilLibs/<path>` — the trees are 1:1 under a different root.
+1. Take the file from before the prune — `git show 58f2ed0^:src/UtilLibs/<path>` — and put it
+   back at `src/UtilLibs/<path>`.
+2. If upstream has changed it since and the port needs that change, describe it and reimplement
+   it as [upstream sync](blueprints-included/upstream-sync.md#triage-rubric) says — never take
+   upstream's copy.
 3. Keep this project's conventions: block-scoped namespaces, `ImplicitUsings` off, `Nullable`
    off. See [CLAUDE.md](../CLAUDE.md).
 4. **Delete its entry below in the same commit**, so the manifest never claims a file is gone

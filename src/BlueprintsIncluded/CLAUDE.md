@@ -13,7 +13,9 @@ follows [docs/blueprints-included/upstream-sync.md](../../docs/blueprints-includ
 which a daily scheduled task also uses to open `upstream-sync` issues. It watches two streams:
 commits touching upstream `BlueprintsV2/` or `UtilLibs/`, and BlueprintsV2 bug reports filed
 upstream. Never judge an upstream change from its diff alone — read its issue and commit message
-for intent first.
+for intent first. Upstream relicensed to All Rights Reserved on 2026-09-07: read its code for
+behaviour, but never paste or transliterate it — issues describe the change in prose and the port
+is written fresh.
 
 ## Layout
 

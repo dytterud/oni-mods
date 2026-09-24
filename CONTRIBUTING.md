@@ -130,6 +130,11 @@ are in [`docs/blueprints-included/upstream-sync.md`](docs/blueprints-included/up
 porting anything from upstream — including why some upstream files must never be
 synced wholesale.
 
+Upstream relicensed to All Rights Reserved on 2026-09-07, so it is read for behaviour,
+never copied: an `upstream-sync` issue describes the change in prose, and the port is
+written fresh from that description. The cut-off and the rule are in
+[`upstream-sync.md`](docs/blueprints-included/upstream-sync.md#triage-rubric).
+
 Those issues are labelled `bug` or `enhancement` alongside `upstream-sync`.
 Feature parity with upstream is a goal, so an `enhancement` one is a port waiting
 to be scheduled rather than a proposal to argue for. Close one as `wontfix` when

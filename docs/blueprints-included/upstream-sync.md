@@ -156,6 +156,15 @@ done differently. **Binaries do not cross at all**, whatever their licence: a `.
 any other blob that ends up byte-identical to upstream's is a defect in the port, not evidence
 it went well. See [asset provenance](asset-provenance.md).
 
+**Reading upstream is expected; carrying its code across is not.** Diffs, code and issues are read
+as closely as the triage needs. What comes out the other side is a *description*: an issue states
+the behaviour and the logic in prose — the condition, the order of steps, the edge cases, and why
+upstream made the change — in enough detail that whoever implements it never has to open the diff.
+No post-cut upstream code goes into an issue, a PR, a commit or the tree: not a hunk, not a snippet,
+not a line-by-line transliteration into pseudocode, and not its strings. This fork's own code may be
+quoted freely, upstream type and member names may be used as facts, and upstream's commit subject
+may be quoted as its statement of intent. Anything published before the cut is still MIT.
+
 **Every substantive change under `BlueprintsV2/` gets an issue** — fixes *and* features. A fix
 clearing [the safety bar](#the-safety-bar) gets a pull request as well. Whether this fork wants
 a *feature* is decided in its issue, never by the scan.
@@ -191,7 +200,7 @@ Classify each one so they stay filterable. Both labels go on alongside `upstream
 | **Fix** | `upstream-sync`, `bug` | crashes and null-reference bugs, save/load and `KSerialization` compat, breakage against a new ONI version, wrong behaviour in capture/import/placement/material selection, localisation breakage, real performance regressions |
 | **Feature** | `upstream-sync`, `enhancement` | new tools, new UI, new filter layers, behaviour extensions — anything that makes the mod do something it currently doesn't |
 | **Cleanup** | `upstream-sync`, `enhancement` | refactors, caching, dedup — upstream's own message says so. Real, but it fixes nothing; never write one up as a bug, and never PR it under the fix bar |
-| **Unfixed upstream bug** | `upstream-sync`, `bug` | a BlueprintsV2 bug report with no upstream fix yet. Confirm the described behaviour is reachable in this fork's code before filing; link the upstream issue and quote the repro |
+| **Unfixed upstream bug** | `upstream-sync`, `bug` | a BlueprintsV2 bug report with no upstream fix yet. Confirm the described behaviour is reachable in this fork's code before filing; link the upstream issue and summarise the repro in your own words — the report's text is its author's |
 
 A feature issue still needs the full body: what it does, which files, how it maps onto this
 tree, and what porting it would cost here. "Upstream added a thing" is not enough to decide on.
@@ -270,8 +279,8 @@ present in the tree and take the ordinary `direct`/`indirect` tests, not this on
 
 **Restoring a pruned helper** is the right move only if a `BlueprintsV2` change being ported
 actually calls it. The manifest carries the procedure; the short version is that pruned files
-were byte-identical to upstream when removed, so they come back from upstream rather than from
-this repo's history.
+come back from this repo's history — the copy from before the prune, which is the MIT one — and a
+post-cut upstream change to that file is then described and reimplemented like any other.
 
 **One hop is a deliberate heuristic.** It is cheap and catches the common case, but it can
 under-report a fix buried deeper in a `UtilLibs` internal call chain. A false `unused-helper` is
@@ -285,9 +294,10 @@ behind.
 - **`BlueprintsV2` changes cannot be applied as patches.** The fork diverged structurally —
   repo layout, file-scoped namespaces, nullable annotations, `EnforceCodeStyleInBuild`. An issue
   describes *the fix*, not a diff to merge.
-- **`UtilLibs` changes usually port close to verbatim.** `src/UtilLibs/` is deliberately kept
-  near upstream: block-scoped namespaces, `ImplicitUsings` off, `Nullable` off. Respect those
-  conventions when porting — see [CLAUDE.md](../../CLAUDE.md).
+- **`UtilLibs` changes are reimplemented too.** `src/UtilLibs/` started out near-identical to
+  upstream, which makes a post-cut change there tempting to copy line for line — don't. Describe
+  it and write it fresh, the same as a `BlueprintsV2` change. Keep that project's conventions:
+  block-scoped namespaces, `ImplicitUsings` off, `Nullable` off — see [CLAUDE.md](../../CLAUDE.md).
 
 ## Output
 
@@ -321,8 +331,6 @@ A fix may go straight to a PR only when **every** one of these holds. Any doubt 
 means an issue instead — the whole value of the bar is that it fails closed.
 
 1. **The correct result is mechanically determinable**, because one of:
-   - the changed file is data or an asset and the port makes it **byte-identical to upstream's
-     blob**; or
    - the change is a self-contained substitution whose replacement **already exists in this
      fork and is already used elsewhere for the same purpose**; or
    - the change is a **single statement or token in one C# file** — a control-flow keyword, an
@@ -359,7 +367,7 @@ Worked examples from real ports:
 
 | Change | Verdict | Why |
 |---|---|---|
-| `00cb76d` four `zh.po` strings | **PR** | file became byte-identical to upstream's blob |
+| `00cb76d` four `zh.po` strings | **PR, pre-cut** | file became byte-identical to upstream's blob. Upstream committed it at 23:03 on 2026-09-06, before the relicense, so it was MIT — but it is no longer the pattern: no blob crosses today, and this would be an issue |
 | `063fb40` three `blueprints_ui` bundles | **wrong — never do this** | it was PR'd because "binaries matched upstream's blobs exactly". That is the reason *not* to take a change, not a reason to take one: a binary cannot be reviewed in a diff, and `063fb40` is 50 minutes the wrong side of upstream's relicense. Reverted in #113; see [asset provenance](asset-provenance.md) |
 | `901b123` spawn temperature | **PR** | one line, swapped to `ModAssets.GetSpawnTemperature`, already used by every other build path |
 | `21d4a4d` conduit rotation | **issue** | correct behaviour depends on whether stored `ConduitFlags` are absolute or relative — not knowable from the code. Also the cautionary case for reading issues: it was written up as a rendering bug when upstream called it cleanup, and an in-game sweep later showed the "bug" was unreachable |
@@ -385,9 +393,15 @@ upstream issue #<n>: <upstream issue subject>
 ```
 
 The body carries: the upstream commit link, which watched path it came from, a plain description
-of what changed and why upstream did it, the relevant upstream hunks, the corresponding file(s)
-here with line references, reachability for a `UtilLibs` change, and a note on how the fork's
-divergence affects the port.
+of what changed and why upstream did it, **the change's logic in prose** — enough to implement it
+without opening the diff — the corresponding file(s) here with line references, reachability for
+a `UtilLibs` change, and a note on how the fork's divergence affects the port.
+
+No fenced code block in an issue may hold post-cut upstream code; this fork's code is fine. The
+prose is the port's specification, so write it at that level. For upstream's per-cell back-wall
+change (#76), not the hunk but: *the back-wall failure is now ignored only when every cell the
+building occupies has a back wall and none of them is already taken on the building's own layer —
+previously only the origin cell was checked.*
 
 For a **fix**, it also carries the clause-6 reachability question, answered as far as the scan
 took it: either the trace showing the defect can occur here, or an explicit *"reachability not
@@ -411,7 +425,7 @@ a deliberate divergence, a side effect the fork would not want — name that rea
 
 A **pull request** references its issue with `Closes #N` and does not repeat the whole analysis
 — the issue holds that. It states which safety-bar clause it cleared and how that was checked
-(the blob SHA it matched, or the existing helper it reused), **the reachability trace from clause
+(the existing helper it reused, or the single token it changed), **the reachability trace from clause
 6** — the writers or callers followed, and whether the defect can actually occur here — the build
 and test results, and an explicit list of what was **not** verified, in-game behaviour above all.
 It follows [the PR template](../../.github/pull_request_template.md) and keeps the AI-assisted
