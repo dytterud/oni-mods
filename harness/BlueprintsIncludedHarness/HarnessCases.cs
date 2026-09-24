@@ -100,7 +100,7 @@ internal static class HarnessCases
         new HarnessCase("anim-less-previews-are-all-tile-visuals", AnimLessPreviewsAreAllTileVisuals),
         new HarnessCase("note-side-screen-selection-does-not-write-back", NoteSideScreenSelection),
         new HarnessCase("snapshot-save-and-export-buttons-are-wired", SnapshotSaveAndExportButtons),
-        new HarnessCase("grid-snap-row-is-in-the-bundle-and-wired", GridSnapRowIsWired),
+        new HarnessCase("grid-snap-row-is-built-and-wired", GridSnapRowIsWired),
         new HarnessCase("grid-snap-drag-places-copies-edge-to-edge", GridSnapDragPlacesCopies),
         new HarnessCase("note-toggle-tooltip-follows-a-rebind", NoteToggleTooltipFollowsARebind),
         new HarnessCase("backwall-building-needs-backwall-under-every-cell", BackwallCoversEveryCell),
@@ -3835,9 +3835,13 @@ internal static class HarnessCases
     // ---- #79: snap-to-grid ---------------------------------------------
 
     /// <summary>
-    /// The GridSnap row comes from the upstream cc28b8b UI bundle, which cannot be inspected
-    /// offline. This checks the row is really in it and that the screen wires it: the toggle and
-    /// both step inputs exist, and selecting a blueprint defaults the step to its footprint.
+    /// The GridSnap row is built at runtime by the screen, out of a cloned sibling row and two
+    /// inputs cloned from the note tool's screen: upstream ships it in their cc28b8b bundle, which
+    /// postdates their relicense, so this fork stays on its own bundles and assembles the row
+    /// instead (docs/blueprints-included/asset-provenance.md). None of that is inspectable
+    /// offline. This checks the screen really assembles and wires it - the toggle and both step
+    /// inputs exist, the row is a sibling of the template it was cloned from rather than the
+    /// template itself, and selecting a blueprint defaults the step to its footprint.
     /// </summary>
     // CurrentBlueprintStateScreen is internal - reach it by reflection.
     private static readonly Type StateScreenType =
@@ -3856,7 +3860,26 @@ internal static class HarnessCases
             Assert.True(screen != null, "the blueprint state screen was created");
 
             var row = screen!.transform.Find("InfoItemsContainer/GridSnap");
-            Assert.True(row != null, "the bundle's state screen has an InfoItemsContainer/GridSnap row");
+            Assert.True(row != null, "the screen built an InfoItemsContainer/GridSnap row");
+
+            ///the standing guard against a post-relicense bundle being re-imported: the prefab the
+            ///screen is instantiated from must NOT contain the row. ModAssets is internal - reach
+            ///its loaded prefab by reflection, as the cases above do.
+            var statePrefab = (GameObject)typeof(Blueprint).Assembly.GetType("BlueprintsV2.ModAssets")!
+                .GetField("BlueprintInfoStateGO")!.GetValue(null)!;
+            Assert.True(statePrefab.transform.Find("InfoItemsContainer/GridSnap") == null,
+                "the shipped bundle has no GridSnap row - the screen builds it");
+
+            ///and it lands directly after the row it is cloned from, rather than anywhere.
+            var template = screen.transform.Find("InfoItemsContainer/ApplySettingsToExisting");
+            Assert.True(template != null, "the ApplySettingsToExisting row the GridSnap row is cloned from exists");
+            Assert.Equal(template!.GetSiblingIndex() + 1, row!.GetSiblingIndex(),
+                "the GridSnap row sits directly after the row it was cloned from");
+
+            ///a clone inherits its template's LocText key, which would resolve back to the
+            ///template's string the moment a language is applied - silent in English.
+            var label = row.Find("Label")!.GetComponent<LocText>();
+            Assert.True(string.IsNullOrEmpty(label.key), "the cloned row's label does not keep the template's LocText key");
             Assert.True(row!.GetComponent<UtilLibs.UIcmp.FToggle>() != null, "the GridSnap row is wired as a toggle");
             foreach (var input in new[] { "WidthInput", "HeightInput" })
             {
