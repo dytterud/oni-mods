@@ -574,6 +574,10 @@ internal class ModAssets
 
         Actions.BlueprintsToggleHotkeyToolTips = actionManager.CreateAction(ActionKeys.ACTION_TOGGLETOOLTIPS_KEY,
             STRINGS.UI.ACTIONS.TOGGLETOOLTIPS, new PKeyBinding(KKeyCode.Z));
+
+        ///no default key: players opt in by binding one
+        Actions.BlueprintsToggleNoteVisibility = actionManager.CreateAction(ActionKeys.ACTION_TOGGLE_NOTE_VISIBILITY_KEY,
+            STRINGS.UI.ACTIONS.TOGGLENOTEVIS);
     }
 
     public static Sprite GetBlueprintIconSprite(string? id)
@@ -776,6 +780,8 @@ internal class ModAssets
         public static readonly string ACTION_SELECT_NEXT_FOLDER_KEY = "BlueprintsV2.selectnextfolder";
         public static readonly string ACTION_SELECT_PREV_FOLDER_KEY = "BlueprintsV2.selectprevfolder";
         public static readonly string ACTION_TOGGLETOOLTIPS_KEY = "BlueprintsV2.toggletoooltips";
+        ///players' saved key bindings refer to this id - never change it
+        public static readonly string ACTION_TOGGLE_NOTE_VISIBILITY_KEY = "BlueprintsV2.togglenotevisibility";
     }
     public static class Actions
     {
@@ -799,6 +805,7 @@ internal class ModAssets
 
 
         public static PAction BlueprintsToggleHotkeyToolTips { get; set; } = null!;
+        public static PAction BlueprintsToggleNoteVisibility { get; set; } = null!;
 
     }
     public static bool TryGetFilterLayerId(ObjectLayer objectLayer, [NotNullWhen(true)] out string? filterLayerId)

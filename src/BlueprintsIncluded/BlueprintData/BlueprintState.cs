@@ -5,6 +5,7 @@ using BlueprintsV2.BlueprintData.PlanningToolMod_Integration;
 using BlueprintsV2.BlueprintData.PlanningToolMod_Integration.EnumMirrors;
 using BlueprintsV2.ModAPI;
 using BlueprintsV2.Tools;
+using BlueprintsV2.UnityUI;
 using BlueprintsV2.Visualizers;
 using ONI_Together_API;
 using ONI_Together_API.Networking;
@@ -32,6 +33,34 @@ public static class BlueprintState
 
     public static void ToggleHotkeyTooltips() => ExtendedCardTooltips = !ExtendedCardTooltips;
     public static bool ExtendedCardTooltips { get; private set; } = true;
+
+    /// <summary>
+    /// Whether placed notes are shown. Deliberately not saved: a loaded colony always starts with
+    /// its notes visible (see <see cref="ResetNoteVisibility"/>).
+    /// </summary>
+    public static bool NoteVisibility { get; private set; } = true;
+
+    /// <summary>
+    /// Flips <see cref="NoteVisibility"/> for every seated note and repaints the top-left button.
+    /// Every path goes through here - the button, the hotkey, anything else - so the button
+    /// cannot drift out of step with the state.
+    /// </summary>
+    public static void ToggleNoteVisibility()
+    {
+        NoteVisibility = !NoteVisibility;
+        BlueprintNote.NotifyNoteVisibility(NoteVisibility);
+        NoteVisibilityButton.Refresh();
+    }
+
+    /// <summary>
+    /// Called when a colony is torn down. The flag is a process-lifetime static, so without this
+    /// hiding notes in one colony would carry into the next one loaded.
+    /// </summary>
+    internal static void ResetNoteVisibility()
+    {
+        NoteVisibility = true;
+        NoteVisibilityButton.Forget();
+    }
 
     public static string SelectedBlueprintFolder = string.Empty;
 

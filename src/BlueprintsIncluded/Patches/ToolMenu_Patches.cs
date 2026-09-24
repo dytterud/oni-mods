@@ -11,6 +11,23 @@ class ToolMenu_Patches
 {
     static ToolMenu.ToolCollection SnapshotToolCollection = null!, CreateBlueprintToolCollection = null!, UseBlueprintToolCollection = null!, NoteToolCollection = null!;
 
+    [HarmonyPatch(typeof(ToolMenu), nameof(ToolMenu.OnKeyDown))]
+    public class ToolMenu_OnKeyDown_Patch
+    {
+        public static void Postfix(KButtonEvent e)
+        {
+            if (e.Consumed)
+                return;
+
+            ///typing into a note's text must not flip every note on screen
+            if (DetailsScreen.Instance?.isEditing ?? false)
+                return;
+
+            if (e.TryConsume(Actions.BlueprintsToggleNoteVisibility.GetKAction()))
+                BlueprintState.ToggleNoteVisibility();
+        }
+    }
+
     [HarmonyPatch(typeof(ToolMenu), nameof(ToolMenu.OnKeyUp))]
     public class ToolMenu_OnKeyUp_Patch
     {

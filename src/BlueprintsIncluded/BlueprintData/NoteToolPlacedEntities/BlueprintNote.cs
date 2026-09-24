@@ -23,13 +23,48 @@ public class BlueprintNote : KMonoBehaviour
     {
         base.OnSpawn();
         if (SeatIndicator)
+        {
             Seat();
+            ///only seated notes own a mesh the player placed; unseated ones are transient previews
+            ///and stay out of the global show/hide switch
+            OnNoteVisibilityChanged += SetVisible;
+            SetVisible(BlueprintState.NoteVisibility);
+        }
 
         Subscribe((int)GameHashes.RefreshUserMenu, OnRefreshUserMenu);
         Subscribe((int)GameHashes.Cancel, Cancel);
 
         ///a note restored from a save never goes through SetInfo, so fade it here too
         ApplyNoteOpacity();
+    }
+
+    public override void OnCleanUp()
+    {
+        ///the event is static, so a note that stayed on it would outlive its GameObject and be
+        ///called on a destroyed renderer. Removing a handler that was never added is a no-op.
+        OnNoteVisibilityChanged -= SetVisible;
+        base.OnCleanUp();
+    }
+
+    /// <summary>
+    /// Every seated note listens here for the global show/hide switch in
+    /// <see cref="BlueprintState.ToggleNoteVisibility"/>. A static event rather than a scan over
+    /// the note layer, so a toggle reaches exactly the live seated notes and each note owns its
+    /// own subscribe and unsubscribe.
+    /// </summary>
+    private static event Action<bool>? OnNoteVisibilityChanged;
+
+    /// <summary>
+    /// Pushes a new visibility to every seated note that currently exists.
+    /// </summary>
+    internal static void NotifyNoteVisibility(bool visible) => OnNoteVisibilityChanged?.Invoke(visible);
+
+    private void SetVisible(bool visible)
+    {
+        ///Unity's overloaded == also catches a renderer that has been destroyed under us
+        if (renderer == null)
+            return;
+        renderer.enabled = visible;
     }
 
     /// <summary>
