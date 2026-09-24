@@ -3893,6 +3893,27 @@ internal static class HarnessCases
             Log?.Line($"  footprint {size.x}x{size.y}, step {st.GridSnapX}x{st.GridSnapY}");
             Assert.Equal(size.x, st.GridSnapX, "selecting a blueprint defaults the X step to its footprint");
             Assert.Equal(size.y, st.GridSnapY, "selecting a blueprint defaults the Y step to its footprint");
+
+            ///#117: the step fields are placed by hand, and a clone that keeps the note title's
+            ///anchors spans the panel with the other hidden behind it. Wait out ShowScreen's
+            ///one-frame reactivation so the rects are the laid-out ones.
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            var rowRect = WorldRect(row);
+            var widthRect = WorldRect(row.Find("WidthInput")!);
+            var heightRect = WorldRect(row.Find("HeightInput")!);
+            var checkRect = WorldRect(row.Find("Checkbox")!);
+            Log?.Line($"  row {rowRect}, width {widthRect}, height {heightRect}, checkbox {checkRect}");            foreach (var (name, r) in new[] { ("WidthInput", widthRect), ("HeightInput", heightRect) })
+            {
+                Assert.True(r.width > 1f && r.height > 1f, $"GridSnap/{name} has a visible size");
+                Assert.True(Contains(rowRect, r), $"GridSnap/{name} sits inside its row");
+                Assert.True(!r.Overlaps(checkRect), $"GridSnap/{name} does not cover the checkbox");
+            }
+            Assert.True(!widthRect.Overlaps(heightRect), "the two step fields do not overlap");
+            Assert.True(widthRect.xMax <= heightRect.xMin, "the width field sits left of the height field");
+
+            ///layout is asserted above; whether it *looks* right still needs a frame to look at.
+            yield return Screenshot.Capture("grid-snap-row", Log);
         }
         finally
         {
@@ -3900,6 +3921,18 @@ internal static class HarnessCases
             st.IsPlacingSnapshot = false;
         }
     }
+
+    private static Rect WorldRect(Transform t)
+    {
+        var corners = new Vector3[4];
+        ((RectTransform)t).GetWorldCorners(corners);
+        return Rect.MinMaxRect(corners[0].x, corners[0].y, corners[2].x, corners[2].y);
+    }
+
+    ///half a unit of slack: the fields are sized to the checkbox, which may sit flush with the row.
+    private static bool Contains(Rect outer, Rect inner) =>
+        inner.xMin >= outer.xMin - 0.5f && inner.xMax <= outer.xMax + 0.5f
+        && inner.yMin >= outer.yMin - 0.5f && inner.yMax <= outer.yMax + 0.5f;
 
     /// <summary>
     /// A snap-to-grid drag places whole copies of the blueprint, one step apart, and a cursor that

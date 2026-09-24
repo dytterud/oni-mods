@@ -3,6 +3,7 @@ using BlueprintsV2.BlueprintData;
 using BlueprintsV2.Tools;
 using BlueprintsV2.UnityUI.Components;
 using STRINGS;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UtilLibs;
@@ -32,7 +33,7 @@ internal class CurrentBlueprintStateScreen : KScreen
     Blueprint? gridStepSource;
     int gridStepSourceRevision;
     ///the cloned step fields come from a full-width title input; a step is a few digits.
-    const float GridStepFieldWidth = 40f;
+    const float GridStepFieldWidth = 40f, GridStepFieldGap = 6f;
     //YesNoInfo CanRotate;
     FButton RotateL = null!, RotateR = null!, ChangeMaterialOverrides = null!;
     FButton SaveSnapshot = null!, ExportSnapshot = null!;
@@ -383,8 +384,9 @@ internal class CurrentBlueprintStateScreen : KScreen
         EnableGridSnapping.OnChange += (on) => BlueprintState.CurrentStateInfo().SnapToGrid = on;
         UIUtils.AddSimpleTooltipToObject(EnableGridSnapping.gameObject, GRIDSNAP.TOOLTIP);
 
-        CloneStepInput(row, "WidthInput");
-        CloneStepInput(row, "HeightInput");
+        ///right to left from the checkbox, so the row reads "Snap to Grid: [W] [H] [x]".
+        CloneStepInput(row, "HeightInput", 0);
+        CloneStepInput(row, "WidthInput", 1);
 
         GridSnapX = InitGridStepInput("WidthInput", (info, v) => info.GridSnapX = v, info => info.GridSnapX);
         GridSnapY = InitGridStepInput("HeightInput", (info, v) => info.GridSnapY = v, info => info.GridSnapY);
@@ -395,8 +397,13 @@ internal class CurrentBlueprintStateScreen : KScreen
     /// It is the one input the loaded prefabs offer in the shape FInputField2 requires - a
     /// TMP_InputField whose viewport holds a Text and a Placeholder - and FInputField2 is
     /// [MyCmpReq] on that field, so it cannot be added to a bare GameObject.
+    ///
+    /// The row has no layout group - its children sit on absolute RectTransforms - so the clone is
+    /// placed by hand: anchored to the row's right edge, <paramref name="slot"/> field widths
+    /// inboard of the checkbox, and as tall as it. Left alone it keeps the title input's
+    /// full-width anchors (#117).
     /// </summary>
-    static void CloneStepInput(GameObject row, string name)
+    static void CloneStepInput(GameObject row, string name, int slot)
     {
         var source = ModAssets.NoteToolStateScreenGO.transform.Find("NoteTitleInput/Input").gameObject;
         var input = Util.KInstantiateUI(source, row, true);
@@ -406,9 +413,28 @@ internal class CurrentBlueprintStateScreen : KScreen
         ///blanks the text but not the key, so both have to go through TryChangeText.
         UIUtils.TryChangeText(input.transform, "TextArea/Text", string.Empty);
         UIUtils.TryChangeText(input.transform, "TextArea/Placeholder", string.Empty);
-        var layout = input.AddOrGet<LayoutElement>();
-        layout.minWidth = layout.preferredWidth = GridStepFieldWidth;
-        layout.flexibleWidth = 0f;
+
+        var rowRect = (RectTransform)row.transform;
+        var checkbox = (RectTransform)row.transform.Find("Checkbox");
+        ///the checkbox's left edge, measured from the row's right edge, in row space.
+        float checkboxLeft = checkbox.localPosition.x + checkbox.rect.xMin - rowRect.rect.xMax;
+
+        var rect = (RectTransform)input.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 0.5f);
+        rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, GridStepFieldWidth);
+        rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, checkbox.rect.height);
+        rect.anchoredPosition = new Vector2(
+            checkboxLeft - GridStepFieldGap - slot * (GridStepFieldWidth + GridStepFieldGap),
+            checkbox.localPosition.y + checkbox.rect.center.y - rowRect.rect.center.y);
+
+        var textArea = (RectTransform)input.transform.Find("TextArea");
+        textArea.offsetMin = new Vector2(GridStepFieldGap / 2f, 0f);
+        textArea.offsetMax = new Vector2(-GridStepFieldGap / 2f, 0f);
+        ///and its text is aligned and sized for a taller field, which clips the digits at this
+        ///height: centre it, no larger than the row's own label.
+        float fontSize = row.transform.Find("Label").GetComponent<LocText>().fontSize;
+        TMPConverter.SetTextFit(input, "TextArea/Text", TextAlignmentOptions.Center, fontSize);
+        TMPConverter.SetTextFit(input, "TextArea/Placeholder", TextAlignmentOptions.Center, fontSize);
     }
 
     /// <summary>
