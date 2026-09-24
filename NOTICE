@@ -53,12 +53,13 @@ Bundled third-party components
       Unity UI Extensions. See that directory's LICENSE.md.
 
   src/BlueprintsIncluded/ModAssets/assets/*/blueprints_ui
-      Unity AssetBundles holding the mod's UI prefabs, taken from SGT_Imalas'
-      BlueprintsV2 while it was MIT licensed and pinned to that revision. They
-      contain no code, only stock Unity UI and TextMeshPro components, Klei UI
-      sprites, other icons carried under upstream's MIT grant, and the NotoSans
-      SDF font atlas. Provenance, the evidence for it and
-      the rule against re-importing them: docs/blueprints-included/asset-provenance.md.
+      Unity AssetBundles holding the mod's UI prefabs, built by this project in
+      dytterud/oni-blueprints-ui from a layout extracted from SGT_Imalas'
+      BlueprintsV2 while it was MIT licensed. They contain no code, only stock
+      Unity UI and TextMeshPro components, 22 icons carried under that MIT grant,
+      and white placeholders for Oxygen Not Included's own sprites, which the mod
+      swaps in from the game at load. No Klei art or font ships in them.
+      Provenance: docs/blueprints-included/asset-provenance.md.
 
   src/BlueprintsIncluded/ModAssets/License_Blueprints.txt
       Licence text shipped with the mod's assets.

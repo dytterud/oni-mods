@@ -10,6 +10,12 @@ and was never published under it.
 
 ## [Unreleased]
 
+### Changed
+
+- **The UI bundles are built by this project now**, not inherited from upstream. They look the
+  same, but they are about 3 MB smaller per platform: the mod takes the game's own sprites and
+  fonts at load instead of shipping copies.
+
 ### Added
 
 - **Blueprints can hold rocket modules.** A module attaches to a hardpoint on the module below
