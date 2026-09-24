@@ -170,6 +170,11 @@ and was never published under it.
   until the next load. It is now rebuilt each time it is shown. With no key bound (the default),
   it no longer ends in "[NONE]". (#68)
 
+- **The note-visibility button no longer reads "SANDBOX".** It is made by copying the sandbox
+  toggle beside it, and the copy kept that button's caption, so the top-left row showed two
+  "SANDBOX" buttons and the note icon was lost next to the text. The copy now drops any caption
+  and shows only the note icon, sized square to match the row's height; its tooltip names it.
+
 - **Selecting a text note no longer writes the note's own text back to it.** Opening a note's
   side screen pushed its title and text into the input fields, and those pushes came back
   through the fields' change handlers, so every selection re-saved the note and fired a

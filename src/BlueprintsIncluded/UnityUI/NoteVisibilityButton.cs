@@ -1,4 +1,5 @@
 ﻿using BlueprintsV2.BlueprintData;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UtilLibs;
@@ -58,6 +59,7 @@ internal static class NoteVisibilityButton
         go.transform.SetAsLastSibling();
 
         var toggle = go.GetComponent<MultiToggle>();
+        StripLabels(go);
         SetIcon(toggle);
         toggle.states = BuildStates(toggle);
         ///the click sound is played by hand after the toggle, not by whatever the clone carried
@@ -71,6 +73,8 @@ internal static class NoteVisibilityButton
         tooltip.ClearMultiStringTooltip();
         ///rebuilt on every show: a rebind mid-session does not reactivate this screen
         tooltip.OnToolTip = BuildTooltip;
+
+        FitToIcon(go.transform as RectTransform, row.transform as RectTransform, prototype.transform as RectTransform);
 
         current = toggle;
         Refresh();
@@ -155,6 +159,70 @@ internal static class NoteVisibilityButton
 
     private static StatePresentationSetting[] CopySettings(StatePresentationSetting[]? settings) =>
         settings == null ? [] : (StatePresentationSetting[])settings.Clone();
+
+    /// <summary>
+    /// Takes the prototype's caption off the clone. The sandbox toggle, the usual prototype, is
+    /// labelled "SANDBOX", and a copied label would read as a second sandbox button. The button is
+    /// icon-only; its tooltip names it.
+    ///
+    /// Nothing here relies on the prefab's child names: every text graphic under the clone is
+    /// found by type. A label on its own object is switched off, so it also drops out of the
+    /// button's layout; one sharing an object with an image, or sitting on the button itself, is
+    /// blanked and disabled instead, so the icon and background stay.
+    /// </summary>
+    private static void StripLabels(GameObject button)
+    {
+        foreach (var graphic in button.GetComponentsInChildren<Graphic>(true))
+        {
+            if (graphic is not (TMP_Text or Text))
+                continue;
+
+            var holder = graphic.gameObject;
+            if (holder != button && holder.GetComponentInChildren<Image>(true) == null)
+            {
+                holder.SetActive(false);
+                continue;
+            }
+
+            if (graphic is TMP_Text tmp)
+                tmp.text = string.Empty;
+            else if (graphic is Text text)
+                text.text = string.Empty;
+            graphic.enabled = false;
+        }
+    }
+
+    /// <summary>
+    /// With its caption gone the clone would still be as wide as the prototype, leaving an empty
+    /// slot where the text was. Makes it square at the height the row gives it, which is the height
+    /// of its neighbours. The row is laid out first so that height is real; if it still reads zero
+    /// (e.g. the canvas is not live yet) the prototype's height is used, and failing that the width
+    /// is left to the button's own layout, which no longer counts the hidden label.
+    /// </summary>
+    private static void FitToIcon(RectTransform? button, RectTransform? row, RectTransform? prototype)
+    {
+        if (button == null)
+            return;
+
+        if (row != null)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(row);
+        float size = button.rect.height;
+        if (size <= 0f && prototype != null)
+            size = prototype.rect.height;
+        if (size <= 0f)
+            return;
+
+        if (!button.TryGetComponent<LayoutElement>(out var layout))
+            layout = button.gameObject.AddComponent<LayoutElement>();
+        layout.minWidth = size;
+        layout.preferredWidth = size;
+        layout.flexibleWidth = 0f;
+        ///for a row that does not drive its children's width
+        button.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, size);
+
+        if (row != null)
+            LayoutRebuilder.MarkLayoutForRebuild(row);
+    }
 
     /// <summary>
     /// Puts the note icon on the clone. If the prototype draws its icon on a child image, that
