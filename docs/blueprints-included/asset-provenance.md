@@ -128,14 +128,18 @@ version:
 
 | Platform | Blob |
 |---|---|
-| windows | `781a1ef` |
-| mac | `b8e908e` |
-| linux | `c78c976` |
+| windows | `e5a2ec8` |
+| mac | `e4965f3` |
+| linux | `eb7b143` |
 
 Check them with `git hash-object`. Its `tools/compare.py` reported all three identical to the
 spec, and the in-game harness passed with them in place.
 
-They are about 108 KB each, down from about 3.4 MB: the Klei art and the NotoSans atlas are gone.
+Each texture keeps the GPU format the source shipped: DXT5 for the large icons, uncompressed for
+the small ones. `paste_0` is the one exception; it is uncompressed because its 359x447 size cannot
+be DXT-compressed on its own. Texture memory is 3.8 MB, against the source's 4.5 MB. The files are
+about 97 KB, down from 420-440 KB, because the NotoSans font and its atlas are gone. Neither
+compresses well.
 
 To ship a new build:
 1. Copy `out/<platform>/blueprints_ui` over `ModAssets/assets/<platform>/blueprints_ui`.

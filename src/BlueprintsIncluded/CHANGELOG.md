@@ -13,8 +13,8 @@ and was never published under it.
 ### Changed
 
 - **The UI bundles are built by this project now**, not inherited from upstream. They look the
-  same, but they are about 3 MB smaller per platform: the mod takes the game's own sprites and
-  fonts at load instead of shipping copies.
+  same, and they no longer ship copies of the game's sprites or a font: the mod takes the game's
+  own at load. Each bundle is about 97 KB instead of about 430 KB.
 
 ### Added
 
