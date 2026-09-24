@@ -9,8 +9,7 @@ it as its own mod. **Keep the `BlueprintsV2` root namespace** — renaming it br
 save compatibility and every `.po` translation.
 
 History was squashed, so there is no merge-base with upstream. What may be taken from upstream,
-and how, is the policy in
-[docs/blueprints-included/upstream-sync.md](../../docs/blueprints-included/upstream-sync.md).
+and how, is in [CONTRIBUTING.md](../../CONTRIBUTING.md#upstream).
 A daily scheduled task, whose procedure is private and not in this repo, opens `upstream-sync`
 issues from it. Upstream relicensed away from MIT on 2026-09-07: behaviour may be taken, code never.
 Implementing an `upstream-sync` issue is clean-room: work from the issue alone, in a session that

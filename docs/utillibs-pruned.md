@@ -26,8 +26,8 @@ build decided it. Two files came back that way (`UI/FUI/FInputField.cs` and
 ## The restore invariant
 
 **Every pruned file was byte-identical to upstream when it was removed**, so nothing
-fork-local was lost. [The fork point](blueprints-included/upstream-sync.md#the-fork-point) records
-that only four `UtilLibs` files ever differed from upstream, and none of them are on this list:
+fork-local was lost. At the fork point only four `UtilLibs` files differed from upstream, and
+none of them are on this list:
 `UtilMethods.cs` and `InjectionMethods.cs` are still live, `UtilLibs.csproj` was kept, and
 `UI/FUI/FSlider.cs` is retained (see below).
 
@@ -43,7 +43,7 @@ Needed only if a ported `BlueprintsV2` change actually calls the helper.
 1. Take the file from before the prune — `git show 58f2ed0^:src/UtilLibs/<path>` — and put it
    back at `src/UtilLibs/<path>`.
 2. If upstream has changed it since and the port needs that change, describe it and reimplement
-   it [clean-room](blueprints-included/upstream-sync.md#how-a-change-gets-here-clean-room) — never take
+   it [clean-room](../CONTRIBUTING.md#upstream) — never take
    upstream's copy.
 3. Keep this project's conventions: block-scoped namespaces, `ImplicitUsings` off, `Nullable`
    off. See [CLAUDE.md](../CLAUDE.md).

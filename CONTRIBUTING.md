@@ -121,22 +121,37 @@ User-facing strings go through `STRINGS.cs`; translations are
 Also: **keep the `BlueprintsV2` root namespace.** Renaming it breaks
 KSerialization save compatibility and every `.po` translation. It's intentional.
 
-## Upstream fixes
+## Upstream
 
-This is a fork with no shared git history, so upstream fixes can't be
-cherry-picked. A scheduled scan opens `upstream-sync` issues for upstream changes
-worth having; what may be taken from upstream, and how, is in
-[`docs/blueprints-included/upstream-sync.md`](docs/blueprints-included/upstream-sync.md). Read that before
-porting anything from upstream — including why some upstream files must never be
-synced wholesale.
+Blueprints Included is a fork of Blueprints Expanded with no shared git history, so
+upstream work can't be merged or cherry-picked. What arrives from upstream arrives
+this way.
 
-Upstream relicensed away from MIT on 2026-09-07, so it is read for behaviour,
-never copied: an `upstream-sync` issue describes the change in prose, and the port is
-written fresh from that description by someone who has not read upstream's code for it.
-The cut-off and the rule are in
-[`upstream-sync.md`](docs/blueprints-included/upstream-sync.md#how-a-change-gets-here-clean-room).
+**The licence line.** Upstream was MIT until **2026-09-07 21:57:24 UTC**, when it
+relicensed away from MIT. Since 2026-09-24 it uses a source-available licence that
+allows no compiled builds. Everything published before the line is used here under
+MIT, with its notices kept in [LICENSE](LICENSE) and [NOTICE](NOTICE). Nothing
+published after it may be copied into this mod. The dates and evidence are in
+[asset provenance](docs/blueprints-included/asset-provenance.md).
 
-Those issues are labelled `bug` or `enhancement` alongside `upstream-sync`.
+**What may be taken:** behaviour and ideas, never expression. That means:
+- what a feature does, or which bug a fix addresses, learned from upstream's public
+  history, its issues, its change notes, or by running the released mod;
+- never code, strings, translations, art or binaries from after the line;
+- never decompiling upstream's DLLs, only running them.
+
+**Clean-room.** A change worth having becomes an `upstream-sync` issue that describes
+the behaviour in prose, with no upstream code in it. It is implemented from the issue
+alone, by someone who has not read upstream's code for that change. The PR template
+asks you to confirm this. The only shortcut is a fix too small to carry any
+expression, such as a single token.
+
+**Never replace a `UtilLibs` file wholesale from upstream.** Pruned files come back
+from this repository's history ([pruned `UtilLibs` files](docs/utillibs-pruned.md)).
+`UtilMethods.cs` in particular differs on purpose: upstream's copy carries string
+constants aimed at AI coding assistants, which this fork removed.
+
+`upstream-sync` issues are labelled `bug` or `enhancement` alongside `upstream-sync`.
 Feature parity with upstream is a goal, so an `enhancement` one is a port waiting
 to be scheduled rather than a proposal to argue for. Close one as `wontfix` when
 there is a reason - it fights a deliberate divergence, carries a side effect this
