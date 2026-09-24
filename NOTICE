@@ -52,5 +52,12 @@ Bundled third-party components
   src/UtilLibs/UI/FUI/Unity_UI_Extensions/
       Unity UI Extensions. See that directory's LICENSE.md.
 
+  src/BlueprintsIncluded/ModAssets/assets/*/blueprints_ui
+      Unity AssetBundles holding the mod's UI prefabs, taken from SGT_Imalas'
+      BlueprintsV2 while it was MIT licensed and pinned to that revision. They
+      contain no code, only stock Unity UI and TextMeshPro components, Klei UI
+      sprites and the NotoSans SDF font atlas. Provenance, the evidence for it and
+      the rule against re-importing them: docs/blueprints-included/asset-provenance.md.
+
   src/BlueprintsIncluded/ModAssets/License_Blueprints.txt
       Licence text shipped with the mod's assets.

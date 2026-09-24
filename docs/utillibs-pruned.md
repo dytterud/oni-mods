@@ -48,13 +48,9 @@ Needed only if a ported `BlueprintsV2` change actually calls the helper.
 4. **Delete its entry below in the same commit**, so the manifest never claims a file is gone
    when it is back.
 
-## Dead but deliberately retained — *not* pruned
+## Dead but retained — *not* pruned
 
-Four `KMonoBehaviour` subclasses are unreachable from the mod but were kept anyway. The
-external Unity project that builds `ModAssets/assets/*/blueprints_ui` could have attached one
-to a prefab, and a missing script breaks that prefab at load. Nothing in the mod calls
-`GetComponent` on them, so the risk is low — but the bundle is compressed and this could not
-be proven either way, so they stay.
+Four `KMonoBehaviour` subclasses are unreachable from the mod but were kept anyway.
 
     src/UtilLibs/UI/FUI/FSlider.cs
     src/UtilLibs/UI/FUI/FExpandToggle.cs
@@ -64,14 +60,21 @@ be proven either way, so they stay.
 Two more (`UI/FUI/FInputField.cs`, `UI/FUI/FNumberInputField.cs`) survive only because
 `FSlider.cs` needs them to compile.
 
+**The reason originally given for keeping them has been withdrawn.** It was that the external
+Unity project behind `ModAssets/assets/*/blueprints_ui` might have attached one to a prefab, and
+that a missing script breaks that prefab at load — which could not be checked, because the
+bundles are compressed. They have since been decompressed. Every `MonoScript` the three bundles
+reference resolves to `UnityEngine.UI` or `Unity.TextMeshPro`; there is no mod script in them at
+all, and no prefab that could break. See [asset provenance](blueprints-included/asset-provenance.md).
+
+They stay for now only because removing them is unrelated to the change that established this,
+and is tracked separately. There is no longer a reason not to.
+
 These six are **present in the tree**, so the normal `direct`/`indirect` reachability tests
 apply to them — do not treat them as pruned. Note that upstream
 [`de689d1`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/de689d1) already changed
-`FSlider.cs` and was triaged `unused-helper`, so this file is dead code, retained for prefab
-safety, and behind upstream. All three facts are intentional.
-
-If a prefab ever does break with a missing-script error, restoring the named class from this
-group is the fix.
+`FSlider.cs` and was triaged `unused-helper`, so this file is dead code and behind upstream.
+Both facts are intentional.
 
 ## The pruned files
 

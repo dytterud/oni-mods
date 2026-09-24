@@ -4,6 +4,7 @@ using BlueprintsV2.Tools;
 using BlueprintsV2.UnityUI.Components;
 using STRINGS;
 using UnityEngine;
+using UnityEngine.UI;
 using UtilLibs;
 using UtilLibs.UIcmp;
 using static BlueprintsV2.STRINGS.UI;
@@ -30,6 +31,8 @@ internal class CurrentBlueprintStateScreen : KScreen
     ///the player typed.
     Blueprint? gridStepSource;
     int gridStepSourceRevision;
+    ///the cloned step fields come from a full-width title input; a step is a few digits.
+    const float GridStepFieldWidth = 40f;
     //YesNoInfo CanRotate;
     FButton RotateL = null!, RotateR = null!, ChangeMaterialOverrides = null!;
     FButton SaveSnapshot = null!, ExportSnapshot = null!;
@@ -229,14 +232,7 @@ internal class CurrentBlueprintStateScreen : KScreen
         ApplySettingsToExistingBuildings.OnChange += OnApplySettingsToExistingChanged;
         UIUtils.AddSimpleTooltipToObject(ApplySettingsToExistingBuildings.gameObject, APPLYSETTINGSTOEXISTING.TOOLTIP);
 
-        EnableGridSnapping = transform.Find("InfoItemsContainer/GridSnap").gameObject.AddOrGet<FToggle>();
-        EnableGridSnapping.SetCheckmark("Checkbox/Checkmark");
-        EnableGridSnapping.SetOnFromCode(BlueprintState.CurrentStateInfo().SnapToGrid);
-        EnableGridSnapping.OnChange += (on) => BlueprintState.CurrentStateInfo().SnapToGrid = on;
-        UIUtils.AddSimpleTooltipToObject(EnableGridSnapping.gameObject, GRIDSNAP.TOOLTIP);
-
-        GridSnapX = InitGridStepInput("WidthInput", (info, v) => info.GridSnapX = v, info => info.GridSnapX);
-        GridSnapY = InitGridStepInput("HeightInput", (info, v) => info.GridSnapY = v, info => info.GridSnapY);
+        BuildGridSnapRow();
 
         ChangeMaterialOverrides = transform.Find("InfoItemsContainer/MaterialOverrides/Button").gameObject.AddOrGet<FButton>();
         ChangeMaterialOverrides.OnClick += ShowMaterialReplacementList;
@@ -359,10 +355,68 @@ internal class CurrentBlueprintStateScreen : KScreen
     }
 
     /// <summary>
+    /// Builds the Snap to Grid row - the toggle and its two step fields - rather than taking it
+    /// from upstream's prefab: the row first appears in upstream's cc28b8b bundle, which postdates
+    /// their relicense, so this fork ships the bundles it forked with and assembles the row from
+    /// parts those already contain. See docs/blueprints-included/asset-provenance.md.
+    ///
+    /// The toggle is a clone of the row above it, which has the same shape - a Label and a
+    /// Checkbox/Checkmark. The step fields have no counterpart here at all: this prefab holds no
+    /// input of any kind, so they come from the note tool's screen.
+    /// </summary>
+    void BuildGridSnapRow()
+    {
+        var template = transform.Find("InfoItemsContainer/ApplySettingsToExisting").gameObject;
+        var row = Util.KInstantiateUI(template, template.transform.parent.gameObject, true);
+        row.name = "GridSnap";
+        row.transform.SetSiblingIndex(template.transform.GetSiblingIndex() + 1);
+        ///TryChangeText clears the LocText key as well as setting the text. Left in place, the
+        ///cloned key would resolve back to the template's string on the next language change.
+        UIUtils.TryChangeText(row.transform, "Label", GRIDSNAP.LABEL);
+
+        ///the clone carries the template's FToggle but not its C# event subscriptions, so it
+        ///starts with no handler of its own. SetCheckmark is not optional: FToggle's own fallback
+        ///takes the first Image in the subtree, which here is the row background.
+        EnableGridSnapping = row.AddOrGet<FToggle>();
+        EnableGridSnapping.SetCheckmark("Checkbox/Checkmark");
+        EnableGridSnapping.SetOnFromCode(BlueprintState.CurrentStateInfo().SnapToGrid);
+        EnableGridSnapping.OnChange += (on) => BlueprintState.CurrentStateInfo().SnapToGrid = on;
+        UIUtils.AddSimpleTooltipToObject(EnableGridSnapping.gameObject, GRIDSNAP.TOOLTIP);
+
+        CloneStepInput(row, "WidthInput");
+        CloneStepInput(row, "HeightInput");
+
+        GridSnapX = InitGridStepInput("WidthInput", (info, v) => info.GridSnapX = v, info => info.GridSnapX);
+        GridSnapY = InitGridStepInput("HeightInput", (info, v) => info.GridSnapY = v, info => info.GridSnapY);
+    }
+
+    /// <summary>
+    /// Clones the note tool's title input into the grid-snap row under <paramref name="name"/>.
+    /// It is the one input the loaded prefabs offer in the shape FInputField2 requires - a
+    /// TMP_InputField whose viewport holds a Text and a Placeholder - and FInputField2 is
+    /// [MyCmpReq] on that field, so it cannot be added to a bare GameObject.
+    /// </summary>
+    static void CloneStepInput(GameObject row, string name)
+    {
+        var source = ModAssets.NoteToolStateScreenGO.transform.Find("NoteTitleInput/Input").gameObject;
+        var input = Util.KInstantiateUI(source, row, true);
+        input.name = name;
+        ///the clone inherits the note title's LocText keys, which resolve to real strings - the
+        ///placeholder would read "Add note name..." the moment a language is applied. ClearPlace()
+        ///blanks the text but not the key, so both have to go through TryChangeText.
+        UIUtils.TryChangeText(input.transform, "TextArea/Text", string.Empty);
+        UIUtils.TryChangeText(input.transform, "TextArea/Placeholder", string.Empty);
+        var layout = input.AddOrGet<LayoutElement>();
+        layout.minWidth = layout.preferredWidth = GridStepFieldWidth;
+        layout.flexibleWidth = 0f;
+    }
+
+    /// <summary>
     /// Builds the snapshot Save / Export row by cloning the material-overrides row, rather than
     /// taking it from upstream's prefab: the bundle cb3991a ships it in is not a readable
     /// AssetBundle (no <c>UnityFS</c> header - ONI refuses to load it and the mod fails at
-    /// startup), so this fork stays on cc28b8b's bundle and builds the row itself.
+    /// startup), and it postdates their relicense in any case. Like <see cref="BuildGridSnapRow"/>,
+    /// this builds the row from parts the fork's own bundles already contain.
     /// </summary>
     void BuildExportActions()
     {

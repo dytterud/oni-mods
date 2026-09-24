@@ -3,6 +3,7 @@ using System.Text;
 using BlueprintsV2.BlueprintData;
 using BlueprintsV2.UnityUI;
 using PeterHan.PLib.Actions;
+using TMPro;
 using UnityEngine;
 using UtilLibs;
 
@@ -66,6 +67,15 @@ internal class ModAssets
         TMPConverter.ReplaceAllText(NoteToolStateScreenGO);
         TMPConverter.ReplaceAllText(IconSelectorGO);
         TMPConverter.ReplaceAllText(RenamingScreenGO);
+
+        ///The folder dropdown's entry label is authored to truncate, which clips a Chinese name
+        ///to nothing. Upstream fixed it by flipping that one property in a later bundle; this
+        ///fork ships the bundles it forked with (docs/blueprints-included/asset-provenance.md),
+        ///so it flips the property on the loaded prefab instead.
+        const string dropdownEntryLabel = "Body/DropDownArea/Content/EntryPrefab/Label";
+        ///qualified: the local `TMPConverter` above shadows the type name.
+        if (!UtilLibs.TMPConverter.SetTextOverflow(RenamingScreenGO, dropdownEntryLabel, TextOverflowModes.Overflow))
+            SgtLogger.warning($"Could not reach {dropdownEntryLabel} on the renaming screen; long folder names will truncate.");
     }
     public static bool HasPrevFolder()
     {

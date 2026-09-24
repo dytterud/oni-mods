@@ -73,7 +73,9 @@ upstream HEAD:
 
 - **Translations** — 5/6 byte-identical (`de.po`, `de.mo`, `fr.po`, `ko.po`, `ru.po`); only
   `zh.po` differs, because upstream changed it *after* the import.
-- **Assets** — 39/39 PNGs identical; only the three `blueprints_ui` bundles differ, same reason.
+- **Assets** — 39/39 PNGs identical; the three `blueprints_ui` bundles are pinned to the
+  revision the fork imported and must not be compared to upstream HEAD at all — see
+  [asset provenance](asset-provenance.md).
 - **`UtilLibs`** — 125/129 identical, **0 missing** *at the time of the backfill*. The four:
   two post-fork commits already triaged, `UtilLibs.csproj` (this fork's build config), and
   `UtilMethods.cs` (see below). **Most of those files were later pruned deliberately** — see
@@ -143,6 +145,16 @@ Read the fork's side with `git show main:<path>` rather than the working tree �
 usually has uncommitted work on a feature branch, and a dirty tree would skew the comparison.
 
 ## Triage rubric
+
+**Upstream is no longer MIT, and nothing is copied from it.** Upstream relicensed to All Rights
+Reserved at **2026-09-07 21:57:24 UTC**
+([`771622f`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/771622f)); this fork was
+taken 4h49m earlier and keeps what it imported under the MIT grant then in force. Every commit
+the scan sees now falls after that line, so it is **read for behaviour, never copied** — port
+what a change does, written this tree's way, and say in the issue and the changelog what was
+done differently. **Binaries do not cross at all**, whatever their licence: a `.po`, a bundle or
+any other blob that ends up byte-identical to upstream's is a defect in the port, not evidence
+it went well. See [asset provenance](asset-provenance.md).
 
 **Every substantive change under `BlueprintsV2/` gets an issue** — fixes *and* features. A fix
 clearing [the safety bar](#the-safety-bar) gets a pull request as well. Whether this fork wants
@@ -348,7 +360,7 @@ Worked examples from real ports:
 | Change | Verdict | Why |
 |---|---|---|
 | `00cb76d` four `zh.po` strings | **PR** | file became byte-identical to upstream's blob |
-| `063fb40` three `blueprints_ui` bundles | **PR** | binaries matched upstream's blobs exactly |
+| `063fb40` three `blueprints_ui` bundles | **wrong — never do this** | it was PR'd because "binaries matched upstream's blobs exactly". That is the reason *not* to take a change, not a reason to take one: a binary cannot be reviewed in a diff, and `063fb40` is 50 minutes the wrong side of upstream's relicense. Reverted in #113; see [asset provenance](asset-provenance.md) |
 | `901b123` spawn temperature | **PR** | one line, swapped to `ModAssets.GetSpawnTemperature`, already used by every other build path |
 | `21d4a4d` conduit rotation | **issue** | correct behaviour depends on whether stored `ConduitFlags` are absolute or relative — not knowable from the code. Also the cautionary case for reading issues: it was written up as a rendering bug when upstream called it cleanup, and an in-game sweep later showed the "bug" was unreachable |
 | `901b123` planned-building transfer | **issue** | widened a signature across five call sites, each needing its own judgement; also surfaced a latent NRE |

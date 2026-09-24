@@ -71,7 +71,9 @@ see [README.md](../../README.md)), launch ONI, load or start a colony.
 - [ ] **Snap to Grid** — tick it in the blueprint state panel, then click and drag, with both the
   blueprint tool and the snapshot tool. Copies land edge to edge at the step shown, including on
   a fast drag. Rotate a quarter turn and drag again: copies still sit edge to edge. The row's
-  label and both step fields read correctly.
+  label and both step fields read correctly. **The row is built in code, not shipped in the
+  bundle** ([asset provenance](asset-provenance.md)), so "the whole row is missing" and "the
+  step boxes are the wrong size or in the wrong place" are both live failure modes here.
 
 ## 4. Notes
 
@@ -85,6 +87,10 @@ see [README.md](../../README.md)), launch ONI, load or start a colony.
 ## 5. Folders & metadata
 
 - [ ] Create a folder; move a blueprint into it and back out.
+- [ ] Open the "move to folder" dialogue with several folders, one of them named in Chinese and
+  one of them long. Every entry in the dropdown shows its name — an entry that renders blank is
+  the truncation bug the mod re-fixes in code
+  ([asset provenance](asset-provenance.md)).
 - [ ] Rename a blueprint (renaming screen) — file is renamed, name in list updates.
 - [ ] Rename a folder — contained blueprints still load.
 - [ ] Delete a blueprint, delete a folder — files removed, no dangling list entries.
