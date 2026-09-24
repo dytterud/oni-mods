@@ -3893,6 +3893,10 @@ internal static class HarnessCases
             Log?.Line($"  footprint {size.x}x{size.y}, step {st.GridSnapX}x{st.GridSnapY}");
             Assert.Equal(size.x, st.GridSnapX, "selecting a blueprint defaults the X step to its footprint");
             Assert.Equal(size.y, st.GridSnapY, "selecting a blueprint defaults the Y step to its footprint");
+
+            ///the row is assembled from clones, and its two step fields are sized by hand -
+            ///nothing here can assert it *looks* right, so leave a frame for someone to look at.
+            yield return Screenshot.Capture("grid-snap-row", Log);
         }
         finally
         {

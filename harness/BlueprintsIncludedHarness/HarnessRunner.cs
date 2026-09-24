@@ -88,6 +88,8 @@ internal sealed class HarnessRunner : MonoBehaviour
         for (int i = 0; i < SettleFrames; i++)
             yield return null;
 
+        yield return DismissBlockingDialogs(log);
+
         // --- place the fixture buildings ---
         try
         {
@@ -165,6 +167,50 @@ internal sealed class HarnessRunner : MonoBehaviour
         }
 
         Finish(results, log);
+    }
+
+    /// <summary>
+    /// Closes any modal dialog the load left on screen. Loading the fixture raises ONI's
+    /// "save game mods differ from currently active mods" confirmation, because the harness
+    /// enables itself and disables Blueprints Expanded relative to whatever the save was made
+    /// with. Nothing blocks on it - every case ran with it up - but it dims the scene and covers
+    /// the middle of the frame, which made every <see cref="Screenshot"/> useless.
+    ///
+    /// Deactivate() rather than the confirm button: the dialog is informational, and this way
+    /// there is no dependence on which button a given dialog happens to carry.
+    /// </summary>
+    private static IEnumerator DismissBlockingDialogs(HarnessLog log)
+    {
+        ///the dialog is raised during the load, but give a late one a few frames to appear.
+        for (int attempt = 0; attempt < 3; attempt++)
+        {
+            var dialogs = FindObjectsByType<ConfirmDialogScreen>(FindObjectsSortMode.None);
+            foreach (var dialog in dialogs)
+            {
+                log.Line($"  dismissing {dialog.GetType().Name} \"{dialog.name}\"");
+                try
+                {
+                    dialog.Deactivate();
+                }
+                catch (Exception e)
+                {
+                    ///never fail a run over housekeeping
+                    log.Line("  dismissing it threw: " + e.Message);
+                }
+            }
+
+            for (int i = 0; i < 5; i++)
+                yield return null;
+        }
+
+        var remaining = FindObjectsByType<KScreen>(FindObjectsSortMode.None);
+        var modal = new List<string>();
+        foreach (var screen in remaining)
+            if (screen.isActiveAndEnabled && screen is ConfirmDialogScreen)
+                modal.Add(screen.GetType().Name);
+        log.Line(modal.Count == 0
+            ? "  no modal dialogs left on screen"
+            : "  modal dialogs STILL on screen (screenshots will be obscured): " + string.Join(", ", modal.ToArray()));
     }
 
     private static void Finish(ResultSet results, HarnessLog log)
