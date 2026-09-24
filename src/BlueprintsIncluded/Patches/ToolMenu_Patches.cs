@@ -40,11 +40,6 @@ class ToolMenu_Patches
                 else
                     SnapshotTool.Instance.TryVisualizeLastSnapshot();
             }
-            else if (e.IsAction(Actions.BlueprintsToggleNoteVisibility.GetKAction()))
-            {
-                e.Consumed = true;
-                BlueprintState.ToggleNoteVisibility();
-            }
         }
     }
     [HarmonyPatch(typeof(ToolMenu), "OnPrefabInit")]

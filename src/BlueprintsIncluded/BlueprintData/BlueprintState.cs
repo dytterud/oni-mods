@@ -35,28 +35,6 @@ public static class BlueprintState
 
     public static string SelectedBlueprintFolder = string.Empty;
 
-    /// <summary>
-    /// Whether placed blueprint notes are drawn. Toggled from the hotkey or the top-left
-    /// control-screen button; each <see cref="NoteToolPlacedEntities.BlueprintNote"/> subscribes
-    /// and hides its own renderer. Not serialized - notes come back visible on load.
-    /// </summary>
-    public static bool NoteVisibility { get; private set; } = true;
-
-    /// <summary>
-    /// Set by the top-left control-screen patch so its button tracks the state no matter who
-    /// toggled it. Every toggle path fans out from here; a caller that refreshed the UI itself
-    /// would leave the button stale for every other caller.
-    /// </summary>
-    ///System.Action explicitly: bare Action resolves to Klei's game-action enum here.
-    public static System.Action? NoteVisibilityUiRefresh { get; set; }
-
-    public static void ToggleNoteVisibility()
-    {
-        NoteVisibility = !NoteVisibility;
-        NoteToolPlacedEntities.BlueprintNote.TriggerNoteVisibilityChange(NoteVisibility);
-        NoteVisibilityUiRefresh?.Invoke();
-    }
-
     public static bool InstantBuild => DebugHandler.InstantBuildMode || Game.Instance.SandboxModeActive && SandboxToolParameterMenu.instance.settings.InstantBuild;
 
     private static readonly Dictionary<ulong, Blueprint> CurrentVisualizers = new();
