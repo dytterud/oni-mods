@@ -48,6 +48,27 @@ internal class ModAssets
     public static GameObject NoteToolStateScreenGO = null!;
     public static GameObject IconSelectorGO = null!;
     public static GameObject RenamingScreenGO = null!;
+
+    /// <summary>
+    /// Sprites the blueprints_ui prefabs use that are the game's own art. The bundle carries a
+    /// same-sized white placeholder under each name, so no Klei art ships in it;
+    /// <see cref="UseGameSprites"/> swaps the game's sprite in by name. The bundle is built by
+    /// dytterud/oni-blueprints-ui, whose spec/sprites.json marks these as <c>"game": true</c>.
+    /// </summary>
+    public static readonly string[] GameSpriteNames =
+    [
+        "Background", "Checkmark", "action_cancel", "iconLeft", "iconRight",
+        "icon_TrendArrows_Down_1", "icon_folder", "icon_pencil", "overview_jobs_icon_checkmark",
+        "stresspanel_icon_expand_arrow", "stresspanel_icon_expand_arrow_up", "web_title",
+    ];
+
+    /// <summary>Names from <see cref="GameSpriteNames"/> the last swap could not find in the game.
+    /// Empty on a healthy load; the in-game harness asserts it.</summary>
+    public static readonly List<string> MissingGameSprites = [];
+
+    /// <summary>Every sprite the bundle itself carries - never a swap candidate, whatever its name.</summary>
+    private static HashSet<Sprite> bundleSprites = [];
+
     public static void LoadAssets()
     {
         var bundle = AssetUtils.LoadAssetBundle("blueprints_ui", platformSpecific: true);
@@ -56,6 +77,9 @@ internal class ModAssets
         NoteToolStateScreenGO = bundle.LoadAsset<GameObject>("Assets/UIs/NoteToolStateContainer.prefab");
         IconSelectorGO = bundle.LoadAsset<GameObject>("Assets/UIs/IconSelector.prefab");
         RenamingScreenGO = bundle.LoadAsset<GameObject>("Assets/UIs/BlueprintNameDialogue.prefab");
+        ///before any swap, every sprite the prefabs show is the bundle's own. LoadAllAssets would not
+        ///do: it lists only the bundle's explicit assets, and the sprites are dependencies.
+        bundleSprites = [.. BundleImages().Select(image => image.sprite).Where(sprite => sprite != null)];
         //UIUtils.ListAllChildren(Assets.transform);
         BlueprintInfoStateGO.AddOrGet<CurrentBlueprintStateScreen>();
         NoteToolStateScreenGO.AddOrGet<NoteToolScreen>();
@@ -76,6 +100,42 @@ internal class ModAssets
         ///qualified: the local `TMPConverter` above shadows the type name.
         if (!UtilLibs.TMPConverter.SetTextOverflow(RenamingScreenGO, dropdownEntryLabel, TextOverflowModes.Overflow))
             SgtLogger.warning($"Could not reach {dropdownEntryLabel} on the renaming screen; long folder names will truncate.");
+    }
+
+    /// <summary>
+    /// Points every <see cref="UnityEngine.UI.Image"/> in the loaded prefabs that shows one of
+    /// <see cref="GameSpriteNames"/> at the game's sprite of that name. Runs after
+    /// <c>Assets.OnPrefabInit</c>, by which point the game's UI sprites are loaded.
+    ///
+    /// Harmless against a bundle that embeds copies of the art instead of placeholders: the copy is
+    /// replaced by the original.
+    /// </summary>
+    public static void UseGameSprites()
+    {
+        var wanted = new HashSet<string>(GameSpriteNames);
+        var game = new Dictionary<string, Sprite>();
+        foreach (var sprite in Resources.FindObjectsOfTypeAll<Sprite>())
+        {
+            if (wanted.Contains(sprite.name) && !bundleSprites.Contains(sprite) && !game.ContainsKey(sprite.name))
+                game[sprite.name] = sprite;
+        }
+
+        MissingGameSprites.Clear();
+        MissingGameSprites.AddRange(GameSpriteNames.Where(name => !game.ContainsKey(name)));
+        foreach (var name in MissingGameSprites)
+            SgtLogger.warning($"Game sprite '{name}' not found; the blueprint UI keeps its placeholder for it.");
+
+        foreach (var image in BundleImages())
+        {
+            if (image.sprite != null && game.TryGetValue(image.sprite.name, out var sprite))
+                image.sprite = sprite;
+        }
+    }
+
+    private static IEnumerable<UnityEngine.UI.Image> BundleImages()
+    {
+        GameObject[] prefabs = [BlueprintSelectionScreenGO, BlueprintInfoStateGO, NoteToolStateScreenGO, IconSelectorGO, RenamingScreenGO];
+        return prefabs.SelectMany(prefab => prefab.GetComponentsInChildren<UnityEngine.UI.Image>(true));
     }
     public static bool HasPrevFolder()
     {

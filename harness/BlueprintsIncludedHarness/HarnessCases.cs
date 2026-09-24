@@ -106,6 +106,7 @@ internal static class HarnessCases
         new HarnessCase("backwall-building-needs-backwall-under-every-cell", BackwallCoversEveryCell),
         new HarnessCase("rotated-occupancy-follows-the-rotation", RotatedOccupancyFollowsTheRotation),
         new HarnessCase("backwall-building-is-accepted-over-a-real-back-wall", BackwallOverRealBackwall),
+        new HarnessCase("game-sprites-replace-the-bundle-art", GameSpritesReplaceBundleArt),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -4496,6 +4497,47 @@ internal static class HarnessCases
     private static Config ModConfig() => (Config)typeof(Config)
         .GetProperty("Instance", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)!
         .GetValue(null)!;
+
+    /// <summary>
+    /// The blueprints_ui bundle carries white placeholders for the sprites that are the game's own
+    /// art, and <c>ModAssets.UseGameSprites</c> swaps the real ones in by name after
+    /// <c>Assets.OnPrefabInit</c>. If the swap misses, the UI shows white boxes, and nothing
+    /// throws. So assert it: every name was found, and no image in the five prefabs still shows a
+    /// sprite the bundle itself carries under one of those names.
+    /// </summary>
+    private static IEnumerator GameSpritesReplaceBundleArt()
+    {
+        var modAssets = typeof(BlueprintsV2.BlueprintData.Blueprint).Assembly.GetType("BlueprintsV2.ModAssets")!;
+        const BindingFlags statics = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+        var names = new HashSet<string>((string[])modAssets.GetField("GameSpriteNames", statics)!.GetValue(null)!);
+        var missing = (List<string>)modAssets.GetField("MissingGameSprites", statics)!.GetValue(null)!;
+        var bundleSprites = (HashSet<Sprite>)modAssets.GetField("bundleSprites", statics)!.GetValue(null)!;
+
+        CollectionAssert.SameItems(Array.Empty<string>(), missing, "game sprites not found at load");
+        Assert.True(bundleSprites.Count > 0, "the bundle's own sprites were recorded");
+
+        int swapped = 0;
+        var stale = new List<string>();
+        foreach (var field in new[] { "BlueprintSelectionScreenGO", "BlueprintInfoStateGO", "NoteToolStateScreenGO", "IconSelectorGO", "RenamingScreenGO" })
+        {
+            var prefab = (GameObject)modAssets.GetField(field, statics)!.GetValue(null)!;
+            foreach (var image in prefab.GetComponentsInChildren<UnityEngine.UI.Image>(true))
+            {
+                if (image.sprite == null || !names.Contains(image.sprite.name))
+                    continue;
+                if (bundleSprites.Contains(image.sprite))
+                    stale.Add($"{field}:{image.name}={image.sprite.name}");
+                else
+                    swapped++;
+            }
+        }
+        CollectionAssert.SameItems(Array.Empty<string>(), stale, "images still showing the bundle's copy of a game sprite");
+        ///the extracted spec has 44 such images across the five prefabs; well above zero is the
+        ///point - it proves the loop saw the game-sprite images at all
+        Assert.True(swapped > 0, $"images showing a game sprite: {swapped}");
+        Log?.Line($"  game sprites swapped into {swapped} image(s)");
+        yield break;
+    }
 
     // Element identity as the stored tag hash - a Tag rebuilt from a hash on read has no
     // resolvable name, so ToString() would spuriously differ.

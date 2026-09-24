@@ -50,5 +50,7 @@ internal class SpritePatch
                 TextNote.SymbolMap[sprite.name] = sprite;
             }
         }
+
+        public static void Postfix() => ModAssets.UseGameSprites();
     }
 }
