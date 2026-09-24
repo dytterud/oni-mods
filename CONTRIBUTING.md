@@ -130,7 +130,7 @@ are in [`docs/blueprints-included/upstream-sync.md`](docs/blueprints-included/up
 porting anything from upstream — including why some upstream files must never be
 synced wholesale.
 
-Upstream relicensed to All Rights Reserved on 2026-09-07, so it is read for behaviour,
+Upstream relicensed away from MIT on 2026-09-07, so it is read for behaviour,
 never copied: an `upstream-sync` issue describes the change in prose, and the port is
 written fresh from that description by someone who has not read upstream's code for it.
 The cut-off and the rule are in

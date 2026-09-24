@@ -34,7 +34,7 @@ that only four `UtilLibs` files ever differed from upstream, and none of them ar
 `UI/FUI/FSlider.cs` is retained (see below).
 
 So **restore from this repo's history, not from upstream.** The copy from before the prune
-(`58f2ed0^`) is the one this fork holds under MIT. Upstream relicensed to All Rights Reserved on
+(`58f2ed0^`) is the one this fork holds under MIT. Upstream relicensed away from MIT on
 2026-09-07 (see [asset provenance](blueprints-included/asset-provenance.md#the-relicense-cut)), so
 its newer copy is not ours to take.
 

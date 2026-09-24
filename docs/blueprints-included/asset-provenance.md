@@ -11,11 +11,14 @@ the evidence, and the rule that follows from it.
 |---|---|
 | Upstream MIT from | [`4a8c9a8`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/4a8c9a8) — 2024-07-08 |
 | **Upstream relicensed to All Rights Reserved** | [`771622f`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/771622f) — **2026-09-07 21:57:24 UTC** |
+| Upstream relicensed again, to the "Sgt_Imalas ModRepository License v1.0" (source-available, no compiled builds) | [`e57f92b`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/e57f92b) — 2026-09-24 09:24:01 UTC |
 | This fork's initial commit | `c84e698` — 2026-09-07 17:08:22 UTC |
 
 The fork predates the relicense by 4h49m. An MIT grant attaches to the version it was published
 under and is not retractable, so everything upstream published **before 21:57:24Z on 2026-09-07**
 may be used under MIT, including material pulled later. Everything published after it may not.
+The second change does not move that line: its licence forbids compiled builds, which is what this
+fork ships.
 
 That is the only line that matters, and it is a wall-clock one — not "before the fork" and not
 "before upstream's LICENSE commit appears in a `git log --since`". Two upstream commits land
