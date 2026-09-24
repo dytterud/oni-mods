@@ -8,17 +8,14 @@ still `BlueprintsV2`; the mod `staticID` / `AssemblyName` is `BlueprintsIncluded
 it as its own mod. **Keep the `BlueprintsV2` root namespace** — renaming it breaks KSerialization
 save compatibility and every `.po` translation.
 
-History was squashed, so there is no merge-base with upstream — porting an upstream change
-follows [docs/blueprints-included/upstream-sync.md](../../docs/blueprints-included/upstream-sync.md),
-which a daily scheduled task also uses to open `upstream-sync` issues. It watches two streams:
-commits touching upstream `BlueprintsV2/` or `UtilLibs/`, and BlueprintsV2 bug reports filed
-upstream. Never judge an upstream change from its diff alone — read its issue and commit message
-for intent first. Upstream relicensed away from MIT on 2026-09-07: read its code for
-behaviour, but never paste or transliterate it — issues describe the change in prose and the port
-is written fresh. Implementing an `upstream-sync` issue is clean-room: work from the issue alone,
-in a session that has not read upstream's code for that change and does not access upstream.
-Never decompile upstream's released DLLs; its releases are archived locally only to run and
-observe.
+History was squashed, so there is no merge-base with upstream. What may be taken from upstream,
+and how, is the policy in
+[docs/blueprints-included/upstream-sync.md](../../docs/blueprints-included/upstream-sync.md).
+A daily scheduled task, whose procedure is private and not in this repo, opens `upstream-sync`
+issues from it. Upstream relicensed away from MIT on 2026-09-07: behaviour may be taken, code never.
+Implementing an `upstream-sync` issue is clean-room: work from the issue alone, in a session that
+has not read upstream's code for that change and does not access upstream. Never decompile
+upstream's released DLLs.
 
 ## Layout
 

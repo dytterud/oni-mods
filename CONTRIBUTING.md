@@ -124,9 +124,9 @@ KSerialization save compatibility and every `.po` translation. It's intentional.
 ## Upstream fixes
 
 This is a fork with no shared git history, so upstream fixes can't be
-cherry-picked. A scheduled scan opens `upstream-sync` issues for changes landing
-in upstream `BlueprintsV2/` or `UtilLibs/`; the procedure and the porting rules
-are in [`docs/blueprints-included/upstream-sync.md`](docs/blueprints-included/upstream-sync.md). Read that before
+cherry-picked. A scheduled scan opens `upstream-sync` issues for upstream changes
+worth having; what may be taken from upstream, and how, is in
+[`docs/blueprints-included/upstream-sync.md`](docs/blueprints-included/upstream-sync.md). Read that before
 porting anything from upstream — including why some upstream files must never be
 synced wholesale.
 
@@ -134,7 +134,7 @@ Upstream relicensed away from MIT on 2026-09-07, so it is read for behaviour,
 never copied: an `upstream-sync` issue describes the change in prose, and the port is
 written fresh from that description by someone who has not read upstream's code for it.
 The cut-off and the rule are in
-[`upstream-sync.md`](docs/blueprints-included/upstream-sync.md#triage-rubric).
+[`upstream-sync.md`](docs/blueprints-included/upstream-sync.md#how-a-change-gets-here-clean-room).
 
 Those issues are labelled `bug` or `enhancement` alongside `upstream-sync`.
 Feature parity with upstream is a goal, so an `enhancement` one is a port waiting
