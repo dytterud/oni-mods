@@ -107,6 +107,7 @@ internal static class HarnessCases
         new HarnessCase("rotated-occupancy-follows-the-rotation", RotatedOccupancyFollowsTheRotation),
         new HarnessCase("backwall-building-is-accepted-over-a-real-back-wall", BackwallOverRealBackwall),
         new HarnessCase("game-sprites-replace-the-bundle-art", GameSpritesReplaceBundleArt),
+        new HarnessCase("bundle-dialogs-open-and-bind", BundleDialogsOpenAndBind),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -3831,6 +3832,139 @@ internal static class HarnessCases
             if (writtenPath != null && System.IO.File.Exists(writtenPath))
                 System.IO.File.Delete(writtenPath);
         }
+    }
+
+    // ---- #114: every dialog in the blueprints_ui bundle opens and binds ------------------
+
+    /// <summary>
+    /// Opens each screen the blueprints_ui bundle provides the way the mod does, and checks it came
+    /// up whole. The bundle is rebuilt from a spec (dytterud/oni-blueprints-ui), and each screen
+    /// finds its widgets by child path when it first opens - so a prefab that drifted from the
+    /// layout the code expects would only show up here, on opening. The current-blueprint-state
+    /// screen is left out: other cases open it already.
+    ///
+    /// Per screen: opening throws nothing, the instance is active, and every UI reference field the
+    /// code declares non-nullable was bound by its Init. Each gets a screenshot, for the look.
+    /// </summary>
+    private static IEnumerator BundleDialogsOpenAndBind()
+    {
+        var asm = typeof(Blueprint).Assembly;
+        Type Screen(string name) => asm.GetType("BlueprintsV2.UnityUI." + name)!;
+        const BindingFlags statics = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+
+        // blueprint selector - the main browser, with its blueprint list shown
+        var selector = Screen("BlueprintSelectionScreen");
+        yield return OpenCheckClose("blueprint-selector", selector,
+            open: () => selector.GetMethod("ShowWindow", statics)!
+                .Invoke(null, new object?[] { new System.Action<Blueprint?>(_ => { }), null, true }));
+
+        // naming dialog - with folder suggestions, so its dropdown list is populated too
+        var naming = Screen("BlueprintRenamingScreen");
+        yield return OpenCheckClose("naming-dialog", naming,
+            open: () => naming.GetMethod("OpenNamingDialogue", statics)!
+                .Invoke(null, new object?[] { "Harness", new System.Action<string>(_ => { }), new System.Action(() => { }),
+                    "harness", false, new[] { "harness-folder-a", "harness-folder-b" } }));
+
+        // icon picker
+        var icons = Screen("SpriteSelectorScreen");
+        yield return OpenCheckClose("icon-picker", icons,
+            open: () => icons.GetMethod("ShowScreen", statics)!
+                .Invoke(null, new object[] { true, new System.Action<string, Color>((_, _) => { }), new System.Action(() => { }) }),
+            close: () => icons.GetMethod("ShowScreen", statics)!
+                .Invoke(null, new object[] { false, new System.Action<string, Color>((_, _) => { }), new System.Action(() => { }) }));
+
+        // note tool panel - parented into the tool parameter menu, as when the note tool is picked
+        var notes = Screen("NoteToolScreen");
+        yield return OpenCheckClose("note-tool-panel", notes,
+            open: () => notes.GetMethod("ShowScreen", statics)!.Invoke(null, new object[] { true }),
+            close: () => notes.GetMethod("ShowScreen", statics)!.Invoke(null, new object[] { false }));
+    }
+
+    /// <summary>Opens one screen, asserts it is up and bound, screenshots it, and closes it -
+    /// through <paramref name="close"/> if given, else KScreen.Show(false).</summary>
+    private static IEnumerator OpenCheckClose(string label, Type screenType, System.Action open, System.Action? close = null)
+    {
+        Component? screen = null;
+        try
+        {
+            try
+            {
+                open();
+            }
+            catch (TargetInvocationException e)
+            {
+                throw new HarnessAssertException($"{label}: opening threw {e.InnerException}");
+            }
+            ///two frames: layout groups and content size fitters settle on the frame after activation
+            yield return null;
+            yield return null;
+
+            screen = (Component?)screenType.GetField("Instance", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!
+                .GetValue(null);
+            Assert.True(screen != null, $"{label}: the screen instance exists");
+            Assert.True(screen!.gameObject.activeInHierarchy, $"{label}: the screen is active");
+
+            var unbound = UnboundUiFields(screen);
+            Log?.Line($"  {label}: {screen.GetComponentsInChildren<RectTransform>(true).Length} nodes; unbound non-nullable UI fields: " +
+                      (unbound.Count == 0 ? "none" : string.Join(", ", unbound)));
+            CollectionAssert.SameItems(Array.Empty<string>(), unbound, $"{label}: UI fields left unbound after opening");
+
+            yield return Screenshot.Capture("dialog-" + label, Log);
+        }
+        finally
+        {
+            if (close != null)
+                close();
+            else if (screen != null && screen is KScreen kscreen)
+                kscreen.Show(false);
+        }
+    }
+
+    /// <summary>Instance fields on the screen typed as a Unity object (a widget, component or
+    /// GameObject), declared non-nullable, and still null - i.e. a child path Init did not find, or
+    /// a field it never assigned. Nullability is read from the compiler's NullableAttribute /
+    /// NullableContextAttribute, so an optional <c>T?</c> field is not reported.</summary>
+    private static List<string> UnboundUiFields(Component screen)
+    {
+        var result = new List<string>();
+        for (var type = screen.GetType(); type != null && type.Assembly == typeof(Blueprint).Assembly; type = type.BaseType)
+        {
+            foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+            {
+                if (!typeof(UnityEngine.Object).IsAssignableFrom(field.FieldType) || !DeclaredNonNullable(field))
+                    continue;
+                if ((UnityEngine.Object?)field.GetValue(screen) == null)
+                    result.Add($"{type.Name}.{field.Name}");
+            }
+        }
+        return result;
+    }
+
+    private static bool DeclaredNonNullable(FieldInfo field)
+    {
+        static byte? Flag(IEnumerable<CustomAttributeData> attributes, string name)
+        {
+            var a = attributes.FirstOrDefault(x => x.AttributeType.Name == name);
+            if (a == null || a.ConstructorArguments.Count == 0)
+                return null;
+            var arg = a.ConstructorArguments[0].Value;
+            return arg switch
+            {
+                byte b => b,
+                IReadOnlyCollection<CustomAttributeTypedArgument> list when list.Count > 0 => (byte)list.First().Value!,
+                _ => null,
+            };
+        }
+        var own = Flag(field.CustomAttributes, "NullableAttribute");
+        if (own.HasValue)
+            return own.Value == 1;
+        for (var t = field.DeclaringType; t != null; t = t.DeclaringType)
+        {
+            var context = Flag(t.CustomAttributes, "NullableContextAttribute");
+            if (context.HasValue)
+                return context.Value == 1;
+        }
+        return false;
     }
 
     // ---- #79: snap-to-grid ---------------------------------------------

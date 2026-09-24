@@ -28,13 +28,13 @@ repositories that hold the same bytes report the same SHA.
 
 | Our commit | Date (UTC) | Identical to upstream | Upstream date (UTC) | |
 |---|---|---|---|---|
-| `b1e3175` | 09-07 17:25 | [`e856903`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/e856903) | 09-04 21:33 | MIT — **what ships today** |
+| `b1e3175` | 09-07 17:25 | [`e856903`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/e856903) | 09-04 21:33 | MIT — shipped until the rebuild below |
 | `895fa78` | 09-10 16:57 | [`063fb40`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/063fb40) | 09-07 22:47 | 50 minutes after the cut |
 | `f3888d6` (#95) | 09-18 15:26 | [`cc28b8b`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/cc28b8b) | 09-16 16:07 | after the cut |
 
-The two later pulls were reverted in #113. The bundles in the tree are `b1e3175`'s, whose blobs
-are `4345a5e` (linux), `5434116` (mac) and `2335a6f` (windows) — check them with
-`git hash-object`, not by eye.
+The two later pulls were reverted in #113. `b1e3175`'s blobs are `4345a5e` (linux), `5434116` (mac)
+and `2335a6f` (windows), and they are what the rebuild's spec was extracted from. The bundles in the
+tree are no longer those; see [Rebuilding them ourselves](#rebuilding-them-ourselves).
 
 **`895fa78`'s commit message is wrong.** It says "Rebuild the UI bundles so Chinese text
 renders"; nothing was rebuilt, and there is no Unity project in this repo that could have rebuilt
@@ -123,9 +123,29 @@ its README and NOTICE carry the detail. In short:
 - **The NotoSans font and TMP font asset are dropped.** `TMPConverter` already gives every label
   the game's fonts.
 
-Until a build from that project replaces them, the bundles here are still `b1e3175`'s. To swap them
-in, copy its `out/<platform>/blueprints_ui` over `ModAssets/assets/<platform>/blueprints_ui`,
-confirm with `git hash-object` that all three changed, and run the in-game harness.
+**The bundles in the tree are now built by that project**, with Unity 6000.3.5f2, the game's own
+version:
+
+| Platform | Blob |
+|---|---|
+| windows | `e5a2ec8` |
+| mac | `e4965f3` |
+| linux | `eb7b143` |
+
+Check them with `git hash-object`. Its `tools/compare.py` reported all three identical to the
+spec, and the in-game harness passed with them in place.
+
+Each texture keeps the GPU format the source shipped: DXT5 for the large icons, uncompressed for
+the small ones. `paste_0` is the one exception; it is uncompressed because its 359x447 size cannot
+be DXT-compressed on its own. Texture memory is 3.8 MB, against the source's 4.5 MB. The files are
+about 97 KB, down from 420-440 KB, because the NotoSans font and its atlas are gone. Neither
+compresses well.
+
+To ship a new build:
+1. Copy `out/<platform>/blueprints_ui` over `ModAssets/assets/<platform>/blueprints_ui`.
+2. Confirm all three blobs changed.
+3. Run the harness.
+4. Update the table above.
 
 Doing it would let `BuildGridSnapRow` and the overflow fixup go back into the prefab, and would
 take the last third-party art out of this repository.
