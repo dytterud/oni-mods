@@ -67,8 +67,11 @@ often bundles several changes; split them as for commits
 ([One issue per change](#one-issue-per-change-not-per-commit)). The page is rate-limited; a run
 that cannot fetch it skips that stream, says so, and does not advance its state.
 
-The first run of this stream records the newest entry as the baseline and opens nothing:
-everything before 2026-09-24 was already triaged through the commit stream.
+The first run of this stream records the newest entry as the baseline and opens nothing, and
+later runs consider only entries newer than it. The baseline is not proof that older entries
+were covered: the 23 Sep entry described work that never appeared as a public commit, and was
+triaged by hand (#129, #130). When seeding the stream anew, read back to the last entry the
+commit stream demonstrably covered.
 
 ## Why there is no merge-base
 
