@@ -709,10 +709,6 @@ internal class ModAssets
                 return VisualizerType.TILE;
             }
         }
-        else if (def.BuildingComplete.GetComponent<RocketModule>() != null)
-        {
-            return VisualizerType.ROCKET;
-        }
         else
         {
             return VisualizerType.BUILDING;
