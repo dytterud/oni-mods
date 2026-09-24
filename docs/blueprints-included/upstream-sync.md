@@ -161,9 +161,22 @@ as closely as the triage needs. What comes out the other side is a *description*
 the behaviour and the logic in prose — the condition, the order of steps, the edge cases, and why
 upstream made the change — in enough detail that whoever implements it never has to open the diff.
 No post-cut upstream code goes into an issue, a PR, a commit or the tree: not a hunk, not a snippet,
-not a line-by-line transliteration into pseudocode, and not its strings. This fork's own code may be
-quoted freely, upstream type and member names may be used as facts, and upstream's commit subject
-may be quoted as its statement of intent. Anything published before the cut is still MIT.
+not a line-by-line transliteration into pseudocode, and not its strings. Describe the change in
+terms of the game's API and this fork's own names. This fork's own code may be quoted freely, and
+upstream's commit subject may be quoted as its statement of intent. Upstream's internal structure
+stays out: its methods, fields, and how it splits the change up. A spec that mirrors that structure
+steers the implementer back to it. Anything published before the cut is still MIT.
+
+**Two roles, kept apart: clean-room.** The scan is the only role that reads upstream's code, and
+its output is the issue. Whoever *implements* an `upstream-sync` issue works from that issue, this
+repository and the game. They do not see upstream's code, commits or diffs for that change, or
+anyone's notes about them:
+- A person implementing it must not have read the diff.
+- An AI session implementing it must be a fresh session, told not to access upstream and not
+  given the scan's working notes.
+
+Because the implementer sees only the issue, **the issue is the whole spec** and has to be enough
+on its own. The pull request records the separation (see the PR template).
 
 **Every substantive change under `BlueprintsV2/` gets an issue** — fixes *and* features. A fix
 clearing [the safety bar](#the-safety-bar) gets a pull request as well. Whether this fork wants
@@ -329,6 +342,11 @@ record durable.
 
 A fix may go straight to a PR only when **every** one of these holds. Any doubt on any point
 means an issue instead — the whole value of the bar is that it fails closed.
+
+A scan PR is written by the same role that read the diff, so it is **not** clean-room. That is
+acceptable only because clause 1 now leaves just two kinds of change: a single token, or a swap
+to a helper this fork already uses. Neither carries expression anyone could own. Anything bigger
+goes to an issue and a separate implementer.
 
 1. **The correct result is mechanically determinable**, because one of:
    - the change is a self-contained substitution whose replacement **already exists in this

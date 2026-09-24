@@ -31,5 +31,7 @@ verified — an honest gap is easy to check at review time; a hidden one isn't.
 - [ ] New/changed behaviour covered by a test that fails without the change
       (game-touching logic often has no seam — say so if it couldn't be tested)
 - [ ] Manually exercised in-game with a real ONI install (say so, or note it wasn't)
+- [ ] Implements an `upstream-sync` issue? Written from the issue alone, without reading
+      upstream's code for it (delete if not applicable)
 
 ---
