@@ -121,22 +121,14 @@ User-facing strings go through `STRINGS.cs`; translations are
 Also: **keep the `BlueprintsV2` root namespace.** Renaming it breaks
 KSerialization save compatibility and every `.po` translation. It's intentional.
 
-## Upstream fixes
+## Upstream
 
-This is a fork with no shared git history, so upstream fixes can't be
-cherry-picked. A scheduled scan opens `upstream-sync` issues for changes landing
-in upstream `BlueprintsV2/` or `UtilLibs/`; the procedure and the porting rules
-are in [`docs/blueprints-included/upstream-sync.md`](docs/blueprints-included/upstream-sync.md). Read that before
-porting anything from upstream — including why some upstream files must never be
-synced wholesale.
+Nothing is copied from upstream Blueprints Expanded after its 2026-09-07 relicense.
+What may be taken, and how, is in
+[provenance](docs/blueprints-included/asset-provenance.md#the-rule); read it before
+porting anything.
 
-Upstream relicensed to All Rights Reserved on 2026-09-07, so it is read for behaviour,
-never copied: an `upstream-sync` issue describes the change in prose, and the port is
-written fresh from that description by someone who has not read upstream's code for it.
-The cut-off and the rule are in
-[`upstream-sync.md`](docs/blueprints-included/upstream-sync.md#triage-rubric).
-
-Those issues are labelled `bug` or `enhancement` alongside `upstream-sync`.
+`upstream-sync` issues are labelled `bug` or `enhancement` alongside `upstream-sync`.
 Feature parity with upstream is a goal, so an `enhancement` one is a port waiting
 to be scheduled rather than a proposal to argue for. Close one as `wontfix` when
 there is a reason - it fights a deliberate divergence, carries a side effect this

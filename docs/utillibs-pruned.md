@@ -4,18 +4,15 @@
 mod dll. It serves *every* Imalas ONI mod, so most of it was machinery this fork never called.
 On 2026-09-10 the unreachable part — the bulk of the library — was removed.
 
-The file list below is the record of what went, and it is what the
-[upstream sync](blueprints-included/upstream-sync.md) checks before triaging a `UtilLibs` commit. It is
+The file list below is the record of what went; check it before porting an upstream `UtilLibs`
+change. It is
 deliberately not summarised as a count: a count goes stale the moment one more file is
 pruned or restored, and the list is the thing that has to be right.
 
 ## Why this is not a new judgement
 
-The sync job already had a [reachability
-filter](blueprints-included/upstream-sync.md#the-utillibs-relevance-filter) that records `unused-helper` and opens
-no issue for upstream commits touching helpers this mod cannot reach. Two of the five `UtilLibs`
-commits it had triaged before the prune landed in files on this list. Removing them makes a
-standing verdict physical; it does not change what the job reports.
+Every file on the list was already unreachable from this mod, so no change to one could reach the
+shipped dll. Removing them made that standing fact physical; nothing a player sees changed.
 
 ## How the set was chosen
 
@@ -28,13 +25,13 @@ build decided it. Two files came back that way (`UI/FUI/FInputField.cs` and
 ## The restore invariant
 
 **Every pruned file was byte-identical to upstream when it was removed**, so nothing
-fork-local was lost. [`upstream-sync.md`](blueprints-included/upstream-sync.md#why-there-is-no-merge-base) records
-that only four `UtilLibs` files ever differed from upstream, and none of them are on this list:
+fork-local was lost. At the fork point only four `UtilLibs` files differed from upstream, and
+none of them are on this list:
 `UtilMethods.cs` and `InjectionMethods.cs` are still live, `UtilLibs.csproj` was kept, and
 `UI/FUI/FSlider.cs` is retained (see below).
 
 So **restore from this repo's history, not from upstream.** The copy from before the prune
-(`58f2ed0^`) is the one this fork holds under MIT. Upstream relicensed to All Rights Reserved on
+(`58f2ed0^`) is the one this fork holds under MIT. Upstream relicensed away from MIT on
 2026-09-07 (see [asset provenance](blueprints-included/asset-provenance.md#the-relicense-cut)), so
 its newer copy is not ours to take.
 
@@ -45,7 +42,7 @@ Needed only if a ported `BlueprintsV2` change actually calls the helper.
 1. Take the file from before the prune — `git show 58f2ed0^:src/UtilLibs/<path>` — and put it
    back at `src/UtilLibs/<path>`.
 2. If upstream has changed it since and the port needs that change, describe it and reimplement
-   it as [upstream sync](blueprints-included/upstream-sync.md#triage-rubric) says — never take
+   it [clean-room](blueprints-included/asset-provenance.md#the-rule) — never take
    upstream's copy.
 3. Keep this project's conventions: block-scoped namespaces, `ImplicitUsings` off, `Nullable`
    off. See [CLAUDE.md](../CLAUDE.md).
