@@ -64,6 +64,30 @@ public class UnderConstructionDataTransfer : KMonoBehaviour
         return new(ToApplyData);
     }
 
+    /// <summary>
+    /// The pending data, parsed. An entry that does not parse as a JSON object is logged and left
+    /// out rather than thrown: the strings can come from any caller of the public
+    /// <see cref="SetDataToApply(string, string)"/>, and this feeds the public
+    /// <see cref="API_Methods.GetAllAdditionalBuildingData"/>, where one bad entry must not cost
+    /// the caller every other setting or surface as an exception it cannot explain.
+    /// </summary>
+    internal Dictionary<string, JObject> GetDataDeserialized()
+    {
+        var parsed = new Dictionary<string, JObject>(ToApplyData.Count);
+        foreach (var entry in ToApplyData)
+        {
+            try
+            {
+                parsed[entry.Key] = JObject.Parse(entry.Value);
+            }
+            catch (Exception e)
+            {
+                SgtLogger.error($"Skipping unreadable pending data for {entry.Key} on {gameObject.name}:\n{e.Message}");
+            }
+        }
+        return parsed;
+    }
+
     public static void TransferDataTo(GameObject targetBuilding, Dictionary<string, string> toApply)
     {
         foreach (var data in toApply)
