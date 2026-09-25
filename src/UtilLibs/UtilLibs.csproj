@@ -21,6 +21,14 @@
 	<ItemGroup>
 	  <PackageReference Include="PLib" />
 	</ItemGroup>
+	<ItemGroup>
+		<!-- IO_Utils' clipboard (GUIUtility.systemCopyBuffer). lib/ carries a refasm of it for
+		     offline builds, generated like the rest of lib/ (refasmer with its "all" option). -->
+		<Reference Include="UnityEngine.IMGUIModule">
+			<HintPath>$(GameLibsFolder)/UnityEngine.IMGUIModule.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+	</ItemGroup>
 	<!--<ItemGroup>
 		<Reference Include="$(GameLibsFolder)/netstandard.dll" Private ="false"/>
 		<Reference Include="$(GameLibsFolder)/mscorlib.dll" Private ="false"/>
