@@ -1,5 +1,4 @@
-﻿using HarmonyLib;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.IO;
@@ -18,31 +17,19 @@ namespace UtilLibs
 		public static string ModsFolder => KMod.Manager.GetDirectory();
 		public static string ConfigsFolder => Path.Combine(ModsFolder, "config");
 
+		/// <summary>
+		/// Unity's own system clipboard property. It replaces driving UnityEngine.TextEditor through
+		/// reflection by name, which would fail silently (the clipboard just does nothing) if a
+		/// Unity upgrade moved or renamed that type.
+		/// </summary>
 		public static void PutToClipboard(string toPut)
 		{
-			var TextEditorType = Type.GetType("UnityEngine.TextEditor, UnityEngine");
-			if (TextEditorType != null)
-			{
-				var editor = Activator.CreateInstance(TextEditorType);
-				var tr = Traverse.Create(editor);
-				tr.Property("text").SetValue(toPut);
-				tr.Method("SelectAll").GetValue();
-				tr.Method("Copy").GetValue();
-			}
+			UnityEngine.GUIUtility.systemCopyBuffer = toPut;
 		}
 
 		public static bool TryGetStringFromClipboard(out string clipboardText)
 		{
-			clipboardText = string.Empty;
-			var TextEditorType = Type.GetType("UnityEngine.TextEditor, UnityEngine");
-			if (TextEditorType != null)
-			{
-				var editor = Activator.CreateInstance(TextEditorType);
-				var tr = Traverse.Create(editor);
-				tr.Property("text").SetValue(string.Empty);
-				tr.Method("Paste").GetValue();
-				clipboardText = (string)tr.Property("text").GetValue();
-			}
+			clipboardText = UnityEngine.GUIUtility.systemCopyBuffer ?? string.Empty;
 			return !clipboardText.IsNullOrWhiteSpace();
 		}
 
