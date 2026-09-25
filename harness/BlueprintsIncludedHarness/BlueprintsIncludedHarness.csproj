@@ -39,9 +39,9 @@
   </Target>
 
   <ItemGroup>
-    <!-- Screenshot.cs only. Not in lib/, so there is no refasm for it - fine, because this
-         project is excluded from CLI solution builds and from CI (see the .slnx), and is only
-         ever built by run-ingame.ps1 against a real install. -->
+    <!-- Screenshot.cs only. lib/ carries a refasm of it, so the offline coupling check compiles
+         It was generated like the rest of lib/: refasmer with its "all" option, which
+         reproduces the other lib/ files byte for byte from the same game build. -->
     <Reference Include="UnityEngine.ScreenCaptureModule">
       <HintPath>$(GameLibsFolder)/UnityEngine.ScreenCaptureModule.dll</HintPath>
       <Private>False</Private>
@@ -53,16 +53,17 @@
          second build instance of the mod corrupts its incremental state / races its in-place
          ILRepack. run-ingame.ps1 builds the solution first, so the DLL is always current; a mod
          API change that breaks the harness then surfaces on the next `run-ingame.ps1`.
-         Private=false: ONI provides the merged DLL at runtime as the main mod. -->
+         Private=false: ONI provides the merged DLL at runtime as the main mod.
+         $(Configuration), not Debug: an offline check follows the documented Release build. -->
     <Reference Include="BlueprintsIncluded">
-      <HintPath>..\..\src\BlueprintsIncluded\bin\Debug\netstandard2.1\BlueprintsIncluded.dll</HintPath>
+      <HintPath>..\..\src\BlueprintsIncluded\bin\$(Configuration)\netstandard2.1\BlueprintsIncluded.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
 
   <Target Name="_HarnessNeedsBuiltMod" BeforeTargets="ResolveAssemblyReferences"
-          Condition="!Exists('$(MSBuildThisFileDirectory)..\..\src\BlueprintsIncluded\bin\Debug\netstandard2.1\BlueprintsIncluded.dll')">
-    <Error Text="BlueprintsIncluded.dll (Debug) not found. Build the mod first: dotnet build BlueprintsIncluded.slnx -c Debug  (run-ingame.ps1 does this)." />
+          Condition="!Exists('$(MSBuildThisFileDirectory)..\..\src\BlueprintsIncluded\bin\$(Configuration)\netstandard2.1\BlueprintsIncluded.dll')">
+    <Error Text="BlueprintsIncluded.dll ($(Configuration)) not found. Build the mod first: dotnet build OniMods.slnx -c $(Configuration)  (run-ingame.ps1 does this, in Debug)." />
   </Target>
 
 </Project>
