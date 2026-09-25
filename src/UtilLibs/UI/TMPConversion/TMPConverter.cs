@@ -67,38 +67,14 @@ namespace UtilLibs
 		}
 
 		/// <summary>
-		/// Overrides the TMP overflow mode of one already-converted label, in place, on a prefab
-		/// <see cref="ReplaceAllText"/> has already run over.
-		///
-		/// Both writes are needed. <see cref="TMPImportFix"/> is a serialized component, so every
-		/// clone of the prefab carries its own copy, and that copy's OnSpawn re-applies the mode the
-		/// bundle was authored with - writing only the LocText would be undone on each clone.
-		///
-		/// It lives here because TMPImportFix is internal to this assembly.
-		/// </summary>
-		/// <returns>false when the path does not resolve, or resolves to something that is not a
-		/// converted label.</returns>
-		public static bool SetTextOverflow(GameObject root, string path, TextOverflowModes overflow)
-		{
-			if (root == null)
-				return false;
-
-			Transform label = root.transform.Find(path);
-			if (label == null || !label.TryGetComponent(out LocText text))
-				return false;
-
-			text.overflowMode = overflow;
-			if (label.TryGetComponent(out TMPImportFix importFix))
-				importFix.textOverflow = overflow;
-			return true;
-		}
-
-		/// <summary>
 		/// Re-aligns one already-converted label and has it auto-size to at most
 		/// <paramref name="fontSizeMax"/>, in place - for a label cloned into a smaller box than the
-		/// bundle authored it for. Writes the <see cref="TMPImportFix"/> as well, for the same reason
-		/// <see cref="SetTextOverflow"/> does: on a clone that has not spawned yet, its OnSpawn would
-		/// otherwise put the authored alignment and sizing back.
+		/// bundle authored it for.
+		///
+		/// Writes the <see cref="TMPImportFix"/> as well as the LocText. TMPImportFix is a serialized
+		/// component, so every clone carries its own copy, and on a clone that has not spawned yet its
+		/// OnSpawn would otherwise put the authored alignment and sizing back. It lives here because
+		/// TMPImportFix is internal to this assembly.
 		/// </summary>
 		/// <returns>false when the path does not resolve, or resolves to something that is not a
 		/// converted label.</returns>

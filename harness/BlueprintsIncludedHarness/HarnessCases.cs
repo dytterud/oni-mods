@@ -108,6 +108,7 @@ internal static class HarnessCases
         new HarnessCase("backwall-building-is-accepted-over-a-real-back-wall", BackwallOverRealBackwall),
         new HarnessCase("game-sprites-replace-the-bundle-art", GameSpritesReplaceBundleArt),
         new HarnessCase("bundle-dialogs-open-and-bind", BundleDialogsOpenAndBind),
+        new HarnessCase("folder-dropdown-labels-overflow", FolderDropdownLabelsOverflow),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -3878,6 +3879,47 @@ internal static class HarnessCases
         yield return OpenCheckClose("note-tool-panel", notes,
             open: () => notes.GetMethod("ShowScreen", statics)!.Invoke(null, new object[] { true }),
             close: () => notes.GetMethod("ShowScreen", statics)!.Invoke(null, new object[] { false }));
+    }
+
+    // ---- #123: the folder dropdown's labels overflow instead of truncating ------------------
+
+    /// <summary>
+    /// The naming dialog's folder dropdown entries must not truncate: Truncate drops a line that
+    /// does not fit its rect vertically, which rendered a Chinese folder name as nothing. The mode
+    /// comes from the prefab (dytterud/oni-blueprints-ui), so this reads it off the spawned entries,
+    /// where TMPImportFix's OnSpawn has applied what the bundle authored.
+    /// </summary>
+    private static IEnumerator FolderDropdownLabelsOverflow()
+    {
+        var naming = typeof(Blueprint).Assembly.GetType("BlueprintsV2.UnityUI.BlueprintRenamingScreen")!;
+        const BindingFlags statics = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+        string[] folders = ["harness-folder", "蓝图文件夹用于测试非常长的中文名称"];
+        KScreen? screen = null;
+        try
+        {
+            naming.GetMethod("OpenNamingDialogue", statics)!
+                .Invoke(null, new object?[] { "Harness", new System.Action<string>(_ => { }), new SysAction(() => { }),
+                    "harness", false, folders });
+            yield return null;
+            yield return null;
+
+            screen = (KScreen)naming.GetField("Instance", statics)!.GetValue(null)!;
+            var entries = (System.Collections.IDictionary)naming
+                .GetField("_dropDownEntries", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(screen)!;
+            foreach (var folder in folders)
+            {
+                Assert.True(entries.Contains(folder), $"the dropdown has an entry for {folder}");
+                var label = ((Component)entries[folder]!).transform.Find("Label")?.GetComponent<LocText>();
+                Assert.True(label != null, $"{folder}: the entry has a converted Label");
+                Log?.Line($"  {folder}: overflowMode={label!.overflowMode}");
+                Assert.Equal(TMPro.TextOverflowModes.Overflow, label!.overflowMode, $"{folder}: the label overflows");
+            }
+        }
+        finally
+        {
+            if (screen != null)
+                screen.Show(false);
+        }
     }
 
     /// <summary>Opens one screen, asserts it is up and bound, screenshots it, and closes it -
