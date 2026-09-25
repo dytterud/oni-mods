@@ -3,7 +3,6 @@ using BlueprintsV2.BlueprintData;
 using BlueprintsV2.Tools;
 using BlueprintsV2.UnityUI.Components;
 using STRINGS;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UtilLibs;
@@ -32,8 +31,6 @@ internal class CurrentBlueprintStateScreen : KScreen
     ///the player typed.
     Blueprint? gridStepSource;
     int gridStepSourceRevision;
-    ///the cloned step fields come from a full-width title input; a step is a few digits.
-    const float GridStepFieldWidth = 40f, GridStepFieldGap = 6f;
     //YesNoInfo CanRotate;
     FButton RotateL = null!, RotateR = null!, ChangeMaterialOverrides = null!;
     FButton SaveSnapshot = null!, ExportSnapshot = null!;
@@ -356,127 +353,38 @@ internal class CurrentBlueprintStateScreen : KScreen
     }
 
     /// <summary>
-    /// Builds the Snap to Grid row - the toggle and its two step fields - rather than taking it
-    /// from upstream's prefab: the row first appears in upstream's cc28b8b bundle, which postdates
-    /// their relicense, so this fork ships the bundles it forked with and assembles the row from
-    /// parts those already contain. See docs/blueprints-included/asset-provenance.md.
-    ///
-    /// The toggle is a clone of the row above it, which has the same shape - a Label and a
-    /// Checkbox/Checkmark. The step fields have no counterpart here at all: this prefab holds no
-    /// input of any kind, so they come from the note tool's screen.
+    /// Wires the Snap to Grid row: its toggle, and the two step fields to the left of the checkbox.
+    /// The row is authored in the prefab (dytterud/oni-blueprints-ui), so this only binds it.
     /// </summary>
     void BuildGridSnapRow()
     {
-        var template = transform.Find("InfoItemsContainer/ApplySettingsToExisting").gameObject;
-        var row = Util.KInstantiateUI(template, template.transform.parent.gameObject, true);
-        row.name = "GridSnap";
-        row.transform.SetSiblingIndex(template.transform.GetSiblingIndex() + 1);
-        ///TryChangeText clears the LocText key as well as setting the text. Left in place, the
-        ///cloned key would resolve back to the template's string on the next language change.
-        UIUtils.TryChangeText(row.transform, "Label", GRIDSNAP.LABEL);
-
-        ///the clone carries the template's FToggle but not its C# event subscriptions, so it
-        ///starts with no handler of its own. SetCheckmark is not optional: FToggle's own fallback
-        ///takes the first Image in the subtree, which here is the row background.
-        EnableGridSnapping = row.AddOrGet<FToggle>();
+        ///SetCheckmark is not optional: FToggle's own fallback takes the first Image in the
+        ///subtree, which here is the row background.
+        EnableGridSnapping = transform.Find("InfoItemsContainer/GridSnap").gameObject.AddOrGet<FToggle>();
         EnableGridSnapping.SetCheckmark("Checkbox/Checkmark");
         EnableGridSnapping.SetOnFromCode(BlueprintState.CurrentStateInfo().SnapToGrid);
         EnableGridSnapping.OnChange += (on) => BlueprintState.CurrentStateInfo().SnapToGrid = on;
         UIUtils.AddSimpleTooltipToObject(EnableGridSnapping.gameObject, GRIDSNAP.TOOLTIP);
-
-        ///right to left from the checkbox, so the row reads "Snap to Grid: [W] [H] [x]".
-        CloneStepInput(row, "HeightInput", 0);
-        CloneStepInput(row, "WidthInput", 1);
 
         GridSnapX = InitGridStepInput("WidthInput", (info, v) => info.GridSnapX = v, info => info.GridSnapX);
         GridSnapY = InitGridStepInput("HeightInput", (info, v) => info.GridSnapY = v, info => info.GridSnapY);
     }
 
     /// <summary>
-    /// Clones the note tool's title input into the grid-snap row under <paramref name="name"/>.
-    /// It is the one input the loaded prefabs offer in the shape FInputField2 requires - a
-    /// TMP_InputField whose viewport holds a Text and a Placeholder - and FInputField2 is
-    /// [MyCmpReq] on that field, so it cannot be added to a bare GameObject.
-    ///
-    /// The row has no layout group - its children sit on absolute RectTransforms - so the clone is
-    /// placed by hand: anchored to the row's right edge, <paramref name="slot"/> field widths
-    /// inboard of the checkbox, and as tall as it. Left alone it keeps the title input's
-    /// full-width anchors (#117).
-    /// </summary>
-    static void CloneStepInput(GameObject row, string name, int slot)
-    {
-        var source = ModAssets.NoteToolStateScreenGO.transform.Find("NoteTitleInput/Input").gameObject;
-        var input = Util.KInstantiateUI(source, row, true);
-        input.name = name;
-        ///the clone inherits the note title's LocText keys, which resolve to real strings - the
-        ///placeholder would read "Add note name..." the moment a language is applied. ClearPlace()
-        ///blanks the text but not the key, so both have to go through TryChangeText.
-        UIUtils.TryChangeText(input.transform, "TextArea/Text", string.Empty);
-        UIUtils.TryChangeText(input.transform, "TextArea/Placeholder", string.Empty);
-
-        var rowRect = (RectTransform)row.transform;
-        var checkbox = (RectTransform)row.transform.Find("Checkbox");
-        ///the checkbox's left edge, measured from the row's right edge, in row space.
-        float checkboxLeft = checkbox.localPosition.x + checkbox.rect.xMin - rowRect.rect.xMax;
-
-        var rect = (RectTransform)input.transform;
-        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 0.5f);
-        rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, GridStepFieldWidth);
-        rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, checkbox.rect.height);
-        rect.anchoredPosition = new Vector2(
-            checkboxLeft - GridStepFieldGap - slot * (GridStepFieldWidth + GridStepFieldGap),
-            checkbox.localPosition.y + checkbox.rect.center.y - rowRect.rect.center.y);
-
-        var textArea = (RectTransform)input.transform.Find("TextArea");
-        textArea.offsetMin = new Vector2(GridStepFieldGap / 2f, 0f);
-        textArea.offsetMax = new Vector2(-GridStepFieldGap / 2f, 0f);
-        ///and its text is aligned and sized for a taller field, which clips the digits at this
-        ///height: centre it, no larger than the row's own label.
-        float fontSize = row.transform.Find("Label").GetComponent<LocText>().fontSize;
-        TMPConverter.SetTextFit(input, "TextArea/Text", TextAlignmentOptions.Center, fontSize);
-        TMPConverter.SetTextFit(input, "TextArea/Placeholder", TextAlignmentOptions.Center, fontSize);
-    }
-
-    /// <summary>
-    /// Builds the snapshot Save / Export row by cloning the material-overrides row, rather than
-    /// taking it from upstream's prefab: the bundle cb3991a ships it in is not a readable
-    /// AssetBundle (no <c>UnityFS</c> header - ONI refuses to load it and the mod fails at
-    /// startup), and it postdates their relicense in any case. Like <see cref="BuildGridSnapRow"/>,
-    /// this builds the row from parts the fork's own bundles already contain.
+    /// Wires the snapshot Save / Export row, authored in the prefab like the rest of the screen.
     /// </summary>
     void BuildExportActions()
     {
-        var template = transform.Find("InfoItemsContainer/MaterialOverrides").gameObject;
-        ExportActions = Util.KInstantiateUI(template, template.transform.parent.gameObject, true);
-        ExportActions.name = "ExportActions";
-        ExportActions.transform.SetSiblingIndex(template.transform.GetSiblingIndex() + 1);
+        ExportActions = transform.Find("InfoItemsContainer/ExportActions").gameObject;
 
-        var save = ExportActions.transform.Find("Button").gameObject;
-        save.name = "Save";
-        var export = Util.KInstantiateUI(save, ExportActions, true);
-        export.name = "Export";
-
-        ///the clones carry the template's serialized state but not its C# event subscriptions, so
-        ///each starts with no handler of its own.
-        SaveSnapshot = save.AddOrGet<FButton>();
-        SaveSnapshot.ClearOnClick();
+        SaveSnapshot = ExportActions.transform.Find("Save").gameObject.AddOrGet<FButton>();
         SaveSnapshot.OnClick += SaveSnapshotAsBlueprint;
-        SetButtonLabel(save, EXPORTACTIONS.SAVE_LABEL);
-        UIUtils.AddSimpleTooltipToObject(save, EXPORTACTIONS.SAVE_TOOLTIP);
+        UIUtils.AddSimpleTooltipToObject(SaveSnapshot.gameObject, EXPORTACTIONS.SAVE_TOOLTIP);
 
         ///upstream put both handlers on the Save button, leaving Export inert (cb3991a).
-        ExportSnapshot = export.AddOrGet<FButton>();
-        ExportSnapshot.ClearOnClick();
+        ExportSnapshot = ExportActions.transform.Find("Export").gameObject.AddOrGet<FButton>();
         ExportSnapshot.OnClick += ExportSnapshotToClipboard;
-        SetButtonLabel(export, EXPORTACTIONS.EXPORT_LABEL);
-        UIUtils.AddSimpleTooltipToObject(export, EXPORTACTIONS.EXPORT_TOOLTIP);
-    }
-
-    static void SetButtonLabel(GameObject button, string text)
-    {
-        var label = button.transform.Find("Label");
-        if (label != null && label.TryGetComponent<LocText>(out var locText))
-            locText.SetText(text);
+        UIUtils.AddSimpleTooltipToObject(ExportSnapshot.gameObject, EXPORTACTIONS.EXPORT_TOOLTIP);
     }
 
     /// <summary>

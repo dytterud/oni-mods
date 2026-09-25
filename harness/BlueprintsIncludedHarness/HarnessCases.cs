@@ -3770,11 +3770,10 @@ internal static class HarnessCases
     // ---- #96: Save / Export on the snapshot state screen ---------------------------
 
     /// <summary>
-    /// The ExportActions row is built in code by cloning the material-overrides row, because the
-    /// bundle upstream ships it in (cb3991a) is not a readable AssetBundle. Checks the row is
-    /// built with both buttons, that each got its own handler - upstream wired both to Save,
-    /// leaving Export inert - and that saving really writes a snapshot to the blueprints folder,
-    /// where upstream's Write() on a snapshot's bare-GUID path would have thrown.
+    /// The ExportActions row is authored in the prefab (dytterud/oni-blueprints-ui, #122). Checks
+    /// both buttons are there with their own labels, that each got its own handler - upstream
+    /// wired both to Save, leaving Export inert - and that saving really writes a snapshot to the
+    /// blueprints folder, where upstream's Write() on a snapshot's bare-GUID path would have thrown.
     /// </summary>
     private static IEnumerator SnapshotSaveAndExportButtons()
     {
@@ -3789,13 +3788,14 @@ internal static class HarnessCases
             Assert.True(screen != null, "the blueprint state screen was created");
 
             var row = screen!.transform.Find("InfoItemsContainer/ExportActions");
-            Assert.True(row != null, "the screen builds an InfoItemsContainer/ExportActions row");
+            Assert.True(row != null, "the screen has an InfoItemsContainer/ExportActions row");
 
             var handlers = new Dictionary<string, string>();
-            foreach (var name in new[] { "Save", "Export" })
+            foreach (var (name, labelKey) in new[] { ("Save", "SAVE_LABEL"), ("Export", "EXPORT_LABEL") })
             {
                 var button = row!.Find(name);
                 Assert.True(button != null, $"ExportActions/{name} exists");
+                AssertLabelKey(button!.Find("Label"), StateStringKey + "EXPORTACTIONS." + labelKey, $"ExportActions/{name}");
                 var fButton = button!.GetComponent<UtilLibs.UIcmp.FButton>();
                 Assert.True(fButton != null, $"ExportActions/{name} is wired as a button");
                 var onClick = (Delegate?)AccessTools.Field(typeof(UtilLibs.UIcmp.FButton), "OnClick").GetValue(fButton);
@@ -4107,17 +4107,28 @@ internal static class HarnessCases
     // ---- #79: snap-to-grid ---------------------------------------------
 
     /// <summary>
-    /// The GridSnap row is built at runtime by the screen, out of a cloned sibling row and two
-    /// inputs cloned from the note tool's screen: upstream ships it in their cc28b8b bundle, which
-    /// postdates their relicense, so this fork stays on its own bundles and assembles the row
-    /// instead (docs/blueprints-included/asset-provenance.md). None of that is inspectable
-    /// offline. This checks the screen really assembles and wires it - the toggle and both step
-    /// inputs exist, the row is a sibling of the template it was cloned from rather than the
-    /// template itself, and selecting a blueprint defaults the step to its footprint.
+    /// The GridSnap row is authored in the prefab (dytterud/oni-blueprints-ui, #122); it used to
+    /// be cloned together at runtime. Checks the shipped prefab has it, directly after
+    /// ApplySettingsToExisting, with its own label, that the screen wires the toggle and both step
+    /// inputs, that selecting a blueprint defaults the step to its footprint, and that the step
+    /// fields are laid out inside the row (#117).
     /// </summary>
     // CurrentBlueprintStateScreen is internal - reach it by reflection.
     private static readonly Type StateScreenType =
         typeof(Blueprint).Assembly.GetType("BlueprintsV2.UnityUI.CurrentBlueprintStateScreen")!;
+
+    private const string StateStringKey = "STRINGS.UI.USEBLUEPRINTSTATECONTAINER.INFOITEMSCONTAINER.";
+
+    /// <summary>A prefab label keeps its own LocText key, and that key resolves to a real string -
+    /// a copied row that kept its template's key would show the template's text.</summary>
+    private static void AssertLabelKey(Transform? label, string key, string what)
+    {
+        var text = label?.GetComponent<LocText>();
+        Assert.True(text != null, $"{what} has a converted Label");
+        Assert.Equal(key, text!.key, $"{what}'s label key");
+        Assert.True(Strings.TryGet(new StringKey(key), out var entry) && !string.IsNullOrEmpty(entry.String),
+            $"{what}'s label key resolves to a string");
+    }
 
     private static IEnumerator GridSnapRowIsWired()
     {
@@ -4132,26 +4143,21 @@ internal static class HarnessCases
             Assert.True(screen != null, "the blueprint state screen was created");
 
             var row = screen!.transform.Find("InfoItemsContainer/GridSnap");
-            Assert.True(row != null, "the screen built an InfoItemsContainer/GridSnap row");
+            Assert.True(row != null, "the screen has an InfoItemsContainer/GridSnap row");
 
-            ///the standing guard against a post-relicense bundle being re-imported: the prefab the
-            ///screen is instantiated from must NOT contain the row. ModAssets is internal - reach
-            ///its loaded prefab by reflection, as the cases above do.
+            ///the row comes from the prefab now, not from code. ModAssets is internal - reach its
+            ///loaded prefab by reflection, as the cases above do.
             var statePrefab = (GameObject)typeof(Blueprint).Assembly.GetType("BlueprintsV2.ModAssets")!
                 .GetField("BlueprintInfoStateGO")!.GetValue(null)!;
-            Assert.True(statePrefab.transform.Find("InfoItemsContainer/GridSnap") == null,
-                "the shipped bundle has no GridSnap row - the screen builds it");
+            Assert.True(statePrefab.transform.Find("InfoItemsContainer/GridSnap") != null,
+                "the shipped bundle authors the GridSnap row");
 
-            ///and it lands directly after the row it is cloned from, rather than anywhere.
-            var template = screen.transform.Find("InfoItemsContainer/ApplySettingsToExisting");
-            Assert.True(template != null, "the ApplySettingsToExisting row the GridSnap row is cloned from exists");
-            Assert.Equal(template!.GetSiblingIndex() + 1, row!.GetSiblingIndex(),
-                "the GridSnap row sits directly after the row it was cloned from");
+            var previous = screen.transform.Find("InfoItemsContainer/ApplySettingsToExisting");
+            Assert.True(previous != null, "the ApplySettingsToExisting row exists");
+            Assert.Equal(previous!.GetSiblingIndex() + 1, row!.GetSiblingIndex(),
+                "the GridSnap row sits directly after ApplySettingsToExisting");
 
-            ///a clone inherits its template's LocText key, which would resolve back to the
-            ///template's string the moment a language is applied - silent in English.
-            var label = row.Find("Label")!.GetComponent<LocText>();
-            Assert.True(string.IsNullOrEmpty(label.key), "the cloned row's label does not keep the template's LocText key");
+            AssertLabelKey(row.Find("Label"), StateStringKey + "GRIDSNAP.LABEL", "GridSnap");
             Assert.True(row!.GetComponent<UtilLibs.UIcmp.FToggle>() != null, "the GridSnap row is wired as a toggle");
             foreach (var input in new[] { "WidthInput", "HeightInput" })
             {
@@ -4166,9 +4172,9 @@ internal static class HarnessCases
             Assert.Equal(size.x, st.GridSnapX, "selecting a blueprint defaults the X step to its footprint");
             Assert.Equal(size.y, st.GridSnapY, "selecting a blueprint defaults the Y step to its footprint");
 
-            ///#117: the step fields are placed by hand, and a clone that keeps the note title's
-            ///anchors spans the panel with the other hidden behind it. Wait out ShowScreen's
-            ///one-frame reactivation so the rects are the laid-out ones.
+            ///#117: the step fields sit on absolute rects in a row with no layout group; ones that
+            ///kept a full-width input's anchors would span the panel with the other hidden behind
+            ///it. Wait out ShowScreen's one-frame reactivation so the rects are the laid-out ones.
             yield return null;
             Canvas.ForceUpdateCanvases();
             var rowRect = WorldRect(row);

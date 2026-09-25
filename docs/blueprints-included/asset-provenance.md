@@ -57,8 +57,8 @@ Decompressed and diffed at the object level, not by file size:
 - `895fa78` → `f3888d6` adds the **GridSnap row** under `InfoItemsContainer` — the row, its
   `Checkbox`/`Checkmark`, a `Label`, and `WidthInput`/`HeightInput` with their `TextArea`,
   `Text` and `Placeholder` — plus five `…INFOITEMSCONTAINER.GRIDSNAP.*` text blocks.
-  `CurrentBlueprintStateScreen.BuildGridSnapRow` now assembles that row from parts the pinned
-  bundle already has.
+  This fork's spec authors its own GridSnap row (#122), copied from rows the MIT spec already
+  has — `ApplySettingsToExisting` and the note tool's title input — not taken from `f3888d6`.
 - `f3888d6` also brought **`assets/uis/noteoptions.prefab`**, which nothing in this repo has ever
   referenced: a `UnityEngine.UI.Slider` and a checkbox for upstream's own note-opacity toggle,
   plus three sprites and 12 KiB of `.resS`. This fork's note opacity is a PLib config float. It
@@ -145,9 +145,9 @@ version:
 
 | Platform | Blob |
 |---|---|
-| windows | `ccc8b25` |
-| mac | `4351037` |
-| linux | `93906a3` |
+| windows | `a8f2f60` |
+| mac | `9beda45` |
+| linux | `f62e1bf` |
 
 Check them with `git hash-object`. Its `tools/compare.py` reported all three identical to the
 spec, and the in-game harness passed with them in place.
@@ -164,4 +164,5 @@ To ship a new build:
 3. Run the harness.
 4. Update the table above.
 
-The overflow fixup is back in the prefab (#123); `BuildGridSnapRow` is next (#122).
+The overflow fixup (#123) and the GridSnap and ExportActions rows (#122) are authored in the
+prefab now, so the screen only wires them.
