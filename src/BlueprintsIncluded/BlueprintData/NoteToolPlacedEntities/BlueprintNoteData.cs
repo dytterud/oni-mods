@@ -24,12 +24,7 @@ public class BlueprintNoteData
     public float ElementMass;
     public float ElementTemperature;
 
-    public Sprite GetNoteSprite()
-    {
-        if (!Symbol.IsNullOrWhiteSpace() && TextNote.SymbolMap.TryGetValue(Symbol, out var sprite))
-            return sprite;
-        return ModAssets.Note_Placer_Sprite;
-    }
+    public Sprite GetNoteSprite() => TextNote.IconFor(Symbol);
 
     public bool IsValid() => Type != NoteType.Invalid;
 
