@@ -52,7 +52,8 @@ Decompressed and diffed at the object level, not by file size:
   every font atlas — is byte-identical, so there was never a font change here and reverting
   cannot regress glyph rendering. Truncate drops a *line* that does not fit its rect vertically,
   which is why CJK names came out empty where Latin ones did not; `Ellipsis` would have the same
-  bug. `ModAssets.LoadAssets` now sets `Overflow` on the loaded prefab instead.
+  bug. The rebuilt bundle authors `Overflow` in the prefab (#123); until then
+  `ModAssets.LoadAssets` set it on the loaded prefab.
 - `895fa78` → `f3888d6` adds the **GridSnap row** under `InfoItemsContainer` — the row, its
   `Checkbox`/`Checkmark`, a `Label`, and `WidthInput`/`HeightInput` with their `TextArea`,
   `Text` and `Placeholder` — plus five `…INFOITEMSCONTAINER.GRIDSNAP.*` text blocks.
@@ -144,9 +145,9 @@ version:
 
 | Platform | Blob |
 |---|---|
-| windows | `e5a2ec8` |
-| mac | `e4965f3` |
-| linux | `eb7b143` |
+| windows | `ccc8b25` |
+| mac | `4351037` |
+| linux | `93906a3` |
 
 Check them with `git hash-object`. Its `tools/compare.py` reported all three identical to the
 spec, and the in-game harness passed with them in place.
@@ -163,5 +164,4 @@ To ship a new build:
 3. Run the harness.
 4. Update the table above.
 
-Doing it would let `BuildGridSnapRow` and the overflow fixup go back into the prefab, and would
-take the last third-party art out of this repository.
+The overflow fixup is back in the prefab (#123); `BuildGridSnapRow` is next (#122).
