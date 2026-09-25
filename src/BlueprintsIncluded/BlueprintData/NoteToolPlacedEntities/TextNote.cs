@@ -8,6 +8,12 @@ internal class TextNote : BlueprintNote
 {
     public static Dictionary<string, Sprite> SymbolMap = [];
 
+    /// <summary>The icon a text note with <paramref name="symbol"/> shows. A note with no symbol -
+    /// including every note from before symbols existed - or with one no longer in
+    /// <see cref="SymbolMap"/> shows the info icon.</summary>
+    public static Sprite IconFor(string symbol) =>
+        !symbol.IsNullOrWhiteSpace() && SymbolMap.TryGetValue(symbol, out var sprite) ? sprite : ModAssets.Note_Placer_Sprite;
+
 
 
 
@@ -41,10 +47,9 @@ internal class TextNote : BlueprintNote
         selectable?.SetName(name);
         this.gameObject.name = name;
         description?.description = Text;
-        if (!Symbol.IsNullOrWhiteSpace() && SymbolMap.TryGetValue(Symbol, out var sprite))
-        {
-            renderer?.material.mainTexture = sprite.texture;
-        }
+        ///set every time, not only when a symbol resolves: a note whose symbol is cleared must not
+        ///keep the last icon it showed (#129)
+        renderer?.material.mainTexture = IconFor(Symbol).texture;
         renderer?.material?.color = SymbolTint;
         ApplyNoteOpacity();
 

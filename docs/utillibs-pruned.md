@@ -2,7 +2,8 @@
 
 `src/UtilLibs/` is a vendored copy of SGT_Imalas' shared helper library, ILRepacked into the
 mod dll. It serves *every* Imalas ONI mod, so most of it was machinery this fork never called.
-On 2026-09-10 the unreachable part — the bulk of the library — was removed.
+On 2026-09-10 the unreachable part — the bulk of the library — was removed. Six `UI/FUI/` files
+kept back then for prefab safety followed on 2026-09-25 (#124).
 
 The file list below is the record of what went; check it before porting an upstream `UtilLibs`
 change. It is
@@ -20,18 +21,21 @@ Reachability from `src/BlueprintsIncluded/`, `test/` and `harness/`, followed tr
 through `src/UtilLibs/` — then **confirmed by the compiler**: the candidates were deleted and
 `dotnet build` + `dotnet test` had to stay green. Static analysis only proposed the set; the
 build decided it. Two files came back that way (`UI/FUI/FInputField.cs` and
-`FNumberInputField.cs`, both needed by the retained `FSlider.cs`).
+`FNumberInputField.cs`, both needed by `FSlider.cs`, then still retained).
+
+The second pass (#124) removed the six files of the
+[prefab-safety batch](#uifui-prefab-safety-batch), confirmed the same way.
 
 ## The restore invariant
 
-**Every pruned file was byte-identical to upstream when it was removed**, so nothing
-fork-local was lost. At the fork point only four `UtilLibs` files differed from upstream, and
-none of them are on this list:
-`UtilMethods.cs` and `InjectionMethods.cs` are still live, `UtilLibs.csproj` was kept, and
-`UI/FUI/FSlider.cs` is retained (see below).
+**Every pruned file but one was byte-identical to upstream when it was removed.** At the fork
+point only four `UtilLibs` files differed from upstream: `UtilMethods.cs` and
+`InjectionMethods.cs` are still live, `UtilLibs.csproj` was kept, and `UI/FUI/FSlider.cs` —
+the exception — went in the second pass with its fork-local difference. That difference is
+kept in history, not lost.
 
-So **restore from this repo's history, not from upstream.** The copy from before the prune
-(`58f2ed0^`) is the one this fork holds under MIT. Upstream relicensed away from MIT on
+So **restore from this repo's history, not from upstream.** The copy from before the prune is
+the one this fork holds under MIT. Upstream relicensed away from MIT on
 2026-09-07 (see [asset provenance](blueprints-included/asset-provenance.md#the-relicense-cut)), so
 its newer copy is not ours to take.
 
@@ -39,8 +43,10 @@ its newer copy is not ours to take.
 
 Needed only if a ported `BlueprintsV2` change actually calls the helper.
 
-1. Take the file from before the prune — `git show 58f2ed0^:src/UtilLibs/<path>` — and put it
-   back at `src/UtilLibs/<path>`.
+1. Take the file from before the commit that deleted it and put it back at
+   `src/UtilLibs/<path>`. The first pass was `58f2ed0`; for either pass,
+   `git log -1 --format=%h --diff-filter=D -- src/UtilLibs/<path>` names the commit, and
+   `git show <commit>^:src/UtilLibs/<path>` prints the file.
 2. If upstream has changed it since and the port needs that change, describe it and reimplement
    it [clean-room](blueprints-included/asset-provenance.md#the-rule) — never take
    upstream's copy.
@@ -48,34 +54,6 @@ Needed only if a ported `BlueprintsV2` change actually calls the helper.
    off. See [CLAUDE.md](../CLAUDE.md).
 4. **Delete its entry below in the same commit**, so the manifest never claims a file is gone
    when it is back.
-
-## Dead but retained — *not* pruned
-
-Four `KMonoBehaviour` subclasses are unreachable from the mod but were kept anyway.
-
-    src/UtilLibs/UI/FUI/FSlider.cs
-    src/UtilLibs/UI/FUI/FExpandToggle.cs
-    src/UtilLibs/UI/FUI/GridLayoutSizeAdjustment.cs
-    src/UtilLibs/UI/FUI/PasswordInputVisibilityToggle.cs
-
-Two more (`UI/FUI/FInputField.cs`, `UI/FUI/FNumberInputField.cs`) survive only because
-`FSlider.cs` needs them to compile.
-
-**The reason originally given for keeping them has been withdrawn.** It was that the external
-Unity project behind `ModAssets/assets/*/blueprints_ui` might have attached one to a prefab, and
-that a missing script breaks that prefab at load — which could not be checked, because the
-bundles are compressed. They have since been decompressed. Every `MonoScript` the three bundles
-reference resolves to `UnityEngine.UI` or `Unity.TextMeshPro`; there is no mod script in them at
-all, and no prefab that could break. See [asset provenance](blueprints-included/asset-provenance.md).
-
-They stay for now only because removing them is unrelated to the change that established this,
-and is tracked separately. There is no longer a reason not to.
-
-These six are **present in the tree**, so the normal `direct`/`indirect` reachability tests
-apply to them — do not treat them as pruned. Note that upstream
-[`de689d1`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/de689d1) already changed
-`FSlider.cs` and was triaged `unused-helper`, so this file is dead code and behind upstream.
-Both facts are intentional.
 
 ## The pruned files
 
@@ -174,6 +152,30 @@ grep -F "UtilLibs/RecipeBuilder.cs" docs/utillibs-pruned.md
 
     src/UtilLibs/UI/FUI/ModMenuButton.cs
     src/UtilLibs/UI/FUI/SideScreen.cs
+
+### UI/FUI/ prefab-safety batch
+
+Pruned in the second pass (#124). The first pass kept these four `KMonoBehaviour` subclasses
+in case a bundle prefab had one attached, since a missing script breaks that prefab at load:
+
+    src/UtilLibs/UI/FUI/FSlider.cs
+    src/UtilLibs/UI/FUI/FExpandToggle.cs
+    src/UtilLibs/UI/FUI/GridLayoutSizeAdjustment.cs
+    src/UtilLibs/UI/FUI/PasswordInputVisibilityToggle.cs
+
+and these two, needed only by `FSlider.cs`:
+
+    src/UtilLibs/UI/FUI/FInputField.cs
+    src/UtilLibs/UI/FUI/FNumberInputField.cs
+
+That reason no longer holds. The inherited bundles, once decompressed, referenced no mod script,
+and the bundles this fork now builds from its own spec (#120) use only stock `UnityEngine.UI` /
+`Unity.TextMeshPro` components. See [asset provenance](blueprints-included/asset-provenance.md).
+`FInputField2.cs` is a different class and stays.
+
+`FSlider.cs` carried a fork-local difference from upstream and was already behind it: upstream
+[`de689d1`](https://github.com/Sgt-Imalas/Sgt_Imalas-Oni-Mods/commit/de689d1) was triaged
+`unused-helper`. Restore it, if ever, from this repo's history, as for any other file.
 
 ### YeetUtils/
 

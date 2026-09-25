@@ -109,6 +109,7 @@ internal static class HarnessCases
         new HarnessCase("game-sprites-replace-the-bundle-art", GameSpritesReplaceBundleArt),
         new HarnessCase("bundle-dialogs-open-and-bind", BundleDialogsOpenAndBind),
         new HarnessCase("folder-dropdown-labels-overflow", FolderDropdownLabelsOverflow),
+        new HarnessCase("legacy-text-note-shows-the-info-icon", LegacyTextNoteShowsInfoIcon),
     };
 
     // ---- capture + JSON round-trip ------------------------------------
@@ -3832,6 +3833,100 @@ internal static class HarnessCases
             st.IsPlacingSnapshot = false;
             if (writtenPath != null && System.IO.File.Exists(writtenPath))
                 System.IO.File.Delete(writtenPath);
+        }
+    }
+
+    // ---- #129: a text note with no symbol shows the info icon ------------------------------
+
+    /// <summary>
+    /// Upstream reported notes from before symbols existed drawing the capture icon instead of
+    /// the info icon. Here: a seated note with no symbol must render ModAssets.Note_Placer_Sprite,
+    /// the "(i)" art, and keep it after the create-blueprint and snapshot tools have run - a write
+    /// into the shared note material would change every such note at once. A second note with a
+    /// symbol must show that symbol, then fall back to "(i)" when the symbol is cleared.
+    ///
+    /// Save/reload is not covered: a reloaded note takes the same OnSpawn -> SetDescription path
+    /// as a created one, but the harness cannot reload the colony mid-run.
+    /// </summary>
+    private static IEnumerator LegacyTextNoteShowsInfoIcon()
+    {
+        var asm = typeof(Blueprint).Assembly;
+        var textNote = asm.GetType("BlueprintsV2.BlueprintData.NoteToolPlacedEntities.TextNote")!;
+        var info = ((Sprite)asm.GetType("BlueprintsV2.ModAssets")!
+            .GetField("Note_Placer_Sprite", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!).texture;
+        var symbolMap = (Dictionary<string, Sprite>)textNote.GetField("SymbolMap", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!;
+        Assert.True(symbolMap.Count > 0, "the symbol map is populated");
+        var symbol = symbolMap.First(kv => kv.Value.texture != info);
+
+        var xy = Grid.CellToXY(AnchorCell);
+        int legacyCell = Grid.XYToCell(xy.x - 6, xy.y - 3), symbolCell = Grid.XYToCell(xy.x - 5, xy.y - 3);
+        foreach (int cell in new[] { legacyCell, symbolCell })
+        {
+            if (Grid.IsSolidCell(cell))
+                SimMessages.Dig(cell, skipEvent: true);
+        }
+        for (int i = 0; i < 30 && (Grid.IsSolidCell(legacyCell) || Grid.IsSolidCell(symbolCell)); i++) yield return null;
+
+        Component CreateNote(int cell, string sym) => (Component)textNote.GetMethod("Create", BindingFlags.Public | BindingFlags.Static)!
+            .Invoke(null, new object[] { cell, "Harness note", "", sym, Color.white, true })!;
+        Texture? Shown(Component note) => note.GetComponentInChildren<MeshRenderer>()?.material.mainTexture;
+
+        try
+        {
+            var legacy = CreateNote(legacyCell, "");
+            var withSymbol = CreateNote(symbolCell, symbol.Key);
+            for (int i = 0; i < 5; i++) yield return null;
+
+            Log?.Line($"  no symbol shows info: {Shown(legacy) == info}; symbol '{symbol.Key}' shows its own: {Shown(withSymbol) == symbol.Value.texture}");
+            Assert.True(Shown(legacy) == info, "a note with no symbol shows the info icon");
+            Assert.True(Shown(withSymbol) == symbol.Value.texture, "a note with a symbol shows that symbol");
+
+            ///the tools with capture-style visualizers, then a snapshot over both notes and its preview
+            PlayerController.Instance.ActivateTool(BlueprintsV2.Tools.CreateBlueprintTool.Instance);
+            for (int i = 0; i < 5; i++) yield return null;
+            PlayerController.Instance.ActivateTool(BlueprintsV2.Tools.SnapshotTool.Instance);
+            for (int i = 0; i < 5; i++) yield return null;
+            var lx = Grid.CellToXY(legacyCell);
+            var menu = Tools.MultiToolParameterMenu.Instance;
+            var paramsField = typeof(Tools.MultiToolParameterMenu).GetField("parameters", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            object? savedParams = paramsField.GetValue(menu);
+            paramsField.SetValue(menu, new Dictionary<string, ToolParameterMenu.ToggleState>
+            {
+                { CollectNotesFilterKey, ToolParameterMenu.ToggleState.On },
+            });
+            Blueprint bp;
+            try
+            {
+                bp = BlueprintState.CreateBlueprint(new Vector2I(lx.x - 1, lx.y), new Vector2I(lx.x + 2, lx.y), menu, createsSnapshot: true);
+            }
+            finally
+            {
+                paramsField.SetValue(menu, savedParams);
+            }
+            Log?.Line($"  snapshot holds {bp.WorldNotes.Count} note(s)");
+            Assert.Equal(2, bp.WorldNotes.Count, "the snapshot captured both notes");
+            BlueprintState.VisualizeBlueprint(new Vector2I(lx.x - 1, lx.y + 4), bp);
+            for (int i = 0; i < 5; i++) yield return null;
+            BlueprintState.ClearVisuals();
+            PlayerController.Instance.ActivateTool(SelectTool.Instance);
+            for (int i = 0; i < 5; i++) yield return null;
+
+            Assert.True(Shown(legacy) == info, "after the create and snapshot tools, the note still shows the info icon");
+            Assert.True(Shown(withSymbol) == symbol.Value.texture, "after the tools, the symbol note still shows its symbol");
+
+            ///clearing the symbol falls back to the info icon, rather than keeping the last one shown
+            textNote.GetMethod("UpdateInfo", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .Invoke(withSymbol, new object?[] { null, null, "", null });
+            yield return null;
+            Assert.True(Shown(withSymbol) == info, "a note whose symbol is cleared shows the info icon");
+        }
+        finally
+        {
+            BlueprintState.ClearVisuals();
+            if (PlayerController.Instance.ActiveTool != SelectTool.Instance)
+                PlayerController.Instance.ActivateTool(SelectTool.Instance);
+            BlueprintsV2.BlueprintData.NoteToolPlacedEntities.BlueprintNote.ClearExistingNote(legacyCell);
+            BlueprintsV2.BlueprintData.NoteToolPlacedEntities.BlueprintNote.ClearExistingNote(symbolCell);
         }
     }
 
